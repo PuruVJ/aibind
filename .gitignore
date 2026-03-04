@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.svelte-kit/
+.env
+.env.*
+!.env.example
+*.tgz

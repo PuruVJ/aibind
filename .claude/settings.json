@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter svai test)",
+      "Bash(pnpm --filter svai package)",
+      "Bash(pnpm --filter svai exec svelte-package --help)",
+      "Bash(pnpm --filter svai add -D @types/node)",
+      "Bash(pnpm --filter svai exec node -e \":*)",
+      "Bash(pnpm --filter svai check)",
+      "Bash(git init)"
+    ]
+  }
+}
