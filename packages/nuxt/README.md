@@ -40,11 +40,11 @@ npm install arktype
 
 ```ts
 // server/api/__aibind__/[...path].ts
-import { createStreamHandler } from '@aibind/nuxt/server';
-import { anthropic } from '@ai-sdk/anthropic';
+import { createStreamHandler } from "@aibind/nuxt/server";
+import { anthropic } from "@ai-sdk/anthropic";
 
 const handler = createStreamHandler({
-  model: anthropic('claude-sonnet-4-20250514')
+  model: anthropic("claude-sonnet-4-20250514"),
 });
 
 export default defineEventHandler(async (event) => {
@@ -56,13 +56,13 @@ export default defineEventHandler(async (event) => {
 
 ```vue
 <script setup lang="ts">
-import { useStream } from '@aibind/nuxt';
+import { useStream } from "@aibind/nuxt";
 
 const { text, loading, send } = useStream({
-  system: 'You are a helpful assistant.'
+  system: "You are a helpful assistant.",
 });
 
-const prompt = ref('');
+const prompt = ref("");
 </script>
 
 <template>
@@ -80,7 +80,7 @@ const prompt = ref('');
 ### `@aibind/nuxt` — Client Composables
 
 ```ts
-import { useStream, useStructuredStream, defineModels } from '@aibind/nuxt';
+import { useStream, useStructuredStream, defineModels } from "@aibind/nuxt";
 ```
 
 #### `defineModels(models)`
@@ -89,12 +89,12 @@ Define named AI models for type-safe model selection.
 
 ```ts
 // models.ts
-import { defineModels } from '@aibind/nuxt';
-import { anthropic } from '@ai-sdk/anthropic';
+import { defineModels } from "@aibind/nuxt";
+import { anthropic } from "@ai-sdk/anthropic";
 
 export const models = defineModels({
-  default: anthropic('claude-sonnet-4-20250514'),
-  fast: anthropic('claude-haiku-20250514'),
+  default: anthropic("claude-sonnet-4-20250514"),
+  fast: anthropic("claude-haiku-20250514"),
 });
 
 export type Models = typeof models.$infer; // 'default' | 'fast'
@@ -106,22 +106,22 @@ Reactive streaming text. Endpoint defaults to `/api/__aibind__/stream`.
 
 ```ts
 const { text, loading, error, done, send, abort, retry } = useStream({
-  model: 'fast',                           // optional model key
-  system: 'You are a poet.',
-  endpoint: '/api/custom/stream',          // override default
-  fetch: customFetch,                      // optional custom fetch
+  model: "fast", // optional model key
+  system: "You are a poet.",
+  endpoint: "/api/custom/stream", // override default
+  fetch: customFetch, // optional custom fetch
   onFinish: (text) => console.log(text),
-  onError: (err) => console.error(err)
+  onError: (err) => console.error(err),
 });
 
-send('Write a haiku');
-send('Now a limerick', { system: 'Override system prompt' });
-text.value;    // reactive accumulated text
+send("Write a haiku");
+send("Now a limerick", { system: "Override system prompt" });
+text.value; // reactive accumulated text
 loading.value; // true while streaming
-error.value;   // Error | null
-done.value;    // true when complete
-abort();       // cancel in-flight request
-retry();       // re-send last prompt
+error.value; // Error | null
+done.value; // true when complete
+abort(); // cancel in-flight request
+retry(); // re-send last prompt
 ```
 
 #### `useStructuredStream(options)`
@@ -129,22 +129,22 @@ retry();       // re-send last prompt
 Streams JSON and parses partial objects as they arrive. Validates the final result with any Standard Schema-compatible library. Endpoint defaults to `/api/__aibind__/structured`.
 
 ```ts
-import { useStructuredStream } from '@aibind/nuxt';
-import { z } from 'zod';
+import { useStructuredStream } from "@aibind/nuxt";
+import { z } from "zod";
 
 const { data, partial, raw, loading, error, send } = useStructuredStream({
   schema: z.object({
-    sentiment: z.enum(['positive', 'negative', 'neutral']),
+    sentiment: z.enum(["positive", "negative", "neutral"]),
     score: z.number(),
-    topics: z.array(z.string())
+    topics: z.array(z.string()),
   }),
-  system: 'Analyze sentiment. Return JSON matching the schema.'
+  system: "Analyze sentiment. Return JSON matching the schema.",
 });
 
-send('I love this product!');
+send("I love this product!");
 partial.value; // Partial<T> — updates as JSON streams in
-data.value;    // T | null — fully validated after completion
-raw.value;     // raw JSON string
+data.value; // T | null — fully validated after completion
+raw.value; // raw JSON string
 ```
 
 ---
@@ -152,7 +152,7 @@ raw.value;     // raw JSON string
 ### `@aibind/nuxt/server` — Server Handler
 
 ```ts
-import { createStreamHandler, ServerAgent } from '@aibind/nuxt/server';
+import { createStreamHandler, ServerAgent } from "@aibind/nuxt/server";
 ```
 
 #### `createStreamHandler(config)`
@@ -161,8 +161,8 @@ Generic Web Request/Response handler for streaming endpoints.
 
 ```ts
 const handler = createStreamHandler({
-  model: anthropic('claude-sonnet-4-20250514'),
-  prefix: '/api/__aibind__' // default
+  model: anthropic("claude-sonnet-4-20250514"),
+  prefix: "/api/__aibind__", // default
 });
 
 // Use in a Nuxt catch-all route:
@@ -172,6 +172,7 @@ export default defineEventHandler(async (event) => {
 ```
 
 Handles two routes:
+
 - `POST {prefix}/stream` — text streaming
 - `POST {prefix}/structured` — JSON streaming
 
@@ -180,21 +181,25 @@ Handles two routes:
 Server-side agent with tools, system prompt, and multi-step tool loops.
 
 ```ts
-import { ServerAgent } from '@aibind/nuxt/server';
-import { tool, stepCountIs } from 'ai';
-import { z } from 'zod';
+import { ServerAgent } from "@aibind/nuxt/server";
+import { tool, stepCountIs } from "ai";
+import { z } from "zod";
 
 const agent = new ServerAgent({
-  model: anthropic('claude-sonnet-4-20250514'),
-  system: 'You are a helpful assistant with access to tools.',
+  model: anthropic("claude-sonnet-4-20250514"),
+  system: "You are a helpful assistant with access to tools.",
   tools: {
     get_weather: tool({
-      description: 'Get weather for a city',
+      description: "Get weather for a city",
       inputSchema: z.object({ city: z.string() }),
-      execute: async ({ city }) => ({ city, temperature: '72°F', condition: 'sunny' })
-    })
+      execute: async ({ city }) => ({
+        city,
+        temperature: "72°F",
+        condition: "sunny",
+      }),
+    }),
   },
-  stopWhen: stepCountIs(5)
+  stopWhen: stepCountIs(5),
 });
 ```
 
@@ -203,7 +208,7 @@ const agent = new ServerAgent({
 ### `@aibind/nuxt/agent` — Client Agent
 
 ```ts
-import { useAgent } from '@aibind/nuxt/agent';
+import { useAgent } from "@aibind/nuxt/agent";
 ```
 
 #### `useAgent(options?)`
@@ -212,15 +217,20 @@ Reactive agent composable. Endpoint defaults to `/api/__aibind__/agent`.
 
 ```vue
 <script setup lang="ts">
-import { useAgent } from '@aibind/nuxt/agent';
+import { useAgent } from "@aibind/nuxt/agent";
 
 const { messages, status, send, stop } = useAgent();
 
-const prompt = ref('');
+const prompt = ref("");
 </script>
 
 <template>
-  <form @submit.prevent="send(prompt); prompt = ''">
+  <form
+    @submit.prevent="
+      send(prompt);
+      prompt = '';
+    "
+  >
     <input v-model="prompt" />
     <button :disabled="status === 'running'">Send</button>
   </form>
@@ -234,12 +244,14 @@ const prompt = ref('');
 ```
 
 **Reactive refs:**
+
 - `messages` — `Ref<AgentMessage[]>`
 - `status` — `Ref<'idle' | 'running' | 'awaiting-approval' | 'error'>`
 - `error` — `Ref<Error | null>`
 - `pendingApproval` — `Ref<{ id, toolName, args } | null>`
 
 **Methods:**
+
 - `send(prompt)` — send a message, streams response incrementally
 - `stop()` — abort the current request
 - `approve(id)` / `deny(id)` — respond to tool approval requests
@@ -249,17 +261,17 @@ const prompt = ref('');
 ### `@aibind/nuxt/markdown` — Streaming Markdown
 
 ```ts
-import { StreamMarkdown } from '@aibind/nuxt/markdown';
+import { StreamMarkdown } from "@aibind/nuxt/markdown";
 ```
 
 Renders streaming markdown with recovery for unterminated syntax. Uses `@aibind/markdown` under the hood.
 
 ```vue
 <script setup lang="ts">
-import { useStream } from '@aibind/nuxt';
-import { StreamMarkdown } from '@aibind/nuxt/markdown';
+import { useStream } from "@aibind/nuxt";
+import { StreamMarkdown } from "@aibind/nuxt/markdown";
 
-const { text, loading } = useStream({ system: 'You are a helpful assistant.' });
+const { text, loading } = useStream({ system: "You are a helpful assistant." });
 </script>
 
 <template>
@@ -268,6 +280,7 @@ const { text, loading } = useStream({ system: 'You are a helpful assistant.' });
 ```
 
 **Props:**
+
 - `text` — markdown string to render
 - `streaming` — when `true`, applies markdown recovery (closes unterminated bold, code blocks, etc.)
 

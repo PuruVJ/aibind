@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { useAgent } from '@aibind/nuxt/composables/agent';
+import { useAgent } from "@aibind/nuxt/composables/agent";
 
 const { messages, status, error, send, stop } = useAgent({
-  endpoint: '/api/agent',
+  endpoint: "/api/agent",
 });
 
-const prompt = ref('');
+const prompt = ref("");
 
 function handleSubmit() {
   const text = prompt.value.trim();
   if (!text) return;
   send(text);
-  prompt.value = '';
+  prompt.value = "";
 }
 </script>
 
@@ -19,12 +19,22 @@ function handleSubmit() {
   <div class="container">
     <header>
       <h1>Agent Demo</h1>
-      <p class="subtitle">An AI agent with tool-calling capabilities — try asking about the weather or current time.</p>
+      <p class="subtitle">
+        An AI agent with tool-calling capabilities — try asking about the
+        weather or current time.
+      </p>
     </header>
 
     <div class="messages">
-      <div v-for="message in messages" :key="message.id" class="message" :class="message.role">
-        <span class="role-label">{{ message.role === 'user' ? 'You' : 'Agent' }}</span>
+      <div
+        v-for="message in messages"
+        :key="message.id"
+        class="message"
+        :class="message.role"
+      >
+        <span class="role-label">{{
+          message.role === "user" ? "You" : "Agent"
+        }}</span>
         <div class="content">{{ message.content }}</div>
       </div>
 
@@ -46,7 +56,14 @@ function handleSubmit() {
         placeholder="Ask about the weather, time, or anything..."
         :disabled="status === 'running'"
       />
-      <button v-if="status === 'running'" type="button" class="stop-btn" @click="stop()">Stop</button>
+      <button
+        v-if="status === 'running'"
+        type="button"
+        class="stop-btn"
+        @click="stop()"
+      >
+        Stop
+      </button>
       <button v-else type="submit" :disabled="!prompt.trim()">Send</button>
     </form>
   </div>
@@ -117,8 +134,15 @@ h1 {
   animation: pulse 1s ease-in-out infinite;
 }
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 .error {
   background: #fef2f2;

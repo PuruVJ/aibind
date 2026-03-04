@@ -1,20 +1,15 @@
 {
-	"name": "@aibind/nuxt",
-	"version": "0.1.0",
-	"exports": {
-		".": "./src/index.ts",
-		"./server": "./src/server/index.ts",
-		"./composables/agent": "./src/composables/agent.ts",
-		"./markdown": "./src/markdown.ts"
-	},
-	"publish": {
-		"include": [
-			"src/",
-			"README.md"
-		],
-		"exclude": [
-			"**/*.test.ts"
-		]
-	},
-	"license": "MIT"
+  "name": "@aibind/nuxt",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server/index.ts",
+    "./composables/agent": "./src/composables/agent.ts",
+    "./markdown": "./src/markdown.ts"
+  },
+  "publish": {
+    "include": ["src/", "README.md"],
+    "exclude": ["**/*.test.ts"]
+  },
+  "license": "MIT"
 }

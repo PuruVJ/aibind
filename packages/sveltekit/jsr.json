@@ -1,19 +1,14 @@
 {
-	"name": "@aibind/sveltekit",
-	"version": "0.1.0",
-	"exports": {
-		".": "./dist/index.js",
-		"./server": "./dist/server/index.js",
-		"./agent": "./dist/agent.js"
-	},
-	"publish": {
-		"include": [
-			"dist/",
-			"README.md"
-		],
-		"exclude": [
-			"dist/markdown.*"
-		]
-	},
-	"license": "MIT"
+  "name": "@aibind/sveltekit",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./dist/index.js",
+    "./server": "./dist/server/index.js",
+    "./agent": "./dist/agent.js"
+  },
+  "publish": {
+    "include": ["dist/", "README.md"],
+    "exclude": ["dist/markdown.*"]
+  },
+  "license": "MIT"
 }

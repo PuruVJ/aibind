@@ -1,4 +1,4 @@
-import { createStreamHandler } from '@aibind/nuxt/server';
+import { createStreamHandler } from "@aibind/nuxt/server";
 
 const handler = createStreamHandler({
   get models() {

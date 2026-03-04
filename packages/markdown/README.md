@@ -18,24 +18,24 @@ npm install @aibind/markdown
 
 ## Usage
 
-```ts
-import { StreamParser, HtmlRenderer, MarkdownRecovery } from '@aibind/markdown';
+````ts
+import { StreamParser, HtmlRenderer, MarkdownRecovery } from "@aibind/markdown";
 
 const renderer = new HtmlRenderer();
 const parser = new StreamParser(renderer);
 
 // Feed chunks as they arrive from AI stream
-parser.write('# Hello\n\nThis is **bold');
-parser.write('** and more text.\n\n```js\nconst x = 1;\n```');
+parser.write("# Hello\n\nThis is **bold");
+parser.write("** and more text.\n\n```js\nconst x = 1;\n```");
 parser.end();
 
 renderer.html; // full HTML string
-```
+````
 
 ### With markdown recovery (for in-progress streams)
 
 ```ts
-const text = '# Title\n\nSome **bold text that is not yet';
+const text = "# Title\n\nSome **bold text that is not yet";
 const recovered = MarkdownRecovery.recover(text);
 // → '# Title\n\nSome **bold text that is not yet**'
 
@@ -54,8 +54,8 @@ Incremental streaming markdown parser. Feed chunks of markdown text and it emits
 
 ```ts
 const parser = new StreamParser(renderer);
-parser.write(chunk);  // feed a chunk of markdown
-parser.end();         // flush remaining content
+parser.write(chunk); // feed a chunk of markdown
+parser.end(); // flush remaining content
 ```
 
 ### `HtmlRenderer`
@@ -65,7 +65,7 @@ Built-in renderer that produces an HTML string from parser tokens.
 ```ts
 const renderer = new HtmlRenderer();
 // ... use with StreamParser ...
-renderer.html;   // accumulated HTML string
+renderer.html; // accumulated HTML string
 renderer.reset(); // clear and start over
 ```
 
@@ -85,10 +85,10 @@ Base class for custom renderers. Implement these methods:
 
 ```ts
 class MyRenderer extends Renderer {
-  open(token: Token): void { }   // element opened (heading, paragraph, etc.)
-  close(token: Token): void { }  // element closed
-  text(content: string): void { } // text content
-  attr(key: string, value: string): void { } // attribute (href, src, etc.)
+  open(token: Token): void {} // element opened (heading, paragraph, etc.)
+  close(token: Token): void {} // element closed
+  text(content: string): void {} // text content
+  attr(key: string, value: string): void {} // attribute (href, src, etc.)
 }
 ```
 
@@ -96,7 +96,7 @@ class MyRenderer extends Renderer {
 
 - Headings (h1–h6)
 - Paragraphs with hard line breaks (trailing `  `)
-- **Bold**, *italic*, ~~strikethrough~~, `inline code`
+- **Bold**, _italic_, ~~strikethrough~~, `inline code`
 - Nested bold/italic (`***bold italic***`)
 - Code blocks with language tag
 - Links `[text](url)` and images `![alt](src)`
@@ -109,14 +109,14 @@ class MyRenderer extends Renderer {
 
 Each framework package re-exports the core and provides a reactive component/hook:
 
-| Package | Import | Component |
-|---------|--------|-----------|
-| `@aibind/svelte/markdown` | `StreamMarkdown` | `<StreamMarkdown text={stream.text} streaming={stream.loading} />` |
-| `@aibind/sveltekit/markdown` | `StreamMarkdown` | Same as svelte |
-| `@aibind/vue/markdown` | `StreamMarkdown` | `<StreamMarkdown :text="text" :streaming="loading" />` |
-| `@aibind/nuxt/markdown` | `StreamMarkdown` | Same as vue |
-| `@aibind/solid/markdown` | `useStreamMarkdown` | `const html = useStreamMarkdown(() => text(), () => streaming())` |
-| `@aibind/solidstart/markdown` | `useStreamMarkdown` | Same as solid |
+| Package                       | Import              | Component                                                          |
+| ----------------------------- | ------------------- | ------------------------------------------------------------------ |
+| `@aibind/svelte/markdown`     | `StreamMarkdown`    | `<StreamMarkdown text={stream.text} streaming={stream.loading} />` |
+| `@aibind/sveltekit/markdown`  | `StreamMarkdown`    | Same as svelte                                                     |
+| `@aibind/vue/markdown`        | `StreamMarkdown`    | `<StreamMarkdown :text="text" :streaming="loading" />`             |
+| `@aibind/nuxt/markdown`       | `StreamMarkdown`    | Same as vue                                                        |
+| `@aibind/solid/markdown`      | `useStreamMarkdown` | `const html = useStreamMarkdown(() => text(), () => streaming())`  |
+| `@aibind/solidstart/markdown` | `useStreamMarkdown` | Same as solid                                                      |
 
 ## License
 

@@ -23,12 +23,12 @@ npm install @aibind/solid ai solid-js
 This package requires you to specify an `endpoint` for every hook. For SolidStart projects, `@aibind/solidstart` provides defaults automatically.
 
 ```tsx
-import { useStream } from '@aibind/solid';
+import { useStream } from "@aibind/solid";
 
 function Chat() {
   const { text, loading, send } = useStream({
-    endpoint: '/my/stream/endpoint', // required
-    system: 'You are a helpful assistant.'
+    endpoint: "/my/stream/endpoint", // required
+    system: "You are a helpful assistant.",
   });
 
   return <p>{text()}</p>;
@@ -37,10 +37,10 @@ function Chat() {
 
 ## Entry Points
 
-| Entry | Exports |
-|-------|---------|
-| `@aibind/solid` | `useStream`, `useStructuredStream`, `defineModels` |
-| `@aibind/solid/agent` | `useAgent` |
+| Entry                    | Exports                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `@aibind/solid`          | `useStream`, `useStructuredStream`, `defineModels`                      |
+| `@aibind/solid/agent`    | `useAgent`                                                              |
 | `@aibind/solid/markdown` | `useStreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
 
 ## Requirements

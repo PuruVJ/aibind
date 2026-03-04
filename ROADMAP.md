@@ -12,7 +12,7 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 
 ## High Priority
 
-- [ ] **Streaming Markdown Renderer** — No Svelte/Vue/Solid solution exists. Vercel's [Streamdown](https://streamdown.ai/) is React-only. The "Flash of Incomplete Markdown" (FOIM) problem affects every AI chat. Unterminated bold, partial code blocks, and split links cause rendering glitches. Need: framework-agnostic incremental parser + framework-specific components.
+- [x] **Streaming Markdown Renderer** — No Svelte/Vue/Solid solution exists. Vercel's [Streamdown](https://streamdown.ai/) is React-only. The "Flash of Incomplete Markdown" (FOIM) problem affects every AI chat. Unterminated bold, partial code blocks, and split links cause rendering glitches. Need: framework-agnostic incremental parser + framework-specific components.
 
 - [ ] **Conversation Branching / Tree-Structured History** — Every AI chat uses a flat message array, but real AI work is tree-shaped. Users edit earlier messages, regenerate responses, fork conversations. ChatGPT added branching, but zero frontend libraries provide this as a primitive. [Vercel AI SDK #2929](https://github.com/vercel/ai/issues/2929) (12+ reactions, still open).
 
@@ -56,4 +56,4 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 
 ---
 
-*Sources: [Streaming Structured Output Is Still Broken](https://schnabl.cx/blog/streaming-structured-output.html), [AI Chat Tools Don't Match How We Think](https://medium.com/@nikivergis/ai-chat-tools-dont-match-how-we-actually-think-exploring-the-ux-of-branching-conversations-259107496afb), [Preventing FOIM](https://engineering.streak.com/p/preventing-unstyled-markdown-streaming-ai), [Vercel AI SDK Bloat](https://blog.hyperknot.com/p/til-vercel-ai-sdk-the-bloat-king), [TanStack AI vs Vercel AI SDK](https://www.better-stack.ai/p/blog/vercel-ai-sdk-vs-tanstack-ai-2026-best-ai-sdk-for-developers)*
+_Sources: [Streaming Structured Output Is Still Broken](https://schnabl.cx/blog/streaming-structured-output.html), [AI Chat Tools Don't Match How We Think](https://medium.com/@nikivergis/ai-chat-tools-dont-match-how-we-actually-think-exploring-the-ux-of-branching-conversations-259107496afb), [Preventing FOIM](https://engineering.streak.com/p/preventing-unstyled-markdown-streaming-ai), [Vercel AI SDK Bloat](https://blog.hyperknot.com/p/til-vercel-ai-sdk-the-bloat-king), [TanStack AI vs Vercel AI SDK](https://www.better-stack.ai/p/blog/vercel-ai-sdk-vs-tanstack-ai-2026-best-ai-sdk-for-developers)_

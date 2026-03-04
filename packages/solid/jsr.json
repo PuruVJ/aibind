@@ -1,19 +1,14 @@
 {
-	"name": "@aibind/solid",
-	"version": "0.1.0",
-	"exports": {
-		".": "./src/index.ts",
-		"./agent": "./src/agent/index.ts",
-		"./markdown": "./src/markdown/index.ts"
-	},
-	"publish": {
-		"include": [
-			"src/",
-			"README.md"
-		],
-		"exclude": [
-			"**/*.test.ts"
-		]
-	},
-	"license": "MIT"
+  "name": "@aibind/solid",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./agent": "./src/agent/index.ts",
+    "./markdown": "./src/markdown/index.ts"
+  },
+  "publish": {
+    "include": ["src/", "README.md"],
+    "exclude": ["**/*.test.ts"]
+  },
+  "license": "MIT"
 }

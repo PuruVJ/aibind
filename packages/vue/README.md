@@ -24,21 +24,21 @@ This package requires you to specify an `endpoint` for every composable. For Nux
 
 ```vue
 <script setup lang="ts">
-import { useStream } from '@aibind/vue';
+import { useStream } from "@aibind/vue";
 
 const { text, loading, send } = useStream({
-  endpoint: '/my/stream/endpoint', // required
-  system: 'You are a helpful assistant.'
+  endpoint: "/my/stream/endpoint", // required
+  system: "You are a helpful assistant.",
 });
 </script>
 ```
 
 ## Entry Points
 
-| Entry | Exports |
-|-------|---------|
-| `@aibind/vue` | `useStream`, `useStructuredStream`, `defineModels` |
-| `@aibind/vue/agent` | `useAgent` |
+| Entry                  | Exports                                                              |
+| ---------------------- | -------------------------------------------------------------------- |
+| `@aibind/vue`          | `useStream`, `useStructuredStream`, `defineModels`                   |
+| `@aibind/vue/agent`    | `useAgent`                                                           |
 | `@aibind/vue/markdown` | `StreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
 
 ## Requirements

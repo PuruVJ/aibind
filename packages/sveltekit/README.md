@@ -40,11 +40,11 @@ npm install arktype
 
 ```ts
 // src/hooks.server.ts
-import { createStreamHandler } from '@aibind/sveltekit/server';
-import { anthropic } from '@ai-sdk/anthropic';
+import { createStreamHandler } from "@aibind/sveltekit/server";
+import { anthropic } from "@ai-sdk/anthropic";
 
 export const handle = createStreamHandler({
-  model: anthropic('claude-sonnet-4-20250514')
+  model: anthropic("claude-sonnet-4-20250514"),
 });
 ```
 
@@ -78,7 +78,7 @@ This handles `/api/__aibind__/stream` and `/api/__aibind__/structured` automatic
 ### `@aibind/sveltekit` — Client Classes
 
 ```ts
-import { Stream, StructuredStream, defineModels } from '@aibind/sveltekit';
+import { Stream, StructuredStream, defineModels } from "@aibind/sveltekit";
 ```
 
 #### `defineModels(models)`
@@ -87,12 +87,12 @@ Define named AI models for type-safe model selection across client and server.
 
 ```ts
 // src/lib/models.server.ts
-import { defineModels } from '@aibind/sveltekit';
-import { anthropic } from '@ai-sdk/anthropic';
+import { defineModels } from "@aibind/sveltekit";
+import { anthropic } from "@ai-sdk/anthropic";
 
 export const models = defineModels({
-  default: anthropic('claude-sonnet-4-20250514'),
-  fast: anthropic('claude-haiku-20250514'),
+  default: anthropic("claude-sonnet-4-20250514"),
+  fast: anthropic("claude-haiku-20250514"),
 });
 
 export type Models = typeof models.$infer; // 'default' | 'fast'
@@ -102,8 +102,8 @@ Pass models to the server handler:
 
 ```ts
 // src/hooks.server.ts
-import { createStreamHandler } from '@aibind/sveltekit/server';
-import { models } from '$lib/models.server';
+import { createStreamHandler } from "@aibind/sveltekit/server";
+import { models } from "$lib/models.server";
 
 export const handle = createStreamHandler({ models });
 ```
@@ -114,20 +114,20 @@ Reactive streaming text. All properties are Svelte 5 `$state` fields. Endpoint d
 
 ```ts
 const stream = new Stream({
-  model: 'fast',                           // optional model key
-  system: 'You are a poet.',
-  endpoint: '/api/custom/stream',          // override default
-  fetch: customFetch,                      // optional custom fetch
+  model: "fast", // optional model key
+  system: "You are a poet.",
+  endpoint: "/api/custom/stream", // override default
+  fetch: customFetch, // optional custom fetch
   onFinish: (text) => console.log(text),
-  onError: (err) => console.error(err)
+  onError: (err) => console.error(err),
 });
 
-stream.send('Write a haiku');
-stream.send('Now a limerick', { system: 'Override system prompt' });
-stream.text;    // reactive accumulated text
+stream.send("Write a haiku");
+stream.send("Now a limerick", { system: "Override system prompt" });
+stream.text; // reactive accumulated text
 stream.loading; // true while streaming
-stream.error;   // Error | null
-stream.done;    // true when complete
+stream.error; // Error | null
+stream.done; // true when complete
 stream.abort(); // cancel in-flight request
 stream.retry(); // re-send last prompt
 ```
@@ -137,22 +137,22 @@ stream.retry(); // re-send last prompt
 Streams JSON and parses partial objects as they arrive. Validates the final result with any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library. Endpoint defaults to `/api/__aibind__/structured`.
 
 ```ts
-import { StructuredStream } from '@aibind/sveltekit';
-import { z } from 'zod';
+import { StructuredStream } from "@aibind/sveltekit";
+import { z } from "zod";
 
 const analysis = new StructuredStream({
   schema: z.object({
-    sentiment: z.enum(['positive', 'negative', 'neutral']),
+    sentiment: z.enum(["positive", "negative", "neutral"]),
     score: z.number(),
-    topics: z.array(z.string())
+    topics: z.array(z.string()),
   }),
-  system: 'Analyze sentiment. Return JSON matching the schema.'
+  system: "Analyze sentiment. Return JSON matching the schema.",
 });
 
-analysis.send('I love this product!');
+analysis.send("I love this product!");
 analysis.partial; // Partial<T> — updates as JSON streams in
-analysis.data;    // T | null — fully validated after completion
-analysis.raw;     // raw JSON string
+analysis.data; // T | null — fully validated after completion
+analysis.raw; // raw JSON string
 ```
 
 ---
@@ -160,7 +160,7 @@ analysis.raw;     // raw JSON string
 ### `@aibind/sveltekit/server` — Stream Handler
 
 ```ts
-import { createStreamHandler, ServerAgent } from '@aibind/sveltekit/server';
+import { createStreamHandler, ServerAgent } from "@aibind/sveltekit/server";
 ```
 
 #### `createStreamHandler(config)`
@@ -170,8 +170,8 @@ SvelteKit handle hook that serves streaming endpoints.
 ```ts
 // Single model
 export const handle = createStreamHandler({
-  model: anthropic('claude-sonnet-4-20250514'),
-  prefix: '/api/__aibind__' // default
+  model: anthropic("claude-sonnet-4-20250514"),
+  prefix: "/api/__aibind__", // default
 });
 
 // Multi-model
@@ -179,6 +179,7 @@ export const handle = createStreamHandler({ models });
 ```
 
 Handles two routes:
+
 - `POST {prefix}/stream` — text streaming
 - `POST {prefix}/structured` — JSON streaming
 
@@ -187,21 +188,25 @@ Handles two routes:
 Server-side agent with tools, system prompt, and multi-step tool loops.
 
 ```ts
-import { ServerAgent } from '@aibind/sveltekit/server';
-import { tool, stepCountIs } from 'ai';
-import { z } from 'zod';
+import { ServerAgent } from "@aibind/sveltekit/server";
+import { tool, stepCountIs } from "ai";
+import { z } from "zod";
 
 const agent = new ServerAgent({
-  model: anthropic('claude-sonnet-4-20250514'),
-  system: 'You are a helpful assistant with access to tools.',
+  model: anthropic("claude-sonnet-4-20250514"),
+  system: "You are a helpful assistant with access to tools.",
   tools: {
     get_weather: tool({
-      description: 'Get weather for a city',
+      description: "Get weather for a city",
       inputSchema: z.object({ city: z.string() }),
-      execute: async ({ city }) => ({ city, temperature: '72°F', condition: 'sunny' })
-    })
+      execute: async ({ city }) => ({
+        city,
+        temperature: "72°F",
+        condition: "sunny",
+      }),
+    }),
   },
-  stopWhen: stepCountIs(5)
+  stopWhen: stepCountIs(5),
 });
 
 // In a SvelteKit endpoint:
@@ -209,7 +214,7 @@ export async function POST({ request }) {
   const { messages } = await request.json();
   const lastMessage = messages[messages.length - 1];
   const result = agent.stream(lastMessage.content, {
-    messages: messages.slice(0, -1)
+    messages: messages.slice(0, -1),
   });
   return result.toTextStreamResponse();
 }
@@ -220,7 +225,7 @@ export async function POST({ request }) {
 ### `@aibind/sveltekit/remote` — SvelteKit Remote Functions
 
 ```ts
-import { AIRemote } from '@aibind/sveltekit/remote';
+import { AIRemote } from "@aibind/sveltekit/remote";
 ```
 
 > Requires `@sveltejs/kit ^2.53`.
@@ -231,21 +236,21 @@ Wraps SvelteKit's [remote functions](https://svelte.dev/docs/kit/remote-function
 
 ```ts
 // src/lib/ai.server.ts
-import { AIRemote } from '@aibind/sveltekit/remote';
+import { AIRemote } from "@aibind/sveltekit/remote";
 
-export const ai = new AIRemote(anthropic('claude-sonnet-4-20250514'));
+export const ai = new AIRemote(anthropic("claude-sonnet-4-20250514"));
 ```
 
 ##### `ai.query(schema, promptFn)` — Text response
 
 ```ts
 // src/routes/api/summarize.remote.ts
-import { ai } from '$lib/ai.server';
-import { z } from 'zod';
+import { ai } from "$lib/ai.server";
+import { z } from "zod";
 
 export const summarize = ai.query(
   z.string(),
-  (text) => `Summarize this: ${text}`
+  (text) => `Summarize this: ${text}`,
 );
 ```
 
@@ -255,11 +260,11 @@ export const summarize = ai.query(
 export const analyze = ai.structuredQuery({
   input: z.string(),
   output: z.object({
-    sentiment: z.enum(['positive', 'negative', 'neutral']),
-    confidence: z.number()
+    sentiment: z.enum(["positive", "negative", "neutral"]),
+    confidence: z.number(),
   }),
   prompt: (text) => `Analyze: ${text}`,
-  system: 'Return JSON matching the output schema.'
+  system: "Return JSON matching the output schema.",
 });
 ```
 
@@ -269,10 +274,13 @@ export const analyze = ai.structuredQuery({
 export const generatePost = ai.command(
   z.object({ topic: z.string() }),
   async (input, { model }) => {
-    const result = await generateText({ model, prompt: `Write about ${input.topic}` });
+    const result = await generateText({
+      model,
+      prompt: `Write about ${input.topic}`,
+    });
     await db.posts.create({ content: result.text });
     return { id: post.id };
-  }
+  },
 );
 ```
 
@@ -281,7 +289,7 @@ export const generatePost = ai.command(
 ### `@aibind/sveltekit/agent` — Client Agent
 
 ```ts
-import { Agent } from '@aibind/sveltekit/agent';
+import { Agent } from "@aibind/sveltekit/agent";
 ```
 
 #### `new Agent(options?)`
@@ -312,12 +320,14 @@ Reactive agent state. Endpoint defaults to `/api/__aibind__/agent`.
 ```
 
 **Reactive properties:**
+
 - `messages` — array of `{ id, role, content, type }` messages
 - `status` — `'idle' | 'running' | 'awaiting-approval' | 'error'`
 - `error` — `Error | null`
 - `pendingApproval` — `{ id, toolName, args } | null`
 
 **Methods:**
+
 - `send(prompt)` — send a message, streams response incrementally
 - `stop()` — abort the current request
 - `approve(id)` / `deny(id)` — respond to tool approval requests
@@ -327,7 +337,7 @@ Reactive agent state. Endpoint defaults to `/api/__aibind__/agent`.
 ### `@aibind/sveltekit/markdown` — Streaming Markdown
 
 ```ts
-import { StreamMarkdown } from '@aibind/sveltekit/markdown';
+import { StreamMarkdown } from "@aibind/sveltekit/markdown";
 ```
 
 Renders streaming markdown with recovery for unterminated syntax. Uses `@aibind/markdown` under the hood.
@@ -344,6 +354,7 @@ Renders streaming markdown with recovery for unterminated syntax. Uses `@aibind/
 ```
 
 **Props:**
+
 - `text` — markdown string to render
 - `streaming` — when `true`, applies markdown recovery (closes unterminated bold, code blocks, etc.)
 - `class` — optional CSS class

@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useStream } from '@aibind/nuxt';
+import { useStream } from "@aibind/nuxt";
 
 const { text, loading, error, send, abort, retry } = useStream({
-  system: 'You are a helpful assistant. Keep responses concise.',
-  model: 'gpt',
+  system: "You are a helpful assistant. Keep responses concise.",
+  model: "gpt",
 });
 
-const prompt = ref('');
+const prompt = ref("");
 
 function handleSubmit() {
   send(prompt.value);
-  prompt.value = '';
+  prompt.value = "";
 }
 </script>
 
@@ -21,7 +21,7 @@ function handleSubmit() {
     <form @submit.prevent="handleSubmit">
       <input v-model="prompt" placeholder="Ask something..." />
       <button type="submit" :disabled="loading">
-        {{ loading ? 'Streaming...' : 'Send' }}
+        {{ loading ? "Streaming..." : "Send" }}
       </button>
       <button v-if="loading" type="button" @click="abort()">Stop</button>
     </form>

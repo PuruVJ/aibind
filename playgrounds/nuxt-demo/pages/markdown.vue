@@ -1,29 +1,36 @@
 <script setup lang="ts">
-import { useStream } from '@aibind/nuxt';
-import { StreamMarkdown } from '@aibind/nuxt/markdown';
+import { useStream } from "@aibind/nuxt";
+import { StreamMarkdown } from "@aibind/nuxt/markdown";
 
 const { text, loading, error, send, abort, retry } = useStream({
-  system: 'You are a helpful assistant. Always respond with rich markdown formatting: use headings, **bold**, *italic*, `inline code`, code blocks with language tags, bullet lists, and numbered lists where appropriate.',
-  model: 'gpt',
+  system:
+    "You are a helpful assistant. Always respond with rich markdown formatting: use headings, **bold**, *italic*, `inline code`, code blocks with language tags, bullet lists, and numbered lists where appropriate.",
+  model: "gpt",
 });
 
-const prompt = ref('');
+const prompt = ref("");
 
 function handleSubmit() {
   send(prompt.value);
-  prompt.value = '';
+  prompt.value = "";
 }
 </script>
 
 <template>
   <div>
     <h1>Markdown Demo</h1>
-    <p>Streaming markdown with live recovery — unterminated syntax renders gracefully.</p>
+    <p>
+      Streaming markdown with live recovery — unterminated syntax renders
+      gracefully.
+    </p>
 
     <form @submit.prevent="handleSubmit">
-      <input v-model="prompt" placeholder="Ask something (try 'explain async/await')..." />
+      <input
+        v-model="prompt"
+        placeholder="Ask something (try 'explain async/await')..."
+      />
       <button type="submit" :disabled="loading">
-        {{ loading ? 'Streaming...' : 'Send' }}
+        {{ loading ? "Streaming..." : "Send" }}
       </button>
       <button v-if="loading" type="button" @click="abort()">Stop</button>
     </form>

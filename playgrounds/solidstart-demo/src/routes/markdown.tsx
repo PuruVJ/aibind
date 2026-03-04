@@ -1,28 +1,38 @@
-import { useStream } from '@aibind/solidstart';
-import { useStreamMarkdown } from '@aibind/solidstart/markdown';
-import { Show, createSignal } from 'solid-js';
+import { useStream } from "@aibind/solidstart";
+import { useStreamMarkdown } from "@aibind/solidstart/markdown";
+import { Show, createSignal } from "solid-js";
 
 export default function MarkdownPage() {
   const { text, loading, error, send, abort, retry } = useStream({
-    system: 'You are a helpful assistant. Always respond with rich markdown formatting: use headings, **bold**, *italic*, `inline code`, code blocks with language tags, bullet lists, and numbered lists where appropriate.',
-    model: 'gpt',
+    system:
+      "You are a helpful assistant. Always respond with rich markdown formatting: use headings, **bold**, *italic*, `inline code`, code blocks with language tags, bullet lists, and numbered lists where appropriate.",
+    model: "gpt",
   });
 
-  const html = useStreamMarkdown(() => text(), () => loading());
-  const [prompt, setPrompt] = createSignal('');
+  const html = useStreamMarkdown(
+    () => text(),
+    () => loading(),
+  );
+  const [prompt, setPrompt] = createSignal("");
 
   function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     send(prompt());
-    setPrompt('');
+    setPrompt("");
   }
 
   return (
     <div>
       <h1>Markdown Demo</h1>
-      <p>Streaming markdown with live recovery — unterminated syntax renders gracefully.</p>
+      <p>
+        Streaming markdown with live recovery — unterminated syntax renders
+        gracefully.
+      </p>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: "0.5rem", "margin-bottom": "1rem" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", gap: "0.5rem", "margin-bottom": "1rem" }}
+      >
         <input
           value={prompt()}
           onInput={(e) => setPrompt(e.currentTarget.value)}
@@ -30,10 +40,12 @@ export default function MarkdownPage() {
           style={{ flex: "1", padding: "0.5rem" }}
         />
         <button type="submit" disabled={loading()}>
-          {loading() ? 'Streaming...' : 'Send'}
+          {loading() ? "Streaming..." : "Send"}
         </button>
         <Show when={loading()}>
-          <button type="button" onClick={() => abort()}>Stop</button>
+          <button type="button" onClick={() => abort()}>
+            Stop
+          </button>
         </Show>
       </form>
 

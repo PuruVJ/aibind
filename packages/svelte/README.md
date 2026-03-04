@@ -35,10 +35,10 @@ This package requires you to specify an `endpoint` for every class. For SvelteKi
 
 ## Entry Points
 
-| Entry | Exports |
-|-------|---------|
-| `@aibind/svelte` | `Stream`, `StructuredStream`, `defineModels` |
-| `@aibind/svelte/agent` | `Agent` |
+| Entry                     | Exports                                                              |
+| ------------------------- | -------------------------------------------------------------------- |
+| `@aibind/svelte`          | `Stream`, `StructuredStream`, `defineModels`                         |
+| `@aibind/svelte/agent`    | `Agent`                                                              |
 | `@aibind/svelte/markdown` | `StreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
 
 ## Requirements

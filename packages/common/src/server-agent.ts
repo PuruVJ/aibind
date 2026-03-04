@@ -1,15 +1,17 @@
-import { generateText, streamText, stepCountIs } from 'ai';
+import { generateText, streamText, stepCountIs } from "ai";
 
 export interface AgentConfig {
-	model?: import('ai').LanguageModel | string;
-	system: string;
-	tools?: Record<string, import('ai').Tool>;
-	/** When to stop the tool loop. Use AI SDK helpers like `stepCountIs(5)`. */
-	stopWhen?: import('ai').StopCondition<any> | Array<import('ai').StopCondition<any>>;
+  model?: import("ai").LanguageModel | string;
+  system: string;
+  tools?: Record<string, import("ai").Tool>;
+  /** When to stop the tool loop. Use AI SDK helpers like `stepCountIs(5)`. */
+  stopWhen?:
+    | import("ai").StopCondition<any>
+    | Array<import("ai").StopCondition<any>>;
 }
 
 export interface RunOptions {
-	messages?: Array<{ role: string; content: string }>;
+  messages?: Array<{ role: string; content: string }>;
 }
 
 /**
@@ -17,57 +19,64 @@ export interface RunOptions {
  * Uses AI SDK's generateText/streamText with stopWhen for multi-step tool loops.
  */
 export class ServerAgent {
-	#config: Required<Pick<AgentConfig, 'model' | 'system'>> & Pick<AgentConfig, 'tools' | 'stopWhen'>;
+  #config: Required<Pick<AgentConfig, "model" | "system">> &
+    Pick<AgentConfig, "tools" | "stopWhen">;
 
-	constructor(config: AgentConfig) {
-		if (!config.model) {
-			throw new Error('ServerAgent: model is required in agent config.');
-		}
-		this.#config = {
-			model: config.model,
-			system: config.system,
-			tools: config.tools,
-			stopWhen: config.stopWhen ?? stepCountIs(10)
-		};
-	}
+  constructor(config: AgentConfig) {
+    if (!config.model) {
+      throw new Error("ServerAgent: model is required in agent config.");
+    }
+    this.#config = {
+      model: config.model,
+      system: config.system,
+      tools: config.tools,
+      stopWhen: config.stopWhen ?? stepCountIs(10),
+    };
+  }
 
-	#baseOpts() {
-		return {
-			model: this.#config.model as import('ai').LanguageModel,
-			system: this.#config.system,
-			tools: this.#config.tools,
-			stopWhen: this.#config.stopWhen
-		};
-	}
+  #baseOpts() {
+    return {
+      model: this.#config.model as import("ai").LanguageModel,
+      system: this.#config.system,
+      tools: this.#config.tools,
+      stopWhen: this.#config.stopWhen,
+    };
+  }
 
-	#buildMessages(prompt: string, previous?: RunOptions['messages']) {
-		if (previous?.length) {
-			return [
-				...previous.map((m) => ({
-					role: m.role as 'user' | 'assistant',
-					content: m.content
-				})),
-				{ role: 'user' as const, content: prompt }
-			];
-		}
-		return undefined;
-	}
+  #buildMessages(prompt: string, previous?: RunOptions["messages"]) {
+    if (previous?.length) {
+      return [
+        ...previous.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+        { role: "user" as const, content: prompt },
+      ];
+    }
+    return undefined;
+  }
 
-	/** Stream a response. Returns StreamTextResult synchronously — no await needed. */
-	stream(prompt: string, options?: RunOptions): import('ai').StreamTextResult<any, any> {
-		const messages = this.#buildMessages(prompt, options?.messages);
-		return streamText({
-			...this.#baseOpts(),
-			...(messages ? { messages } : { prompt })
-		});
-	}
+  /** Stream a response. Returns StreamTextResult synchronously — no await needed. */
+  stream(
+    prompt: string,
+    options?: RunOptions,
+  ): import("ai").StreamTextResult<any, any> {
+    const messages = this.#buildMessages(prompt, options?.messages);
+    return streamText({
+      ...this.#baseOpts(),
+      ...(messages ? { messages } : { prompt }),
+    });
+  }
 
-	/** Generate a complete response (non-streaming). */
-	async run(prompt: string, options?: RunOptions): Promise<import('ai').GenerateTextResult<any, any>> {
-		const messages = this.#buildMessages(prompt, options?.messages);
-		return generateText({
-			...this.#baseOpts(),
-			...(messages ? { messages } : { prompt })
-		});
-	}
+  /** Generate a complete response (non-streaming). */
+  async run(
+    prompt: string,
+    options?: RunOptions,
+  ): Promise<import("ai").GenerateTextResult<any, any>> {
+    const messages = this.#buildMessages(prompt, options?.messages);
+    return generateText({
+      ...this.#baseOpts(),
+      ...(messages ? { messages } : { prompt }),
+    });
+  }
 }

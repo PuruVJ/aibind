@@ -1,5 +1,5 @@
-import { createStreamHandler } from '@aibind/solidstart/server';
-import { models } from '~/lib/models.server';
+import { createStreamHandler } from "@aibind/solidstart/server";
+import { models } from "~/lib/models.server";
 
 const handler = createStreamHandler({
   models,
