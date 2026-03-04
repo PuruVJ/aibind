@@ -16,7 +16,7 @@ describe("useAgent (SolidStart wrapper)", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses default endpoint /api/__aibind__/agent", async () => {
+  it("uses default endpoint /__aibind__/agent", async () => {
     const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["hi"]));
 
     const { send } = useAgent({ fetch: mockFetch });
@@ -24,7 +24,7 @@ describe("useAgent (SolidStart wrapper)", () => {
     await flushPromises();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "/api/__aibind__/agent",
+      "/__aibind__/agent",
       expect.anything(),
     );
   });

@@ -29,10 +29,10 @@ describe("createStreamHandler (Nuxt)", () => {
     vi.clearAllMocks();
   });
 
-  it("handles /api/__aibind__/stream requests", async () => {
+  it("handles /__aibind__/stream requests", async () => {
     const handle = createStreamHandler({ model: "test-model" });
     const response = await handle(
-      makeRequest("/api/__aibind__/stream", {
+      makeRequest("/__aibind__/stream", {
         prompt: "hello",
         system: "be nice",
       }),
@@ -48,10 +48,10 @@ describe("createStreamHandler (Nuxt)", () => {
     expect(response).toBeInstanceOf(Response);
   });
 
-  it("handles /api/__aibind__/structured requests", async () => {
+  it("handles /__aibind__/structured requests", async () => {
     const handle = createStreamHandler({ model: "test-model" });
     await handle(
-      makeRequest("/api/__aibind__/structured", { prompt: "analyze this" }),
+      makeRequest("/__aibind__/structured", { prompt: "analyze this" }),
     );
 
     expect(mockStreamText).toHaveBeenCalledWith(
@@ -65,7 +65,7 @@ describe("createStreamHandler (Nuxt)", () => {
   it("returns 400 for missing prompt", async () => {
     const handle = createStreamHandler({ model: "test-model" });
     const response = await handle(
-      makeRequest("/api/__aibind__/stream", { prompt: "" }),
+      makeRequest("/__aibind__/stream", { prompt: "" }),
     );
 
     expect(response.status).toBe(400);
@@ -95,7 +95,7 @@ describe("createStreamHandler (Nuxt)", () => {
       models: { fast: "fast-model", smart: "smart-model" },
     });
     await handle(
-      makeRequest("/api/__aibind__/stream", { prompt: "hello", model: "fast" }),
+      makeRequest("/__aibind__/stream", { prompt: "hello", model: "fast" }),
     );
 
     expect(mockStreamText).toHaveBeenCalledWith(
@@ -107,7 +107,7 @@ describe("createStreamHandler (Nuxt)", () => {
     const handle = createStreamHandler({
       models: { default: "default-model", fast: "fast-model" },
     });
-    await handle(makeRequest("/api/__aibind__/stream", { prompt: "hello" }));
+    await handle(makeRequest("/__aibind__/stream", { prompt: "hello" }));
 
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({ model: "default-model" }),
@@ -119,7 +119,7 @@ describe("createStreamHandler (Nuxt)", () => {
       models: { fast: "fast-model" },
     });
     const response = await handle(
-      makeRequest("/api/__aibind__/stream", {
+      makeRequest("/__aibind__/stream", {
         prompt: "hello",
         model: "unknown",
       }),
@@ -131,7 +131,7 @@ describe("createStreamHandler (Nuxt)", () => {
   it("returns error when no model configured", async () => {
     const handle = createStreamHandler({});
     const response = await handle(
-      makeRequest("/api/__aibind__/stream", { prompt: "hello" }),
+      makeRequest("/__aibind__/stream", { prompt: "hello" }),
     );
 
     expect(response.status).toBe(400);
@@ -142,7 +142,7 @@ describe("createStreamHandler (Nuxt)", () => {
   it("returns 404 for GET requests", async () => {
     const handle = createStreamHandler({ model: "test-model" });
     const response = await handle(
-      new Request("http://localhost/api/__aibind__/stream", { method: "GET" }),
+      new Request("http://localhost/__aibind__/stream", { method: "GET" }),
     );
 
     expect(response.status).toBe(404);
@@ -153,7 +153,7 @@ describe("createStreamHandler (Nuxt)", () => {
     const handle = createStreamHandler({ model: "test-model" });
     const schema = { type: "object", properties: { name: { type: "string" } } };
     await handle(
-      makeRequest("/api/__aibind__/structured", { prompt: "extract", schema }),
+      makeRequest("/__aibind__/structured", { prompt: "extract", schema }),
     );
 
     expect(mockStreamText).toHaveBeenCalledWith(

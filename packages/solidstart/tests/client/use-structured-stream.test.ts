@@ -30,7 +30,7 @@ describe("useStructuredStream (SolidStart wrapper)", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses default endpoint /api/__aibind__/structured", async () => {
+  it("uses default endpoint /__aibind__/structured", async () => {
     const schema = createFakeSchema({ type: "object" });
     const mockFetch = vi
       .fn()
@@ -44,7 +44,7 @@ describe("useStructuredStream (SolidStart wrapper)", () => {
     await flushPromises();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "/api/__aibind__/structured",
+      "/__aibind__/structured",
       expect.anything(),
     );
   });

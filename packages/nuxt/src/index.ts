@@ -15,11 +15,11 @@ export type {
   StructuredStreamOptions,
 } from "@aibind/vue";
 
-const DEFAULT_PREFIX = "/api/__aibind__";
+const DEFAULT_PREFIX = "/__aibind__";
 
 /**
  * Reactive streaming text composable with Nuxt defaults.
- * Endpoint defaults to `/api/__aibind__/stream`.
+ * Endpoint defaults to `/__aibind__/stream`.
  */
 export function useStream<M extends string = string>(
   options: Partial<Pick<StreamOptions<M>, "endpoint">> &
@@ -30,7 +30,7 @@ export function useStream<M extends string = string>(
 
 /**
  * Reactive structured streaming composable with Nuxt defaults.
- * Endpoint defaults to `/api/__aibind__/structured`.
+ * Endpoint defaults to `/__aibind__/structured`.
  */
 export function useStructuredStream<M extends string, T>(
   options: Partial<Pick<StructuredStreamOptions<T, M>, "endpoint">> &

@@ -8,11 +8,11 @@ export type {
 export { ServerAgent } from "@aibind/core";
 export type { AgentConfig, RunOptions } from "@aibind/core";
 
-const DEFAULT_PREFIX = "/api/__aibind__";
+const DEFAULT_PREFIX = "/__aibind__";
 
 /**
  * Reactive agent composable with Nuxt defaults.
- * Endpoint defaults to `/api/__aibind__/agent`.
+ * Endpoint defaults to `/__aibind__/agent`.
  */
 export function useAgent(
   options: Partial<Pick<AgentOptions, "endpoint">> &

@@ -16,7 +16,7 @@ describe("useStream (SolidStart wrapper)", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses default endpoint /api/__aibind__/stream", async () => {
+  it("uses default endpoint /__aibind__/stream", async () => {
     const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["hello"]));
 
     const { send } = useStream({ fetch: mockFetch });
@@ -24,7 +24,7 @@ describe("useStream (SolidStart wrapper)", () => {
     await flushPromises();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "/api/__aibind__/stream",
+      "/__aibind__/stream",
       expect.anything(),
     );
   });

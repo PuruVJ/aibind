@@ -48,7 +48,7 @@ export const handle = createStreamHandler({
 });
 ```
 
-This handles `/api/__aibind__/stream` and `/api/__aibind__/structured` automatically.
+This handles `/__aibind__/stream` and `/__aibind__/structured` automatically.
 
 ### 2. Stream in a component
 
@@ -110,7 +110,7 @@ export const handle = createStreamHandler({ models });
 
 #### `new Stream(options?)`
 
-Reactive streaming text. All properties are Svelte 5 `$state` fields. Endpoint defaults to `/api/__aibind__/stream`.
+Reactive streaming text. All properties are Svelte 5 `$state` fields. Endpoint defaults to `/__aibind__/stream`.
 
 ```ts
 const stream = new Stream({
@@ -128,13 +128,35 @@ stream.text; // reactive accumulated text
 stream.loading; // true while streaming
 stream.error; // Error | null
 stream.done; // true when complete
+stream.status; // 'idle' | 'streaming' | 'stopped' | 'done' | 'reconnecting' | 'disconnected' | 'error'
+stream.streamId; // string | null — set when server uses SSE (resumable)
+stream.canResume; // true if stream was interrupted but can be resumed
 stream.abort(); // cancel in-flight request
 stream.retry(); // re-send last prompt
+stream.stop(); // signal server to stop LLM generation, keep partial text
+stream.resume(); // reconnect to interrupted stream
+```
+
+When paired with a resumable server handler (`resumable: true`), `Stream` auto-detects SSE responses and enables stop/resume. On network drop, it auto-reconnects up to 3 times with exponential backoff.
+
+```svelte
+<script lang="ts">
+  import { Stream } from '@aibind/sveltekit';
+  const stream = new Stream();
+</script>
+
+{#if stream.status === 'streaming'}
+  <button onclick={() => stream.stop()}>Stop</button>
+{/if}
+
+{#if stream.canResume}
+  <button onclick={() => stream.resume()}>Resume</button>
+{/if}
 ```
 
 #### `new StructuredStream(options)`
 
-Streams JSON and parses partial objects as they arrive. Validates the final result with any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library. Endpoint defaults to `/api/__aibind__/structured`.
+Streams JSON and parses partial objects as they arrive. Validates the final result with any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library. Extends `Stream` — inherits all abort+resume capabilities. Endpoint defaults to `/__aibind__/structured`.
 
 ```ts
 import { StructuredStream } from "@aibind/sveltekit";
@@ -171,17 +193,28 @@ SvelteKit handle hook that serves streaming endpoints.
 // Single model
 export const handle = createStreamHandler({
   model: anthropic("claude-sonnet-4-20250514"),
-  prefix: "/api/__aibind__", // default
+  prefix: "/__aibind__", // default
 });
 
 // Multi-model
 export const handle = createStreamHandler({ models });
+
+// Resumable streams (abort + resume)
+export const handle = createStreamHandler({
+  models,
+  resumable: true, // enables stop/resume/reconnect
+  store: new MemoryStreamStore(), // optional, defaults to MemoryStreamStore
+});
 ```
 
-Handles two routes:
+**Routes:**
 
-- `POST {prefix}/stream` — text streaming
-- `POST {prefix}/structured` — JSON streaming
+| Route                    | Method | Description                           |
+| ------------------------ | ------ | ------------------------------------- |
+| `{prefix}/stream`        | POST   | Text streaming                        |
+| `{prefix}/structured`    | POST   | JSON streaming                        |
+| `{prefix}/stream/stop`   | POST   | Stop generation (resumable only)      |
+| `{prefix}/stream/resume` | GET    | Resume from sequence (resumable only) |
 
 #### `ServerAgent`
 
@@ -294,7 +327,7 @@ import { Agent } from "@aibind/sveltekit/agent";
 
 #### `new Agent(options?)`
 
-Reactive agent state. Endpoint defaults to `/api/__aibind__/agent`.
+Reactive agent state. Endpoint defaults to `/__aibind__/agent`.
 
 ```svelte
 <script lang="ts">

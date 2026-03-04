@@ -26,6 +26,10 @@ export class Agent {
   #controller: AbortController | null = null;
   #config: AgentOptions;
 
+  get #fetch() {
+    return this.#config.fetch ?? globalThis.fetch;
+  }
+
   constructor(options: AgentOptions) {
     if (!options.endpoint) {
       throw new Error(
@@ -54,8 +58,7 @@ export class Agent {
 
     try {
       const endpoint = this.#config.endpoint;
-      const fetcher = this.#config.fetch ?? globalThis.fetch;
-      const response = await fetcher(endpoint, {
+      const response = await this.#fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -326,7 +326,11 @@ function Chat() {
 
   return (
     <For each={chat.messages()}>
-      {(msg) => <div>{msg.role}: {msg.content}</div>}
+      {(msg) => (
+        <div>
+          {msg.role}: {msg.content}
+        </div>
+      )}
     </For>
   );
 }

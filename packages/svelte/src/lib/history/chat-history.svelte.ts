@@ -1,4 +1,4 @@
-import { ChatHistory, type TreeConfig, type TreeNode } from '@aibind/core';
+import { ChatHistory, type TreeConfig, type TreeNode } from "@aibind/core";
 
 /**
  * Svelte 5 reactive wrapper around ChatHistory.
@@ -28,104 +28,107 @@ import { ChatHistory, type TreeConfig, type TreeNode } from '@aibind/core';
  * ```
  */
 export class ReactiveChatHistory<M> {
-	/** The underlying non-reactive ChatHistory. */
-	readonly inner: ChatHistory<M>;
+  /** The underlying non-reactive ChatHistory. */
+  readonly inner: ChatHistory<M>;
 
-	/** Reactivity trigger — bumped on every mutation. */
-	#version = $state(0);
+  /** Reactivity trigger — bumped on every mutation. */
+  #version = $state(0);
 
-	/** Linear message path from root to active leaf. Reactive. */
-	messages: M[] = $derived.by(() => {
-		this.#version;
-		return this.inner.messages;
-	});
+  /** Linear message path from root to active leaf. Reactive. */
+  messages: M[] = $derived.by(() => {
+    this.#version;
+    return this.inner.messages;
+  });
 
-	/** Node IDs corresponding to each message. Reactive. */
-	nodeIds: string[] = $derived.by(() => {
-		this.#version;
-		return this.inner.nodeIds;
-	});
+  /** Node IDs corresponding to each message. Reactive. */
+  nodeIds: string[] = $derived.by(() => {
+    this.#version;
+    return this.inner.nodeIds;
+  });
 
-	/** Whether the history is empty. Reactive. */
-	isEmpty: boolean = $derived.by(() => {
-		this.#version;
-		return this.inner.isEmpty;
-	});
+  /** Whether the history is empty. Reactive. */
+  isEmpty: boolean = $derived.by(() => {
+    this.#version;
+    return this.inner.isEmpty;
+  });
 
-	/** Total messages across all branches. Reactive. */
-	size: number = $derived.by(() => {
-		this.#version;
-		return this.inner.size;
-	});
+  /** Total messages across all branches. Reactive. */
+  size: number = $derived.by(() => {
+    this.#version;
+    return this.inner.size;
+  });
 
-	constructor(config?: TreeConfig) {
-		this.inner = new ChatHistory<M>(config);
-	}
+  constructor(config?: TreeConfig) {
+    this.inner = new ChatHistory<M>(config);
+  }
 
-	// ─── Mutations (trigger reactivity) ─────────────────────────
+  // ─── Mutations (trigger reactivity) ─────────────────────────
 
-	/** Append a message to the current conversation path. */
-	append(message: M): string {
-		const id = this.inner.append(message);
-		this.#version++;
-		return id;
-	}
+  /** Append a message to the current conversation path. */
+  append(message: M): string {
+    const id = this.inner.append(message);
+    this.#version++;
+    return id;
+  }
 
-	/** Edit a message — creates a sibling branch and sets it active. */
-	edit(messageId: string, newMessage: M): string {
-		const id = this.inner.edit(messageId, newMessage);
-		this.#version++;
-		return id;
-	}
+  /** Edit a message — creates a sibling branch and sets it active. */
+  edit(messageId: string, newMessage: M): string {
+    const id = this.inner.edit(messageId, newMessage);
+    this.#version++;
+    return id;
+  }
 
-	/** Regenerate a response — creates a sibling branch and sets it active. */
-	regenerate(messageId: string, newResponse: M): string {
-		const id = this.inner.regenerate(messageId, newResponse);
-		this.#version++;
-		return id;
-	}
+  /** Regenerate a response — creates a sibling branch and sets it active. */
+  regenerate(messageId: string, newResponse: M): string {
+    const id = this.inner.regenerate(messageId, newResponse);
+    this.#version++;
+    return id;
+  }
 
-	// ─── Alternative Navigation ─────────────────────────────────
+  // ─── Alternative Navigation ─────────────────────────────────
 
-	/** Whether a message has alternative siblings. */
-	hasAlternatives(nodeId: string): boolean {
-		return this.inner.hasAlternatives(nodeId);
-	}
+  /** Whether a message has alternative siblings. */
+  hasAlternatives(nodeId: string): boolean {
+    return this.inner.hasAlternatives(nodeId);
+  }
 
-	/** Total alternatives for a message. */
-	alternativeCount(nodeId: string): number {
-		return this.inner.alternativeCount(nodeId);
-	}
+  /** Total alternatives for a message. */
+  alternativeCount(nodeId: string): number {
+    return this.inner.alternativeCount(nodeId);
+  }
 
-	/** 0-based index among siblings. */
-	alternativeIndex(nodeId: string): number {
-		return this.inner.alternativeIndex(nodeId);
-	}
+  /** 0-based index among siblings. */
+  alternativeIndex(nodeId: string): number {
+    return this.inner.alternativeIndex(nodeId);
+  }
 
-	/** Switch to next alternative and update active path. */
-	nextAlternative(nodeId: string): void {
-		this.inner.nextAlternative(nodeId);
-		this.#version++;
-	}
+  /** Switch to next alternative and update active path. */
+  nextAlternative(nodeId: string): void {
+    this.inner.nextAlternative(nodeId);
+    this.#version++;
+  }
 
-	/** Switch to previous alternative and update active path. */
-	prevAlternative(nodeId: string): void {
-		this.inner.prevAlternative(nodeId);
-		this.#version++;
-	}
+  /** Switch to previous alternative and update active path. */
+  prevAlternative(nodeId: string): void {
+    this.inner.prevAlternative(nodeId);
+    this.#version++;
+  }
 
-	// ─── Persistence ────────────────────────────────────────────
+  // ─── Persistence ────────────────────────────────────────────
 
-	/** Serialize to JSON string. */
-	toJSON(): string {
-		return this.inner.toJSON();
-	}
+  /** Serialize to JSON string. */
+  toJSON(): string {
+    return this.inner.toJSON();
+  }
 
-	/** Restore from JSON string. */
-	static fromJSON<M>(json: string, config?: TreeConfig): ReactiveChatHistory<M> {
-		const instance = new ReactiveChatHistory<M>(config);
-		const restored = ChatHistory.fromJSON<M>(json, config);
-		(instance as { inner: ChatHistory<M> }).inner = restored;
-		return instance;
-	}
+  /** Restore from JSON string. */
+  static fromJSON<M>(
+    json: string,
+    config?: TreeConfig,
+  ): ReactiveChatHistory<M> {
+    const instance = new ReactiveChatHistory<M>(config);
+    const restored = ChatHistory.fromJSON<M>(json, config);
+    (instance as { inner: ChatHistory<M> }).inner = restored;
+    return instance;
+  }
 }

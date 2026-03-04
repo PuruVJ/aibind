@@ -1,5 +1,20 @@
 # @aibind/solidstart
 
+## 0.3.0
+
+### Minor Changes
+
+- Add abort + resume streams
+  - **`@aibind/core`**: New `StreamStore` interface, `MemoryStreamStore`, `createDurableStream()`, `createResumeResponse()`, SSE utilities (`formatSSE`, `consumeSSEStream`)
+  - **Client packages** (`svelte`, `vue`, `solid`): `Stream` gains `status`, `streamId`, `canResume` reactive state + `stop()`, `resume()` methods. Auto-detects SSE responses. Auto-reconnects on network drop (3 retries, exponential backoff). `StructuredStream` extends `Stream` and inherits all capabilities.
+  - **Server packages** (`sveltekit`, `nuxt`, `solidstart`): `createStreamHandler` gains `resumable?: boolean` and `store?: StreamStore` options. When enabled, adds `/stop` and `/resume` endpoints.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @aibind/core@0.3.0
+  - @aibind/solid@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

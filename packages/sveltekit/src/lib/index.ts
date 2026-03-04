@@ -12,14 +12,15 @@ export type {
   DeepPartial,
   LanguageModel,
   StreamOptions,
+  StreamStatus,
   StructuredStreamOptions,
 } from "@aibind/svelte";
 
-const DEFAULT_PREFIX = "/api/__aibind__";
+const DEFAULT_PREFIX = "/__aibind__";
 
 /**
  * Reactive streaming text with SvelteKit defaults.
- * Endpoint defaults to `/api/__aibind__/stream`.
+ * Endpoint defaults to `/__aibind__/stream`.
  */
 export class Stream<M extends string = string> extends BaseStream<M> {
   constructor(
@@ -32,7 +33,7 @@ export class Stream<M extends string = string> extends BaseStream<M> {
 
 /**
  * Reactive structured streaming with SvelteKit defaults.
- * Endpoint defaults to `/api/__aibind__/structured`.
+ * Endpoint defaults to `/__aibind__/structured`.
  */
 export class StructuredStream<M extends string, T> extends BaseStructuredStream<
   M,

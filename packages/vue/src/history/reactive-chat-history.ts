@@ -1,5 +1,5 @@
-import { ref, computed, type ComputedRef } from 'vue';
-import { ChatHistory, type TreeConfig } from '@aibind/core';
+import { ref, computed, type ComputedRef } from "vue";
+import { ChatHistory, type TreeConfig } from "@aibind/core";
 
 /**
  * Vue 3 reactive wrapper around `ChatHistory` from `@aibind/core`.
@@ -35,151 +35,154 @@ import { ChatHistory, type TreeConfig } from '@aibind/core';
  * @typeParam M - The message type stored in the history.
  */
 export class ReactiveChatHistory<M> {
-	/** The underlying non-reactive `ChatHistory` instance. */
-	readonly inner: ChatHistory<M>;
+  /** The underlying non-reactive `ChatHistory` instance. */
+  readonly inner: ChatHistory<M>;
 
-	/**
-	 * Internal version counter. Bumped on every mutation so that
-	 * Vue `computed` refs that depend on it re-evaluate.
-	 */
-	private _version = ref(0);
+  /**
+   * Internal version counter. Bumped on every mutation so that
+   * Vue `computed` refs that depend on it re-evaluate.
+   */
+  private _version = ref(0);
 
-	/** Reactive linear message path from root to the active leaf. */
-	readonly messages: ComputedRef<M[]>;
+  /** Reactive linear message path from root to the active leaf. */
+  readonly messages: ComputedRef<M[]>;
 
-	/** Reactive node IDs corresponding to each message in the active path. */
-	readonly nodeIds: ComputedRef<string[]>;
+  /** Reactive node IDs corresponding to each message in the active path. */
+  readonly nodeIds: ComputedRef<string[]>;
 
-	/** Reactive flag indicating whether the history has any messages. */
-	readonly isEmpty: ComputedRef<boolean>;
+  /** Reactive flag indicating whether the history has any messages. */
+  readonly isEmpty: ComputedRef<boolean>;
 
-	/** Reactive total number of messages across all branches. */
-	readonly size: ComputedRef<number>;
+  /** Reactive total number of messages across all branches. */
+  readonly size: ComputedRef<number>;
 
-	constructor(config?: TreeConfig) {
-		this.inner = new ChatHistory<M>(config);
+  constructor(config?: TreeConfig) {
+    this.inner = new ChatHistory<M>(config);
 
-		this.messages = computed(() => {
-			this._version.value;
-			return this.inner.messages;
-		});
+    this.messages = computed(() => {
+      this._version.value;
+      return this.inner.messages;
+    });
 
-		this.nodeIds = computed(() => {
-			this._version.value;
-			return this.inner.nodeIds;
-		});
+    this.nodeIds = computed(() => {
+      this._version.value;
+      return this.inner.nodeIds;
+    });
 
-		this.isEmpty = computed(() => {
-			this._version.value;
-			return this.inner.isEmpty;
-		});
+    this.isEmpty = computed(() => {
+      this._version.value;
+      return this.inner.isEmpty;
+    });
 
-		this.size = computed(() => {
-			this._version.value;
-			return this.inner.size;
-		});
-	}
+    this.size = computed(() => {
+      this._version.value;
+      return this.inner.size;
+    });
+  }
 
-	/**
-	 * Append a message to the current conversation path.
-	 * @returns The new node's ID.
-	 */
-	append(message: M): string {
-		const id = this.inner.append(message);
-		this._version.value++;
-		return id;
-	}
+  /**
+   * Append a message to the current conversation path.
+   * @returns The new node's ID.
+   */
+  append(message: M): string {
+    const id = this.inner.append(message);
+    this._version.value++;
+    return id;
+  }
 
-	/**
-	 * Edit a message by creating a new branch from its parent.
-	 * The edited message becomes a sibling of the original.
-	 * Sets the new branch as active.
-	 *
-	 * @param messageId - ID of the message to "edit" (a sibling will be created).
-	 * @param newMessage - The replacement message content.
-	 * @returns The new node's ID.
-	 * @throws If messageId does not exist.
-	 */
-	edit(messageId: string, newMessage: M): string {
-		const id = this.inner.edit(messageId, newMessage);
-		this._version.value++;
-		return id;
-	}
+  /**
+   * Edit a message by creating a new branch from its parent.
+   * The edited message becomes a sibling of the original.
+   * Sets the new branch as active.
+   *
+   * @param messageId - ID of the message to "edit" (a sibling will be created).
+   * @param newMessage - The replacement message content.
+   * @returns The new node's ID.
+   * @throws If messageId does not exist.
+   */
+  edit(messageId: string, newMessage: M): string {
+    const id = this.inner.edit(messageId, newMessage);
+    this._version.value++;
+    return id;
+  }
 
-	/**
-	 * Regenerate a response by creating a new branch from its parent.
-	 * Semantically identical to `edit()` -- creates a sibling alternative.
-	 *
-	 * @param messageId - ID of the message to regenerate.
-	 * @param newResponse - The new response content.
-	 * @returns The new node's ID.
-	 * @throws If messageId does not exist.
-	 */
-	regenerate(messageId: string, newResponse: M): string {
-		const id = this.inner.regenerate(messageId, newResponse);
-		this._version.value++;
-		return id;
-	}
+  /**
+   * Regenerate a response by creating a new branch from its parent.
+   * Semantically identical to `edit()` -- creates a sibling alternative.
+   *
+   * @param messageId - ID of the message to regenerate.
+   * @param newResponse - The new response content.
+   * @returns The new node's ID.
+   * @throws If messageId does not exist.
+   */
+  regenerate(messageId: string, newResponse: M): string {
+    const id = this.inner.regenerate(messageId, newResponse);
+    this._version.value++;
+    return id;
+  }
 
-	/**
-	 * Whether a message has alternative siblings (branches).
-	 */
-	hasAlternatives(nodeId: string): boolean {
-		return this.inner.hasAlternatives(nodeId);
-	}
+  /**
+   * Whether a message has alternative siblings (branches).
+   */
+  hasAlternatives(nodeId: string): boolean {
+    return this.inner.hasAlternatives(nodeId);
+  }
 
-	/**
-	 * Total number of alternatives (siblings) for a message.
-	 */
-	alternativeCount(nodeId: string): number {
-		return this.inner.alternativeCount(nodeId);
-	}
+  /**
+   * Total number of alternatives (siblings) for a message.
+   */
+  alternativeCount(nodeId: string): number {
+    return this.inner.alternativeCount(nodeId);
+  }
 
-	/**
-	 * 0-based index of a message among its siblings.
-	 */
-	alternativeIndex(nodeId: string): number {
-		return this.inner.alternativeIndex(nodeId);
-	}
+  /**
+   * 0-based index of a message among its siblings.
+   */
+  alternativeIndex(nodeId: string): number {
+    return this.inner.alternativeIndex(nodeId);
+  }
 
-	/**
-	 * Switch to the next alternative (right) and follow to leaf.
-	 * Updates the active path.
-	 * @throws If nodeId does not exist.
-	 */
-	nextAlternative(nodeId: string): void {
-		this.inner.nextAlternative(nodeId);
-		this._version.value++;
-	}
+  /**
+   * Switch to the next alternative (right) and follow to leaf.
+   * Updates the active path.
+   * @throws If nodeId does not exist.
+   */
+  nextAlternative(nodeId: string): void {
+    this.inner.nextAlternative(nodeId);
+    this._version.value++;
+  }
 
-	/**
-	 * Switch to the previous alternative (left) and follow to leaf.
-	 * Updates the active path.
-	 * @throws If nodeId does not exist.
-	 */
-	prevAlternative(nodeId: string): void {
-		this.inner.prevAlternative(nodeId);
-		this._version.value++;
-	}
+  /**
+   * Switch to the previous alternative (left) and follow to leaf.
+   * Updates the active path.
+   * @throws If nodeId does not exist.
+   */
+  prevAlternative(nodeId: string): void {
+    this.inner.prevAlternative(nodeId);
+    this._version.value++;
+  }
 
-	/**
-	 * Serialize to a JSON string.
-	 */
-	toJSON(): string {
-		return this.inner.toJSON();
-	}
+  /**
+   * Serialize to a JSON string.
+   */
+  toJSON(): string {
+    return this.inner.toJSON();
+  }
 
-	/**
-	 * Restore a `ReactiveChatHistory` from a JSON string.
-	 * The returned instance has fully reactive computed properties.
-	 *
-	 * @param json - JSON string previously produced by `toJSON()`.
-	 * @param config - Optional tree configuration (e.g. custom ID generator).
-	 */
-	static fromJSON<M>(json: string, config?: TreeConfig): ReactiveChatHistory<M> {
-		const instance = new ReactiveChatHistory<M>(config);
-		const restored = ChatHistory.fromJSON<M>(json, config);
-		(instance as { inner: ChatHistory<M> }).inner = restored;
-		return instance;
-	}
+  /**
+   * Restore a `ReactiveChatHistory` from a JSON string.
+   * The returned instance has fully reactive computed properties.
+   *
+   * @param json - JSON string previously produced by `toJSON()`.
+   * @param config - Optional tree configuration (e.g. custom ID generator).
+   */
+  static fromJSON<M>(
+    json: string,
+    config?: TreeConfig,
+  ): ReactiveChatHistory<M> {
+    const instance = new ReactiveChatHistory<M>(config);
+    const restored = ChatHistory.fromJSON<M>(json, config);
+    (instance as { inner: ChatHistory<M> }).inner = restored;
+    return instance;
+  }
 }

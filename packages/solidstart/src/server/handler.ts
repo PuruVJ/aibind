@@ -1,4 +1,10 @@
 import { streamText, Output, jsonSchema } from "ai";
+import type { StreamStore } from "@aibind/core";
+import {
+  MemoryStreamStore,
+  createDurableStream,
+  createResumeResponse,
+} from "@aibind/core";
 
 type LanguageModel = string | import("ai").LanguageModel;
 
@@ -7,9 +13,22 @@ interface StreamHandlerConfig {
   model?: LanguageModel;
   /** Named models — client selects via `model` key in request body. */
   models?: Record<string, LanguageModel>;
-  /** Route prefix for the streaming endpoints. Default: '/api/__aibind__' */
+  /** Route prefix for the streaming endpoints. Default: '/__aibind__' */
   prefix?: string;
+  /**
+   * Enable resumable streams. When true, streams are buffered server-side
+   * and clients can reconnect + resume from where they left off.
+   */
+  resumable?: boolean;
+  /**
+   * Custom StreamStore for resumable streams. Defaults to MemoryStreamStore.
+   * Only used when `resumable: true`.
+   */
+  store?: StreamStore;
 }
+
+// Map of active stream controllers (for stop endpoint)
+const activeStreams = new Map<string, AbortController>();
 
 /**
  * Generic Web Request/Response handler for streaming endpoints.
@@ -17,7 +36,7 @@ interface StreamHandlerConfig {
  *
  * @example
  * ```ts
- * // src/routes/api/__aibind__/[...path].ts
+ * // src/routes/__aibind__/[...path].ts
  * import { createStreamHandler } from '@aibind/solidstart/server';
  *
  * const handler = createStreamHandler({ model: myModel });
@@ -30,7 +49,9 @@ interface StreamHandlerConfig {
 export function createStreamHandler(
   config: StreamHandlerConfig,
 ): (request: Request) => Promise<Response> {
-  const prefix = config.prefix ?? "/api/__aibind__";
+  const prefix = config.prefix ?? "/__aibind__";
+  const resumable = config.resumable ?? false;
+  const store = resumable ? (config.store ?? new MemoryStreamStore()) : null;
 
   function resolveModel(requested?: string): import("ai").LanguageModel {
     if (config.models) {
@@ -47,7 +68,10 @@ export function createStreamHandler(
     return config.model as import("ai").LanguageModel;
   }
 
-  function handleStream(body: Record<string, unknown>, structured: boolean) {
+  function handleStream(
+    body: Record<string, unknown>,
+    structured: boolean,
+  ): Response | Promise<Response> {
     const { prompt, system, model: requestedModel, schema } = body;
     if (typeof prompt !== "string" || !prompt.trim()) {
       return Response.json({ error: "prompt is required" }, { status: 400 });
@@ -73,13 +97,69 @@ export function createStreamHandler(
       system: system as string | undefined,
       ...(output && { output }),
     });
-    return result.toTextStreamResponse();
+
+    if (!resumable || !store) {
+      return result.toTextStreamResponse();
+    }
+
+    return handleDurableStream(result.textStream);
   }
 
-  /**
-   * Generic handler that works with any framework using Web Request/Response.
-   * For SolidStart, use in API route handlers.
-   */
+  async function handleDurableStream(
+    source: AsyncIterable<string>,
+  ): Promise<Response> {
+    const { streamId, response, controller } = await createDurableStream({
+      store: store!,
+      source,
+    });
+    activeStreams.set(streamId, controller);
+    return response;
+  }
+
+  function handleResume(url: URL): Response {
+    if (!store) {
+      return Response.json(
+        { error: "Resumable streams not enabled" },
+        { status: 400 },
+      );
+    }
+
+    const streamId = url.searchParams.get("id");
+    const afterSeq = parseInt(url.searchParams.get("after") ?? "0", 10);
+
+    if (!streamId) {
+      return Response.json(
+        { error: "id parameter is required" },
+        { status: 400 },
+      );
+    }
+
+    return createResumeResponse({ store, streamId, afterSeq });
+  }
+
+  async function handleStop(body: Record<string, unknown>): Promise<Response> {
+    const { id } = body;
+    if (typeof id !== "string") {
+      return Response.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const controller = activeStreams.get(id);
+    if (controller) {
+      controller.abort();
+      activeStreams.delete(id);
+    }
+
+    if (store) {
+      try {
+        await store.stop(id);
+      } catch {
+        // Stream may already be stopped/completed
+      }
+    }
+
+    return Response.json({ ok: true });
+  }
+
   return async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
@@ -90,6 +170,15 @@ export function createStreamHandler(
       }
       if (pathname === `${prefix}/structured`) {
         return handleStream(await request.json(), true);
+      }
+      if (resumable && pathname === `${prefix}/stream/stop`) {
+        return handleStop(await request.json());
+      }
+    }
+
+    if (request.method === "GET") {
+      if (resumable && pathname === `${prefix}/stream/resume`) {
+        return handleResume(url);
       }
     }
 

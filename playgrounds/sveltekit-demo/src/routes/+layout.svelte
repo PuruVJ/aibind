@@ -12,6 +12,7 @@
 	<a href="/query">Query</a>
 	<a href="/markdown">Markdown</a>
 	<a href="/branching">Branching</a>
+	<a href="/resumable">Resumable</a>
 </nav>
 
 <main>

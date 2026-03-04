@@ -1,9 +1,22 @@
-import { onDestroy } from "svelte";
+import {
+  consumeSSEStream,
+  consumeTextStream,
+  parsePartialJSON,
+} from "@aibind/core";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { consumeTextStream, parsePartialJSON } from "@aibind/core";
+import { onDestroy } from "svelte";
 import type { LanguageModel, SendOptions } from "./types.js";
 
-export type { SendOptions, DeepPartial, LanguageModel } from "./types.js";
+export type { DeepPartial, LanguageModel, SendOptions } from "./types.js";
+
+export type StreamStatus =
+  | "idle"
+  | "streaming"
+  | "stopped"
+  | "done"
+  | "reconnecting"
+  | "disconnected"
+  | "error";
 
 // --- defineModels ---
 
@@ -32,51 +45,107 @@ export function defineModels<const T extends Record<string, LanguageModel>>(
 
 // --- Stream ---
 
-export interface StreamOptions<M extends string = string> {
-  /** Model key (must match a key from defineModels). */
+interface BaseStreamOptions<M extends string = string> {
   model?: M;
   system?: string;
-  /** Streaming endpoint. Required — no default. */
   endpoint: string;
-  /** Custom fetch implementation. Defaults to globalThis.fetch. */
   fetch?: typeof globalThis.fetch;
-  onFinish?: (text: string) => void;
   onError?: (error: Error) => void;
+}
+
+export interface StreamOptions<
+  M extends string = string,
+> extends BaseStreamOptions<M> {
+  onFinish?: (text: string) => void;
 }
 
 /**
  * Reactive streaming text.
  * Instantiate in a component's <script> block — lifecycle is tied to the component.
+ *
+ * Auto-detects SSE responses (Content-Type: text/event-stream) from resumable
+ * server handlers. When SSE is detected, tracks streamId and sequence numbers,
+ * enabling stop(), resume(), and auto-reconnect on network drops.
+ *
+ * Subclassable — override `_buildBody`, `_processChunk`, `_finalize`, `_resetState`
+ * to customize behavior (see StructuredStream).
  */
 export class Stream<M extends string = string> {
   text = $state("");
   loading = $state(false);
   error: Error | null = $state(null);
   done = $state(false);
+  status: StreamStatus = $state("idle");
+  streamId: string | null = $state(null);
+  canResume = $state(false);
 
   #controller: AbortController | null = null;
   #lastPrompt = "";
   #lastOptions: SendOptions | undefined;
-  #config: StreamOptions<M>;
+  #lastSeq = 0;
+  #isSSE = false;
+  #reconnectAttempts = 0;
+  #maxReconnectAttempts = 3;
+  #onFinish?: (text: string) => void;
+
+  protected _opts: BaseStreamOptions<M>;
+
+  get #fetch() {
+    return this._opts.fetch ?? globalThis.fetch;
+  }
 
   constructor(options: StreamOptions<M>) {
     if (!options.endpoint) {
       throw new Error(
-        "@aibind/svelte: Stream requires an `endpoint` option. If using @aibind/sveltekit, endpoints are configured automatically.",
+        "@aibind/svelte: `endpoint` is required. If using @aibind/sveltekit, endpoints are configured automatically.",
       );
     }
-    this.#config = options;
+    this._opts = options;
+    this.#onFinish = options.onFinish;
     onDestroy(() => this.abort());
   }
+
+  // --- Protected hooks for subclasses ---
+
+  /** Build the request body. Override to add fields (e.g. schema). */
+  protected async _buildBody(
+    prompt: string,
+    system: string | undefined,
+  ): Promise<Record<string, unknown>> {
+    return { prompt, system, model: this._opts.model };
+  }
+
+  /** Process a single text chunk. Override for custom parsing (e.g. partial JSON). */
+  protected _processChunk(chunk: string): void {
+    this.text += chunk;
+  }
+
+  /** Called when the stream completes. Override for validation/finalization. May throw. */
+  protected async _finalize(): Promise<void> {
+    this.#onFinish?.(this.text);
+  }
+
+  /** Reset subclass-specific state. Called by send(). Always call super._resetState(). */
+  protected _resetState(): void {
+    this.text = "";
+  }
+
+  // --- Public API ---
 
   send(prompt: string, options?: SendOptions) {
     this.#controller?.abort();
     this.#lastPrompt = prompt;
     this.#lastOptions = options;
-    this.text = "";
+    this._resetState();
     this.loading = true;
     this.error = null;
     this.done = false;
+    this.status = "streaming";
+    this.streamId = null;
+    this.canResume = false;
+    this.#lastSeq = 0;
+    this.#isSSE = false;
+    this.#reconnectAttempts = 0;
 
     const controller = new AbortController();
     this.#controller = controller;
@@ -87,11 +156,55 @@ export class Stream<M extends string = string> {
   abort() {
     this.#controller?.abort();
     this.#controller = null;
+    this.canResume = false;
+    this.#isSSE = false;
+    if (this.status === "streaming" || this.status === "reconnecting") {
+      this.status = "idle";
+    }
   }
 
   retry() {
     if (this.#lastPrompt) this.send(this.#lastPrompt, this.#lastOptions);
   }
+
+  /** Signal the server to stop LLM generation. Keeps partial text. */
+  async stop() {
+    if (!this.streamId || !this.#isSSE) {
+      // Non-SSE: abort is the only option
+      this.abort();
+      return;
+    }
+
+    try {
+      await this.#fetch(`${this._opts.endpoint}/stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: this.streamId }),
+      });
+    } catch {
+      // If stop request fails, abort locally
+    }
+
+    this.#controller?.abort();
+    this.#controller = null;
+    this.loading = false;
+    this.status = "stopped";
+    this.canResume = false;
+  }
+
+  /** Reconnect to an interrupted stream and resume from last received chunk. */
+  async resume() {
+    if (!this.streamId || !this.#isSSE || !this.canResume) return;
+
+    this.status = "reconnecting";
+    this.loading = true;
+    this.canResume = false;
+    this.#reconnectAttempts = 0;
+
+    await this.#reconnect();
+  }
+
+  // --- Private internals ---
 
   async #run(
     prompt: string,
@@ -99,119 +212,224 @@ export class Stream<M extends string = string> {
     controller: AbortController,
   ) {
     try {
-      const endpoint = this.#config.endpoint;
-      const system = options?.system ?? this.#config.system;
+      const system = options?.system ?? this._opts.system;
+      const body = await this._buildBody(prompt, system);
 
-      const fetcher = this.#config.fetch ?? globalThis.fetch;
-      const response = await fetcher(endpoint, {
+      const response = await this.#fetch(this._opts.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, system, model: this.#config.model }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
 
       if (!response.ok)
         throw new Error(`Stream request failed: ${response.status}`);
 
-      for await (const chunk of consumeTextStream(response)) {
-        if (controller.signal.aborted) break;
-        this.text += chunk;
+      // Auto-detect SSE
+      const contentType = response.headers.get("Content-Type") ?? "";
+      if (contentType.includes("text/event-stream")) {
+        this.#isSSE = true;
+        this.streamId = response.headers.get("X-Stream-Id");
+        await this.#consumeSSE(response, controller);
+      } else {
+        // Plain text stream (non-resumable)
+        for await (const chunk of consumeTextStream(response)) {
+          if (controller.signal.aborted) break;
+          this._processChunk(chunk);
+        }
+        await this._finalize();
+        this.done = true;
+        this.status = "done";
       }
-
-      this.done = true;
-      this.#config.onFinish?.(this.text);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
-        this.done = true;
+        if (this.status !== "stopped") {
+          this.done = true;
+          if (this.status === "streaming") this.status = "done";
+        }
+        return;
+      }
+
+      // SSE mode: attempt auto-reconnect on network errors
+      if (this.#isSSE && this.streamId && this.status === "streaming") {
+        this.status = "reconnecting";
+        await this.#reconnect();
         return;
       }
 
       this.error = e instanceof Error ? e : new Error(String(e));
-      this.#config.onError?.(this.error);
+      this.status = "error";
+      this._opts.onError?.(this.error);
     } finally {
       this.loading = false;
       this.#controller = null;
     }
   }
+
+  async #consumeSSE(response: Response, controller: AbortController) {
+    for await (const msg of consumeSSEStream(response)) {
+      if (controller.signal.aborted) break;
+
+      if (msg.event === "stream-id") {
+        this.streamId = msg.data;
+        continue;
+      }
+      if (msg.event === "done") {
+        try {
+          await this._finalize();
+        } catch (e) {
+          this.error = e instanceof Error ? e : new Error(String(e));
+          this.status = "error";
+          this._opts.onError?.(this.error);
+          return;
+        }
+        this.done = true;
+        // Preserve error/stopped status — only set "done" if still streaming
+        if (this.status === "streaming" || this.status === "reconnecting") {
+          this.status = "done";
+        }
+        return;
+      }
+      if (msg.event === "stopped") {
+        this.status = "stopped";
+        continue;
+      }
+      if (msg.event === "error") {
+        this.error = new Error(msg.data);
+        this.status = "error";
+        this._opts.onError?.(this.error);
+        continue;
+      }
+
+      // Regular data chunk
+      if (msg.id) this.#lastSeq = parseInt(msg.id, 10);
+      this._processChunk(msg.data);
+    }
+
+    // If we exit the loop without a "done" event, the connection was interrupted
+    if (!this.done && this.status === "streaming") {
+      this.status = "reconnecting";
+      await this.#reconnect();
+    }
+  }
+
+  async #reconnect() {
+    const maxAttempts = this.#maxReconnectAttempts;
+
+    while (this.#reconnectAttempts < maxAttempts) {
+      this.#reconnectAttempts++;
+      const delay = Math.pow(2, this.#reconnectAttempts - 1) * 1000;
+      await new Promise((r) => setTimeout(r, delay));
+
+      if (this.status !== "reconnecting") return; // aborted during wait
+
+      try {
+        const controller = new AbortController();
+        this.#controller = controller;
+
+        const response = await this.#fetch(
+          `${this._opts.endpoint}/resume?id=${this.streamId}&after=${this.#lastSeq}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Resume failed: ${response.status}`);
+        }
+
+        this.status = "streaming";
+        this.loading = true;
+        this.#reconnectAttempts = 0;
+        await this.#consumeSSE(response, controller);
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        // Continue to next retry
+      }
+    }
+
+    // All retries exhausted
+    this.status = "disconnected";
+    this.loading = false;
+    this.canResume = true; // User can manually call resume()
+  }
 }
 
 // --- StructuredStream ---
 
-export interface StructuredStreamOptions<T, M extends string = string> {
-  /** Model key (must match a key from defineModels). */
-  model?: M;
+export interface StructuredStreamOptions<
+  T,
+  M extends string = string,
+> extends BaseStreamOptions<M> {
   /** Any Standard Schema-compatible schema (Zod, Valibot, ArkType, etc.) */
   schema: StandardSchemaV1<unknown, T>;
-  system?: string;
-  /** Structured streaming endpoint. Required — no default. */
-  endpoint: string;
-  /** Custom fetch implementation. Defaults to globalThis.fetch. */
-  fetch?: typeof globalThis.fetch;
   onFinish?: (data: T) => void;
-  onError?: (error: Error) => void;
 }
 
 /**
  * Reactive structured streaming.
+ * Extends Stream — inherits SSE auto-detect, stop/resume, and auto-reconnect.
  * Streams JSON and parses partial objects as they arrive.
  * Validates the final result with any Standard Schema-compatible library.
  */
-export class StructuredStream<M extends string, T> {
+export class StructuredStream<M extends string, T> extends Stream<M> {
   data: T | null = $state(null);
   partial: Partial<T> | null = $state(null);
-  raw = $state("");
-  loading = $state(false);
-  error: Error | null = $state(null);
-  done = $state(false);
 
-  #controller: AbortController | null = null;
-  #lastPrompt = "";
-  #lastOptions: SendOptions | undefined;
-  #config: StructuredStreamOptions<T, M>;
+  #schema: StandardSchemaV1<unknown, T>;
+  #onStructuredFinish?: (data: T) => void;
   #resolvedJsonSchema: Record<string, unknown> | null = null;
   #schemaResolved = false;
 
+  /** Alias for `text` — the raw JSON string as it streams in. */
+  get raw() {
+    return this.text;
+  }
+
   constructor(options: StructuredStreamOptions<T, M>) {
-    if (!options.endpoint) {
+    const { schema, onFinish, ...rest } = options;
+    super(rest as StreamOptions<M>);
+    this.#schema = schema;
+    this.#onStructuredFinish = onFinish;
+  }
+
+  protected override async _buildBody(
+    prompt: string,
+    system: string | undefined,
+  ): Promise<Record<string, unknown>> {
+    const body = await super._buildBody(prompt, system);
+    const schema = await this.#resolveSchema();
+    return { ...body, ...(schema && { schema }) };
+  }
+
+  protected override _processChunk(chunk: string): void {
+    this.text += chunk;
+    const parsed = parsePartialJSON<T>(this.text);
+    if (parsed) this.partial = parsed;
+  }
+
+  protected override async _finalize(): Promise<void> {
+    const finalParsed = JSON.parse(this.text);
+    const result = await this.#schema["~standard"].validate(finalParsed);
+    if (result.issues) {
       throw new Error(
-        "@aibind/svelte: StructuredStream requires an `endpoint` option. If using @aibind/sveltekit, endpoints are configured automatically.",
+        `Validation failed: ${result.issues.map((i) => i.message).join(", ")}`,
       );
     }
-    this.#config = options;
-    onDestroy(() => this.abort());
+    this.data = result.value;
+    this.#onStructuredFinish?.(result.value);
   }
 
-  send(prompt: string, options?: SendOptions) {
-    this.#controller?.abort();
-    this.#lastPrompt = prompt;
-    this.#lastOptions = options;
+  protected override _resetState(): void {
+    super._resetState();
     this.data = null;
     this.partial = null;
-    this.raw = "";
-    this.loading = true;
-    this.error = null;
-    this.done = false;
-
-    const controller = new AbortController();
-    this.#controller = controller;
-
-    this.#run(prompt, options, controller);
-  }
-
-  abort() {
-    this.#controller?.abort();
-    this.#controller = null;
-  }
-
-  retry() {
-    if (this.#lastPrompt) this.send(this.#lastPrompt, this.#lastOptions);
   }
 
   async #resolveSchema(): Promise<Record<string, unknown> | null> {
     if (this.#schemaResolved) return this.#resolvedJsonSchema;
     this.#schemaResolved = true;
 
-    const std = (this.#config.schema as any)["~standard"];
+    const std = (this.#schema as any)["~standard"];
 
     // 1. StandardJSONSchemaV1 (e.g. Zod v4)
     if (std?.jsonSchema && Object.keys(std.jsonSchema).length > 0) {
@@ -220,7 +438,7 @@ export class StructuredStream<M extends string, T> {
     }
 
     // 2. Schema instance has .toJsonSchema() (ArkType)
-    const schema = this.#config.schema as any;
+    const schema = this.#schema as any;
     if (typeof schema.toJsonSchema === "function") {
       try {
         this.#resolvedJsonSchema = schema.toJsonSchema() as Record<
@@ -265,63 +483,5 @@ export class StructuredStream<M extends string, T> {
     }
 
     return null;
-  }
-
-  async #run(
-    prompt: string,
-    options: SendOptions | undefined,
-    controller: AbortController,
-  ) {
-    try {
-      const endpoint = this.#config.endpoint;
-      const system = options?.system ?? this.#config.system;
-      const schema = await this.#resolveSchema();
-
-      const fetcher = this.#config.fetch ?? globalThis.fetch;
-      const response = await fetcher(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          system,
-          model: this.#config.model,
-          ...(schema && { schema }),
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok)
-        throw new Error(`Structured stream failed: ${response.status}`);
-
-      for await (const chunk of consumeTextStream(response)) {
-        if (controller.signal.aborted) break;
-        this.raw += chunk;
-        const parsed = parsePartialJSON<T>(this.raw);
-        if (parsed) this.partial = parsed;
-      }
-
-      const finalParsed = JSON.parse(this.raw);
-      const result =
-        await this.#config.schema["~standard"].validate(finalParsed);
-      if (result.issues) {
-        throw new Error(
-          `Validation failed: ${result.issues.map((i) => i.message).join(", ")}`,
-        );
-      }
-      this.data = result.value;
-      this.done = true;
-      this.#config.onFinish?.(result.value);
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") {
-        this.done = true;
-        return;
-      }
-
-      this.error = e instanceof Error ? e : new Error(String(e));
-      this.#config.onError?.(this.error);
-    } finally {
-      this.loading = false;
-      this.#controller = null;
-    }
   }
 }

@@ -137,7 +137,21 @@
       "Bash(then)",
       "Bash(else)",
       "Bash(echo \"=== $pkg: MISSING ===\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(git -C /Users/puruvijay/Projects/svai ls-files --cached packages/svai/src/)",
+      "Bash(pnpm --filter @aibind/core test -- --run tests/memory-store.test.ts)",
+      "Bash(pnpm --filter @aibind/core test -- --run tests/sse.test.ts)",
+      "Bash(pnpm --filter @aibind/core test -- --run tests/durable-stream.test.ts)",
+      "Bash(pnpm --filter @aibind/sveltekit test -- --run tests/server/handler.test.ts)",
+      "Bash(pnpm --filter @aibind/core build)",
+      "Bash(pnpm --filter @aibind/svelte test -- --run tests/client/stream.test.ts)",
+      "Bash(npx vitest run tests/client/structured-stream.test.ts --reporter=verbose)",
+      "Bash(npx vitest run --reporter=verbose)",
+      "Bash(pnpm --filter @aibind/svelte build)",
+      "Bash(pnpm --filter @aibind/sveltekit build)",
+      "Bash(pnpm -r build)",
+      "Bash(pnpm -r --filter './packages/*' build)",
+      "Bash(pnpm --filter './packages/*' build)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

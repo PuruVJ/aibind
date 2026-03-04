@@ -12,11 +12,11 @@ export type {
   RunOptions,
 } from "@aibind/core";
 
-const DEFAULT_PREFIX = "/api/__aibind__";
+const DEFAULT_PREFIX = "/__aibind__";
 
 /**
  * Client-side reactive agent with SvelteKit defaults.
- * Endpoint defaults to `/api/__aibind__/agent`.
+ * Endpoint defaults to `/__aibind__/agent`.
  */
 export class Agent extends BaseAgent {
   constructor(

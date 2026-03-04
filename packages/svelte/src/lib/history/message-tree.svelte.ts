@@ -1,10 +1,10 @@
 import {
-	MessageTree,
-	type TreeConfig,
-	type TreeNode,
-	type TreePath,
-	type SerializedTree
-} from '@aibind/core';
+  MessageTree,
+  type TreeConfig,
+  type TreeNode,
+  type TreePath,
+  type SerializedTree,
+} from "@aibind/core";
 
 /**
  * Svelte 5 reactive wrapper around MessageTree.
@@ -37,148 +37,162 @@ import {
  * ```
  */
 export class ReactiveMessageTree<M> {
-	/** The underlying non-reactive MessageTree. */
-	readonly inner: MessageTree<M>;
+  /** The underlying non-reactive MessageTree. */
+  readonly inner: MessageTree<M>;
 
-	/** Reactivity trigger — bumped on every mutation. */
-	#version = $state(0);
+  /** Reactivity trigger — bumped on every mutation. */
+  #version = $state(0);
 
-	// ─── Reactive Getters ──────────────────────────────────────
+  // ─── Reactive Getters ──────────────────────────────────────
 
-	/** Total number of nodes in the tree. Reactive. */
-	size: number = $derived.by(() => {
-		this.#version;
-		return this.inner.size;
-	});
+  /** Total number of nodes in the tree. Reactive. */
+  size: number = $derived.by(() => {
+    this.#version;
+    return this.inner.size;
+  });
 
-	/** Whether the tree is empty. Reactive. */
-	isEmpty: boolean = $derived.by(() => {
-		this.#version;
-		return this.inner.isEmpty;
-	});
+  /** Whether the tree is empty. Reactive. */
+  isEmpty: boolean = $derived.by(() => {
+    this.#version;
+    return this.inner.isEmpty;
+  });
 
-	/** The active leaf node ID, or null if the tree is empty. Reactive. */
-	activeLeafId: string | null = $derived.by(() => {
-		this.#version;
-		return this.inner.activeLeafId;
-	});
+  /** The active leaf node ID, or null if the tree is empty. Reactive. */
+  activeLeafId: string | null = $derived.by(() => {
+    this.#version;
+    return this.inner.activeLeafId;
+  });
 
-	/** The IDs of all root nodes. Reactive. */
-	rootIds: readonly string[] = $derived.by(() => {
-		this.#version;
-		return this.inner.rootIds;
-	});
+  /** The IDs of all root nodes. Reactive. */
+  rootIds: readonly string[] = $derived.by(() => {
+    this.#version;
+    return this.inner.rootIds;
+  });
 
-	/** The active path from root to the active leaf. Reactive. */
-	activePath: TreePath<M> = $derived.by(() => {
-		this.#version;
-		return this.inner.getActivePath();
-	});
+  /** The active path from root to the active leaf. Reactive. */
+  activePath: TreePath<M> = $derived.by(() => {
+    this.#version;
+    return this.inner.getActivePath();
+  });
 
-	constructor(config?: TreeConfig) {
-		this.inner = new MessageTree<M>(config);
-	}
+  constructor(config?: TreeConfig) {
+    this.inner = new MessageTree<M>(config);
+  }
 
-	// ─── Mutations (trigger reactivity) ─────────────────────────
+  // ─── Mutations (trigger reactivity) ─────────────────────────
 
-	/** Append a message as a child of the current active leaf. */
-	append(message: M, metadata?: Record<string, unknown>): string {
-		const id = this.inner.append(message, metadata);
-		this.#version++;
-		return id;
-	}
+  /** Append a message as a child of the current active leaf. */
+  append(message: M, metadata?: Record<string, unknown>): string {
+    const id = this.inner.append(message, metadata);
+    this.#version++;
+    return id;
+  }
 
-	/** Add a child to a specific parent node. */
-	addChild(parentId: string, message: M, metadata?: Record<string, unknown>): string {
-		const id = this.inner.addChild(parentId, message, metadata);
-		this.#version++;
-		return id;
-	}
+  /** Add a child to a specific parent node. */
+  addChild(
+    parentId: string,
+    message: M,
+    metadata?: Record<string, unknown>,
+  ): string {
+    const id = this.inner.addChild(parentId, message, metadata);
+    this.#version++;
+    return id;
+  }
 
-	/** Add a new root node. */
-	addRoot(message: M, metadata?: Record<string, unknown>): string {
-		const id = this.inner.addRoot(message, metadata);
-		this.#version++;
-		return id;
-	}
+  /** Add a new root node. */
+  addRoot(message: M, metadata?: Record<string, unknown>): string {
+    const id = this.inner.addRoot(message, metadata);
+    this.#version++;
+    return id;
+  }
 
-	/** Branch from a parent node — creates a sibling subtree. */
-	branch(parentId: string, message: M, metadata?: Record<string, unknown>): string {
-		const id = this.inner.branch(parentId, message, metadata);
-		this.#version++;
-		return id;
-	}
+  /** Branch from a parent node — creates a sibling subtree. */
+  branch(
+    parentId: string,
+    message: M,
+    metadata?: Record<string, unknown>,
+  ): string {
+    const id = this.inner.branch(parentId, message, metadata);
+    this.#version++;
+    return id;
+  }
 
-	/** Set the active leaf node, updating the active path. */
-	setActiveLeaf(nodeId: string): void {
-		this.inner.setActiveLeaf(nodeId);
-		this.#version++;
-	}
+  /** Set the active leaf node, updating the active path. */
+  setActiveLeaf(nodeId: string): void {
+    this.inner.setActiveLeaf(nodeId);
+    this.#version++;
+  }
 
-	/** Navigate to the next sibling of a node. */
-	nextSibling(nodeId: string): string | null {
-		const id = this.inner.nextSibling(nodeId);
-		this.#version++;
-		return id;
-	}
+  /** Navigate to the next sibling of a node. */
+  nextSibling(nodeId: string): string | null {
+    const id = this.inner.nextSibling(nodeId);
+    this.#version++;
+    return id;
+  }
 
-	/** Navigate to the previous sibling of a node. */
-	prevSibling(nodeId: string): string | null {
-		const id = this.inner.prevSibling(nodeId);
-		this.#version++;
-		return id;
-	}
+  /** Navigate to the previous sibling of a node. */
+  prevSibling(nodeId: string): string | null {
+    const id = this.inner.prevSibling(nodeId);
+    this.#version++;
+    return id;
+  }
 
-	/** Remove a node and its descendants from the tree. */
-	remove(nodeId: string): void {
-		this.inner.remove(nodeId);
-		this.#version++;
-	}
+  /** Remove a node and its descendants from the tree. */
+  remove(nodeId: string): void {
+    this.inner.remove(nodeId);
+    this.#version++;
+  }
 
-	// ─── Query Methods ──────────────────────────────────────────
+  // ─── Query Methods ──────────────────────────────────────────
 
-	/** Get the path from root to a specific node. */
-	getPathTo(nodeId: string): TreePath<M> {
-		return this.inner.getPathTo(nodeId);
-	}
+  /** Get the path from root to a specific node. */
+  getPathTo(nodeId: string): TreePath<M> {
+    return this.inner.getPathTo(nodeId);
+  }
 
-	/** Get a node by ID. */
-	get(id: string): TreeNode<M> | undefined {
-		return this.inner.get(id);
-	}
+  /** Get a node by ID. */
+  get(id: string): TreeNode<M> | undefined {
+    return this.inner.get(id);
+  }
 
-	/** Check whether a node exists. */
-	has(id: string): boolean {
-		return this.inner.has(id);
-	}
+  /** Check whether a node exists. */
+  has(id: string): boolean {
+    return this.inner.has(id);
+  }
 
-	/** Get the siblings of a node and its index among them. */
-	getSiblings(nodeId: string): { siblings: readonly TreeNode<M>[]; index: number } {
-		return this.inner.getSiblings(nodeId);
-	}
+  /** Get the siblings of a node and its index among them. */
+  getSiblings(nodeId: string): {
+    siblings: readonly TreeNode<M>[];
+    index: number;
+  } {
+    return this.inner.getSiblings(nodeId);
+  }
 
-	/** Get the depth of a node (distance from root). */
-	depth(nodeId: string): number {
-		return this.inner.depth(nodeId);
-	}
+  /** Get the depth of a node (distance from root). */
+  depth(nodeId: string): number {
+    return this.inner.depth(nodeId);
+  }
 
-	/** Get all leaf nodes in the tree. */
-	getLeaves(): TreeNode<M>[] {
-		return this.inner.getLeaves();
-	}
+  /** Get all leaf nodes in the tree. */
+  getLeaves(): TreeNode<M>[] {
+    return this.inner.getLeaves();
+  }
 
-	// ─── Serialization ──────────────────────────────────────────
+  // ─── Serialization ──────────────────────────────────────────
 
-	/** Serialize the tree to a plain object. */
-	serialize(): SerializedTree<M> {
-		return this.inner.serialize();
-	}
+  /** Serialize the tree to a plain object. */
+  serialize(): SerializedTree<M> {
+    return this.inner.serialize();
+  }
 
-	/** Restore a ReactiveMessageTree from serialized data. */
-	static deserialize<M>(data: SerializedTree<M>, config?: TreeConfig): ReactiveMessageTree<M> {
-		const instance = new ReactiveMessageTree<M>(config);
-		const restored = MessageTree.deserialize<M>(data, config);
-		(instance as { inner: MessageTree<M> }).inner = restored;
-		return instance;
-	}
+  /** Restore a ReactiveMessageTree from serialized data. */
+  static deserialize<M>(
+    data: SerializedTree<M>,
+    config?: TreeConfig,
+  ): ReactiveMessageTree<M> {
+    const instance = new ReactiveMessageTree<M>(config);
+    const restored = MessageTree.deserialize<M>(data, config);
+    (instance as { inner: MessageTree<M> }).inner = restored;
+    return instance;
+  }
 }

@@ -1,10 +1,23 @@
 import { ref, onUnmounted } from "vue";
 import type { Ref } from "vue";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { consumeTextStream, parsePartialJSON } from "@aibind/core";
+import {
+  consumeTextStream,
+  parsePartialJSON,
+  consumeSSEStream,
+} from "@aibind/core";
 import type { LanguageModel, SendOptions, DeepPartial } from "./types.js";
 
 export type { SendOptions, DeepPartial, LanguageModel } from "./types.js";
+
+export type StreamStatus =
+  | "idle"
+  | "streaming"
+  | "stopped"
+  | "done"
+  | "reconnecting"
+  | "disconnected"
+  | "error";
 
 // --- defineModels ---
 
@@ -25,9 +38,14 @@ export interface UseStreamReturn {
   loading: Ref<boolean>;
   error: Ref<Error | null>;
   done: Ref<boolean>;
+  status: Ref<StreamStatus>;
+  streamId: Ref<string | null>;
+  canResume: Ref<boolean>;
   send: (prompt: string, sendOpts?: SendOptions) => void;
   abort: () => void;
   retry: () => void;
+  stop: () => Promise<void>;
+  resume: () => Promise<void>;
 }
 
 export interface StreamOptions<M extends string = string> {
@@ -58,10 +76,89 @@ export function useStream<M extends string = string>(
   const loading = ref(false);
   const error: Ref<Error | null> = ref(null);
   const done = ref(false);
+  const status: Ref<StreamStatus> = ref("idle");
+  const streamId: Ref<string | null> = ref(null);
+  const canResume = ref(false);
 
   let controller: AbortController | null = null;
   let lastPrompt = "";
   let lastOptions: SendOptions | undefined;
+  let lastSeq = 0;
+  let isSSE = false;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+
+  async function consumeSSEMessages(response: Response, ctrl: AbortController) {
+    for await (const msg of consumeSSEStream(response)) {
+      if (ctrl.signal.aborted) break;
+
+      if (msg.event === "stream-id") {
+        streamId.value = msg.data;
+        continue;
+      }
+      if (msg.event === "done") {
+        done.value = true;
+        if (status.value === "streaming" || status.value === "reconnecting") {
+          status.value = "done";
+        }
+        options.onFinish?.(text.value);
+        return;
+      }
+      if (msg.event === "stopped") {
+        status.value = "stopped";
+        continue;
+      }
+      if (msg.event === "error") {
+        error.value = new Error(msg.data);
+        status.value = "error";
+        options.onError?.(error.value);
+        continue;
+      }
+
+      if (msg.id) lastSeq = parseInt(msg.id, 10);
+      text.value += msg.data;
+    }
+
+    if (!done.value && status.value === "streaming") {
+      status.value = "reconnecting";
+      await reconnect();
+    }
+  }
+
+  async function reconnect() {
+    while (reconnectAttempts < maxReconnectAttempts) {
+      reconnectAttempts++;
+      const delay = Math.pow(2, reconnectAttempts - 1) * 1000;
+      await new Promise((r) => setTimeout(r, delay));
+
+      if (status.value !== "reconnecting") return;
+
+      try {
+        const fetcher = options.fetch ?? globalThis.fetch;
+        const ctrl = new AbortController();
+        controller = ctrl;
+
+        const response = await fetcher(
+          `${options.endpoint}/resume?id=${streamId.value}&after=${lastSeq}`,
+          { signal: ctrl.signal },
+        );
+
+        if (!response.ok) throw new Error(`Resume failed: ${response.status}`);
+
+        status.value = "streaming";
+        loading.value = true;
+        reconnectAttempts = 0;
+        await consumeSSEMessages(response, ctrl);
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+    }
+
+    status.value = "disconnected";
+    loading.value = false;
+    canResume.value = true;
+  }
 
   async function run(
     prompt: string,
@@ -83,20 +180,37 @@ export function useStream<M extends string = string>(
       if (!response.ok)
         throw new Error(`Stream request failed: ${response.status}`);
 
-      for await (const chunk of consumeTextStream(response)) {
-        if (ctrl.signal.aborted) break;
-        text.value += chunk;
+      const contentType = response.headers.get("Content-Type") ?? "";
+      if (contentType.includes("text/event-stream")) {
+        isSSE = true;
+        streamId.value = response.headers.get("X-Stream-Id");
+        await consumeSSEMessages(response, ctrl);
+      } else {
+        for await (const chunk of consumeTextStream(response)) {
+          if (ctrl.signal.aborted) break;
+          text.value += chunk;
+        }
+        done.value = true;
+        status.value = "done";
+        options.onFinish?.(text.value);
       }
-
-      done.value = true;
-      options.onFinish?.(text.value);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
-        done.value = true;
+        if (status.value !== "stopped") {
+          done.value = true;
+          if (status.value === "streaming") status.value = "done";
+        }
+        return;
+      }
+
+      if (isSSE && streamId.value && status.value === "streaming") {
+        status.value = "reconnecting";
+        await reconnect();
         return;
       }
 
       error.value = e instanceof Error ? e : new Error(String(e));
+      status.value = "error";
       options.onError?.(error.value);
     } finally {
       loading.value = false;
@@ -112,6 +226,12 @@ export function useStream<M extends string = string>(
     loading.value = true;
     error.value = null;
     done.value = false;
+    status.value = "streaming";
+    streamId.value = null;
+    canResume.value = false;
+    lastSeq = 0;
+    isSSE = false;
+    reconnectAttempts = 0;
 
     const ctrl = new AbortController();
     controller = ctrl;
@@ -121,6 +241,40 @@ export function useStream<M extends string = string>(
   function abort() {
     controller?.abort();
     controller = null;
+    canResume.value = false;
+    isSSE = false;
+    if (status.value === "streaming" || status.value === "reconnecting") {
+      status.value = "idle";
+    }
+  }
+
+  async function stop() {
+    if (!streamId.value || !isSSE) {
+      abort();
+      return;
+    }
+    const fetcher = options.fetch ?? globalThis.fetch;
+    try {
+      await fetcher(`${options.endpoint}/stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: streamId.value }),
+      });
+    } catch {}
+    controller?.abort();
+    controller = null;
+    loading.value = false;
+    status.value = "stopped";
+    canResume.value = false;
+  }
+
+  async function resume() {
+    if (!streamId.value || !isSSE || !canResume.value) return;
+    status.value = "reconnecting";
+    loading.value = true;
+    canResume.value = false;
+    reconnectAttempts = 0;
+    await reconnect();
   }
 
   function retry() {
@@ -129,7 +283,20 @@ export function useStream<M extends string = string>(
 
   onUnmounted(() => abort());
 
-  return { text, loading, error, done, send, abort, retry };
+  return {
+    text,
+    loading,
+    error,
+    done,
+    status,
+    streamId,
+    canResume,
+    send,
+    abort,
+    retry,
+    stop,
+    resume,
+  };
 }
 
 // --- useStructuredStream ---
