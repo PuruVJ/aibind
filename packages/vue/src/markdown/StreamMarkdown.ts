@@ -12,13 +12,14 @@ export const StreamMarkdown: ReturnType<typeof defineComponent> =
     },
     setup(props) {
       const renderer = new HtmlRenderer();
+      const parser = new StreamParser(renderer);
 
       const html = computed(() => {
         const input = props.streaming
           ? MarkdownRecovery.recover(props.text)
           : props.text;
         renderer.reset();
-        const parser = new StreamParser(renderer);
+        parser.reset();
         parser.write(input);
         parser.end();
         return renderer.html;

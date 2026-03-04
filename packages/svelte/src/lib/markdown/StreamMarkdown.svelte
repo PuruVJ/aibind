@@ -13,11 +13,12 @@
 	let { text, streaming = false, class: className = '' }: Props = $props();
 
 	const renderer = new HtmlRenderer();
+	const parser = new StreamParser(renderer);
 
 	let html = $derived.by(() => {
 		const input = streaming ? MarkdownRecovery.recover(text) : text;
 		renderer.reset();
-		const parser = new StreamParser(renderer);
+		parser.reset();
 		parser.write(input);
 		parser.end();
 		return renderer.html;

@@ -1,6 +1,6 @@
 {
   "name": "@aibind/vue",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI SDK bindings for Vue 3 — reactive composables for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
@@ -23,21 +23,21 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     },
     "./agent": {
       "types": "./dist/agent/index.d.ts",
-      "import": "./dist/agent/index.js",
-      "require": "./dist/agent/index.cjs"
+      "import": "./dist/agent/index.js"
     },
     "./markdown": {
       "types": "./dist/markdown/index.d.ts",
-      "import": "./dist/markdown/index.js",
-      "require": "./dist/markdown/index.cjs"
+      "import": "./dist/markdown/index.js"
+    },
+    "./history": {
+      "types": "./dist/history/index.d.ts",
+      "import": "./dist/history/index.js"
     }
   },
-  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -51,7 +51,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aibind/common": "workspace:*",
+    "@aibind/core": "workspace:*",
     "@aibind/markdown": "workspace:*"
   },
   "peerDependencies": {

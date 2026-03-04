@@ -26,13 +26,14 @@ export function useStreamMarkdown(
   getStreaming?: () => boolean,
 ): Accessor<string> {
   const renderer = new HtmlRenderer();
+  const parser = new StreamParser(renderer);
 
   return createMemo(() => {
     const text = getText();
     const streaming = getStreaming?.() ?? false;
     const input = streaming ? MarkdownRecovery.recover(text) : text;
     renderer.reset();
-    const parser = new StreamParser(renderer);
+    parser.reset();
     parser.write(input);
     parser.end();
     return renderer.html;

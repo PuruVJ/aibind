@@ -52,7 +52,7 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 - [x] `@aibind/nuxt` — Nuxt integration with server handlers
 - [x] `@aibind/solid` — SolidJS signal-based hooks
 - [x] `@aibind/solidstart` — SolidStart integration with server handlers
-- [x] `@aibind/common` — Shared utilities (stream-utils, ServerAgent)
+- [x] `@aibind/core` — Shared utilities (stream-utils, ServerAgent)
 
 ---
 

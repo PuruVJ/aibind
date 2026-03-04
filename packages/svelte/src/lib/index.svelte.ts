@@ -1,6 +1,6 @@
 import { onDestroy } from "svelte";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { consumeTextStream, parsePartialJSON } from "@aibind/common";
+import { consumeTextStream, parsePartialJSON } from "@aibind/core";
 import type { LanguageModel, SendOptions } from "./types.js";
 
 export type { SendOptions, DeepPartial, LanguageModel } from "./types.js";

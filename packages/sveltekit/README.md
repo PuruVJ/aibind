@@ -359,6 +359,40 @@ Renders streaming markdown with recovery for unterminated syntax. Uses `@aibind/
 - `streaming` — when `true`, applies markdown recovery (closes unterminated bold, code blocks, etc.)
 - `class` — optional CSS class
 
+### `@aibind/sveltekit/history` — Branching Conversation History
+
+```ts
+import {
+  ReactiveChatHistory,
+  ReactiveMessageTree,
+  ChatHistory,
+  MessageTree,
+} from "@aibind/sveltekit/history";
+```
+
+Tree-structured conversation history with branching support. Edit messages, regenerate responses, and navigate alternatives (ChatGPT-style).
+
+```svelte
+<script lang="ts">
+  import { ReactiveChatHistory } from '@aibind/sveltekit/history';
+
+  const chat = new ReactiveChatHistory<{ role: string; content: string }>();
+  chat.append({ role: 'user', content: 'Hello' });
+  chat.append({ role: 'assistant', content: 'Hi!' });
+</script>
+
+{#each chat.messages as msg, i}
+  <div>{msg.role}: {msg.content}</div>
+  {#if chat.hasAlternatives(chat.nodeIds[i])}
+    <button onclick={() => chat.prevAlternative(chat.nodeIds[i])}>←</button>
+    {chat.alternativeIndex(chat.nodeIds[i]) + 1}/{chat.alternativeCount(chat.nodeIds[i])}
+    <button onclick={() => chat.nextAlternative(chat.nodeIds[i])}>→</button>
+  {/if}
+{/each}
+```
+
+See [`@aibind/core` README](https://www.npmjs.com/package/@aibind/core) for full API documentation.
+
 ## Requirements
 
 - Svelte 5.53+

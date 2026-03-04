@@ -42,6 +42,7 @@ function Chat() {
 | `@aibind/solid`          | `useStream`, `useStructuredStream`, `defineModels`                      |
 | `@aibind/solid/agent`    | `useAgent`                                                              |
 | `@aibind/solid/markdown` | `useStreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
+| `@aibind/solid/history`  | `ReactiveChatHistory`, `ReactiveMessageTree`                            |
 
 ## Requirements
 

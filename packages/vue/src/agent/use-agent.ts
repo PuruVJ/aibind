@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from "vue";
 import type { Ref } from "vue";
 import type { AgentStatus, AgentMessage, AgentOptions } from "../types.js";
-import { consumeTextStream } from "@aibind/common";
+import { consumeTextStream } from "@aibind/core";
 
 export type { AgentOptions } from "../types.js";
 

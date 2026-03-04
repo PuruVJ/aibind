@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from "vue";
 import type { Ref } from "vue";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { consumeTextStream, parsePartialJSON } from "@aibind/common";
+import { consumeTextStream, parsePartialJSON } from "@aibind/core";
 import type { LanguageModel, SendOptions, DeepPartial } from "./types.js";
 
 export type { SendOptions, DeepPartial, LanguageModel } from "./types.js";

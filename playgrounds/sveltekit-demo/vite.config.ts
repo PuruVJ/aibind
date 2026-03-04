@@ -4,6 +4,6 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [sveltekit()],
   resolve: {
-    external: ["@aibind/common"],
+    external: ["@aibind/core"],
   },
 });

@@ -284,6 +284,37 @@ const { text, loading } = useStream({ system: "You are a helpful assistant." });
 - `text` — markdown string to render
 - `streaming` — when `true`, applies markdown recovery (closes unterminated bold, code blocks, etc.)
 
+### `@aibind/nuxt/history` — Branching Conversation History
+
+```ts
+import {
+  ReactiveChatHistory,
+  ReactiveMessageTree,
+  ChatHistory,
+  MessageTree,
+} from "@aibind/nuxt/history";
+```
+
+Tree-structured conversation history with branching support. Edit messages, regenerate responses, and navigate alternatives (ChatGPT-style).
+
+```vue
+<script setup lang="ts">
+import { ReactiveChatHistory } from "@aibind/nuxt/history";
+
+const chat = new ReactiveChatHistory<{ role: string; content: string }>();
+chat.append({ role: "user", content: "Hello" });
+chat.append({ role: "assistant", content: "Hi!" });
+</script>
+
+<template>
+  <div v-for="(msg, i) in chat.messages.value" :key="chat.nodeIds.value[i]">
+    {{ msg.role }}: {{ msg.content }}
+  </div>
+</template>
+```
+
+See [`@aibind/core` README](https://www.npmjs.com/package/@aibind/core) for full API documentation.
+
 ## Requirements
 
 - Vue 3.3+

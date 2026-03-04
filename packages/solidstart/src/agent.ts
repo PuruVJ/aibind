@@ -8,8 +8,8 @@ export type {
   AgentMessage,
   AgentStatus,
 } from "@aibind/solid/agent";
-export { ServerAgent } from "@aibind/common";
-export type { AgentConfig, RunOptions } from "@aibind/common";
+export { ServerAgent } from "@aibind/core";
+export type { AgentConfig, RunOptions } from "@aibind/core";
 
 const DEFAULT_PREFIX = "/api/__aibind__";
 

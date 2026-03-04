@@ -1,6 +1,6 @@
 import { onDestroy } from "svelte";
 import type { AgentStatus, AgentMessage } from "../types.js";
-import { consumeTextStream } from "@aibind/common";
+import { consumeTextStream } from "@aibind/core";
 
 export interface AgentOptions {
   /** API endpoint for the agent. Required — no default. */

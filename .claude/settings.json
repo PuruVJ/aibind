@@ -40,7 +40,7 @@
       "Bash(pnpm --filter @aibind/svelte test)",
       "Bash(pnpm --filter @aibind/vue test)",
       "Bash(pnpm --filter @aibind/vue build)",
-      "Bash(pnpm --filter @aibind/common test)",
+      "Bash(pnpm --filter @aibind/core test)",
       "Bash(pnpm --filter @aibind/sveltekit test)",
       "Bash(pnpm --filter @aibind/nuxt test)",
       "Bash(xargs sed -i '' 's/@aibind\\\\/utils/@aibind\\\\/common/g')",
@@ -108,18 +108,41 @@
       "Read(//^declare function streamText/**)",
       "Bash(npx tsc --noEmit packages/common/src/server-agent.ts)",
       "Bash(npm run build -w packages/common)",
-      "Bash(pnpm test --filter=@aibind/common)",
+      "Bash(pnpm test --filter=@aibind/core)",
       "Bash(npm test)",
       "Bash(pnpm --filter @aibind/markdown add -D tinybench)",
       "Bash(pnpm --filter @aibind/markdown add -D tsx)",
       "Bash(pnpm --filter @aibind/markdown bench)",
       "Bash(node --import tsx -e \":*)",
       "Bash(npx tsx -e \":*)",
-      "Bash(pnpm --filter @aibind/markdown build)"
+      "Bash(pnpm --filter @aibind/markdown build)",
+      "Bash(find /Users/puruvijay/Projects/svai/node_modules/.pnpm/ai@*/node_modules/ai/src -name \"*.ts\")",
+      "Bash(find /Users/puruvijay/Projects/svai/node_modules/.pnpm/ai@*/node_modules/ai -name \"*.d.ts\" -path \"*/dist/*\")",
+      "Bash(xargs sed -i '' 's/@aibind\\\\/common/@aibind\\\\/core/g')",
+      "Bash(npx tsc --noEmit -p packages/core/tsconfig.json)",
+      "Bash(npx vitest run tests/history/)",
+      "Bash(npx tsc --noEmit src/history/reactive-chat-history.ts src/history/reactive-message-tree.ts src/history/index.ts)",
+      "Bash(npx tsc --noEmit --project tsconfig.json)",
+      "Bash(npx vitest run)",
+      "Bash(node -e \":*)",
+      "Bash(pnpm changeset version)",
+      "Bash(pnpm release)",
+      "Bash(for pkg in core markdown vue solid nuxt solidstart svelte sveltekit)",
+      "Bash(do echo \"=== $pkg ===\")",
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''/Users/puruvijay/Projects/svai/packages/$pkg/package.json'',''utf8''\\)\\); console.log\\(''valid JSON''\\)\")",
+      "Bash(for pkg in svelte vue solid sveltekit nuxt solidstart)",
+      "Bash(do)",
+      "Bash(readme=\"packages/$pkg/README.md\")",
+      "Bash(if [ -f \"$readme\" ])",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(echo \"=== $pkg: MISSING ===\")",
+      "Bash(fi)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",
-      "/Users/puruvijay/.claude/projects/-Users-puruvijay-Projects-svai"
+      "/Users/puruvijay/.claude/projects/-Users-puruvijay-Projects-svai",
+      "/Users/puruvijay/Projects/svai"
     ]
   }
 }

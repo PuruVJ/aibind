@@ -1,3 +1,3 @@
 export { createStreamHandler } from "./handler.js";
-export { ServerAgent } from "@aibind/common";
-export type { AgentConfig, RunOptions } from "@aibind/common";
+export { ServerAgent } from "@aibind/core";
+export type { AgentConfig, RunOptions } from "@aibind/core";

@@ -303,6 +303,37 @@ function Chat() {
 - `getText` — accessor returning the markdown string
 - `getStreaming` — accessor returning whether the stream is active (enables recovery)
 
+### `@aibind/solidstart/history` — Branching Conversation History
+
+```ts
+import {
+  ReactiveChatHistory,
+  ReactiveMessageTree,
+  ChatHistory,
+  MessageTree,
+} from "@aibind/solidstart/history";
+```
+
+Tree-structured conversation history with branching support. Edit messages, regenerate responses, and navigate alternatives (ChatGPT-style).
+
+```tsx
+import { ReactiveChatHistory } from "@aibind/solidstart/history";
+
+function Chat() {
+  const chat = new ReactiveChatHistory<{ role: string; content: string }>();
+  chat.append({ role: "user", content: "Hello" });
+  chat.append({ role: "assistant", content: "Hi!" });
+
+  return (
+    <For each={chat.messages()}>
+      {(msg) => <div>{msg.role}: {msg.content}</div>}
+    </For>
+  );
+}
+```
+
+See [`@aibind/core` README](https://www.npmjs.com/package/@aibind/core) for full API documentation.
+
 ## Requirements
 
 - SolidJS 1.8+

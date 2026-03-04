@@ -3,7 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig([
   {
     entry: { index: "src/index.ts" },
-    format: ["esm", "cjs"],
+    format: ["esm"],
     dts: true,
     clean: true,
     outDir: "dist",
@@ -18,14 +18,21 @@ export default defineConfig([
   },
   {
     entry: { "agent/index": "src/agent/index.ts" },
-    format: ["esm", "cjs"],
+    format: ["esm"],
     dts: true,
     outDir: "dist",
     external: ["solid-js", "ai"],
   },
   {
     entry: { "markdown/index": "src/markdown/index.ts" },
-    format: ["esm", "cjs"],
+    format: ["esm"],
+    dts: true,
+    outDir: "dist",
+    external: ["solid-js"],
+  },
+  {
+    entry: { "history/index": "src/history/index.ts" },
+    format: ["esm"],
     dts: true,
     outDir: "dist",
     external: ["solid-js"],

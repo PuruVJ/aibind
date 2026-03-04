@@ -6,11 +6,11 @@ export type {
   AgentMessage,
   AgentStatus,
 } from "@aibind/svelte/agent";
-export { ServerAgent } from "@aibind/common";
+export { ServerAgent } from "@aibind/core";
 export type {
   AgentConfig as ServerAgentConfig,
   RunOptions,
-} from "@aibind/common";
+} from "@aibind/core";
 
 const DEFAULT_PREFIX = "/api/__aibind__";
 

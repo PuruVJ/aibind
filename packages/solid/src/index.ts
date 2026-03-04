@@ -1,7 +1,7 @@
 import { createSignal, onCleanup } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { consumeTextStream, parsePartialJSON } from "@aibind/common";
+import { consumeTextStream, parsePartialJSON } from "@aibind/core";
 import type { LanguageModel, SendOptions } from "./types.js";
 
 export type { SendOptions, DeepPartial, LanguageModel } from "./types.js";

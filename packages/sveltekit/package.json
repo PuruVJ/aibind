@@ -1,6 +1,6 @@
 {
   "name": "@aibind/sveltekit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI SDK bindings for SvelteKit — streaming, structured output, agents, server handlers, and remote functions",
   "license": "MIT",
   "keywords": [
@@ -45,6 +45,11 @@
       "types": "./src/lib/markdown.ts",
       "svelte": "./src/lib/markdown.ts",
       "default": "./src/lib/markdown.ts"
+    },
+    "./history": {
+      "types": "./src/lib/history.ts",
+      "svelte": "./src/lib/history.ts",
+      "default": "./src/lib/history.ts"
     }
   },
   "publishConfig": {
@@ -91,7 +96,7 @@
   },
   "dependencies": {
     "@aibind/svelte": "workspace:*",
-    "@aibind/common": "workspace:*",
+    "@aibind/core": "workspace:*",
     "@aibind/markdown": "workspace:*"
   },
   "peerDependencies": {

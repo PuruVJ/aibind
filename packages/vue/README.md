@@ -40,6 +40,7 @@ const { text, loading, send } = useStream({
 | `@aibind/vue`          | `useStream`, `useStructuredStream`, `defineModels`                   |
 | `@aibind/vue/agent`    | `useAgent`                                                           |
 | `@aibind/vue/markdown` | `StreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
+| `@aibind/vue/history`  | `ReactiveChatHistory`, `ReactiveMessageTree`                         |
 
 ## Requirements
 

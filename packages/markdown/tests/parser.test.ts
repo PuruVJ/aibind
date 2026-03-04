@@ -647,8 +647,8 @@ describe("inline edge cases", () => {
     assertMarkdown("``\n", "<p>``</p>\n");
   });
 
-  it("bold with only spaces inside", () => {
-    assertMarkdown("** **\n", "<p><strong> </strong></p>\n");
+  it("** ** on its own line is a horizontal rule (4 stars with space)", () => {
+    assertMarkdown("** **\n", "<hr>\n");
   });
 
   it("nested bold inside strikethrough inside italic", () => {

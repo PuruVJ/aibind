@@ -1,7 +1,7 @@
 import { createSignal, onCleanup } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { AgentStatus, AgentMessage, AgentOptions } from "../types.js";
-import { consumeTextStream } from "@aibind/common";
+import { consumeTextStream } from "@aibind/core";
 
 export type { AgentOptions } from "../types.js";
 
