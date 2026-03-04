@@ -1,14 +1,29 @@
-# svai
+# @aibind/svelte
 
-AI SDK bindings for SvelteKit. Reactive Svelte 5 classes for streaming, structured output, and server-side AI helpers built on [Vercel AI SDK](https://sdk.vercel.ai/).
+AI SDK bindings for SvelteKit. Reactive Svelte 5 classes for streaming, structured output, agents, and server-side AI helpers built on [Vercel AI SDK](https://sdk.vercel.ai/).
 
 ## Install
 
 ```bash
-npm install svai ai @ai-sdk/anthropic svelte
+npm install @aibind/svelte ai svelte
 ```
 
-Peer dependencies: `svelte ^5.53`, `ai ^6.0`, `@sveltejs/kit ^2.53` (optional), `zod ^3.23` (optional — or any [Standard Schema](https://github.com/standard-schema/standard-schema) library).
+Peer dependencies: `svelte ^5.53`, `ai ^6.0`, `@sveltejs/kit ^2.53` (optional for remote functions).
+
+### Schema Libraries
+
+`StructuredStream` works with any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library. Install one:
+
+```bash
+# Zod (v4 recommended — has built-in JSON Schema support)
+npm install zod
+
+# Valibot (requires JSON Schema converter)
+npm install valibot @valibot/to-json-schema
+
+# ArkType (built-in JSON Schema via .toJsonSchema())
+npm install arktype
+```
 
 ## Quick Start
 
@@ -16,7 +31,7 @@ Peer dependencies: `svelte ^5.53`, `ai ^6.0`, `@sveltejs/kit ^2.53` (optional), 
 
 ```ts
 // src/hooks.server.ts
-import { createStreamHandler } from 'svai/server';
+import { createStreamHandler } from '@aibind/svelte/server';
 import { anthropic } from '@ai-sdk/anthropic';
 
 export const handle = createStreamHandler({
@@ -30,7 +45,7 @@ This handles `/api/svai/stream` and `/api/svai/structured` requests.
 
 ```svelte
 <script lang="ts">
-  import { Stream } from 'svai';
+  import { Stream } from '@aibind/svelte';
 
   const stream = new Stream({
     system: 'You are a helpful assistant.'
@@ -51,19 +66,19 @@ This handles `/api/svai/stream` and `/api/svai/structured` requests.
 
 ## Entry Points
 
-### `svai` — Client Classes
+### `@aibind/svelte` — Client Classes
 
 ```ts
-import { Stream, StructuredStream, defineModels } from 'svai';
+import { Stream, StructuredStream, defineModels } from '@aibind/svelte';
 ```
 
 #### `defineModels(models)`
 
-Define named AI models for type-safe model selection across client and server. Returns the same object with a phantom `$infer` type for extracting model keys.
+Define named AI models for type-safe model selection across client and server.
 
 ```ts
-// src/lib/models.ts — importable on both client and server
-import { defineModels } from 'svai';
+// src/lib/models.server.ts
+import { defineModels } from '@aibind/svelte';
 import { anthropic } from '@ai-sdk/anthropic';
 
 export const models = defineModels({
@@ -74,23 +89,12 @@ export const models = defineModels({
 export type Models = typeof models.$infer; // 'default' | 'fast'
 ```
 
-Then use the type on the client for autocomplete:
-
-```svelte
-<script lang="ts">
-  import { Stream } from 'svai';
-  import type { Models } from '$lib/models';
-
-  const stream = new Stream<Models>({ model: 'fast' });
-</script>
-```
-
-And pass the models to the server handler:
+Pass models to the server handler:
 
 ```ts
 // src/hooks.server.ts
-import { createStreamHandler } from 'svai/server';
-import { models } from '$lib/models';
+import { createStreamHandler } from '@aibind/svelte/server';
+import { models } from '$lib/models.server';
 
 export const handle = createStreamHandler({ models });
 ```
@@ -104,28 +108,27 @@ const stream = new Stream({
   model: 'fast',                           // optional model key
   system: 'You are a poet.',
   endpoint: '/api/custom/stream',          // default: '/api/svai/stream'
+  fetch: customFetch,                      // optional custom fetch
   onFinish: (text) => console.log(text),
   onError: (err) => console.error(err)
 });
 
 stream.send('Write a haiku');
-stream.send('Now a limerick', { system: 'You are a comedian.' }); // per-request system override
+stream.send('Now a limerick', { system: 'Override system prompt' });
 stream.text;    // reactive accumulated text
 stream.loading; // true while streaming
 stream.error;   // Error | null
 stream.done;    // true when complete
 stream.abort(); // cancel in-flight request
-stream.retry(); // re-send last prompt with same options
+stream.retry(); // re-send last prompt
 ```
-
-Calling `send()` while a request is in-flight automatically aborts the previous one. The stream is cleaned up automatically when the component is destroyed.
 
 #### `new StructuredStream(options)`
 
 Streams JSON and parses partial objects as they arrive. Validates the final result with any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library (Zod, Valibot, ArkType, etc.).
 
 ```ts
-import { StructuredStream } from 'svai';
+import { StructuredStream } from '@aibind/svelte';
 import { z } from 'zod';
 
 const analysis = new StructuredStream({
@@ -143,48 +146,26 @@ analysis.data;    // T | null — fully validated after completion
 analysis.raw;     // raw JSON string
 ```
 
-Works with any Standard Schema library:
-
-```ts
-// Valibot
-import * as v from 'valibot';
-
-const stream = new StructuredStream({
-  schema: v.object({
-    sentiment: v.picklist(['positive', 'negative', 'neutral']),
-    score: v.number()
-  }),
-  system: 'Analyze sentiment.'
-});
-```
-
 ---
 
-### `svai/server` — Server Helpers
-
-Stream handler and SvelteKit remote function wrappers.
+### `@aibind/svelte/server` — Server Helpers
 
 ```ts
-import { createStreamHandler, AIServer } from 'svai/server';
+import { createStreamHandler, AIServer } from '@aibind/svelte/server';
 ```
 
 #### `createStreamHandler(config)`
 
-SvelteKit handle hook that serves streaming endpoints. Use in `hooks.server.ts`.
+SvelteKit handle hook that serves streaming endpoints.
 
 ```ts
 // Single model
-import { createStreamHandler } from 'svai/server';
-import { anthropic } from '@ai-sdk/anthropic';
-
 export const handle = createStreamHandler({
   model: anthropic('claude-sonnet-4-20250514'),
   prefix: '/api/svai' // default
 });
 
-// Multi-model (with defineModels)
-import { models } from '$lib/models';
-
+// Multi-model
 export const handle = createStreamHandler({ models });
 ```
 
@@ -192,21 +173,18 @@ Handles two routes:
 - `POST {prefix}/stream` — text streaming
 - `POST {prefix}/structured` — JSON streaming
 
-The client sends `{ prompt, system?, model? }` in the request body. When using `models`, the `model` key selects which model to use (defaults to the first key).
-
 #### `new AIServer(model)`
 
-Wraps SvelteKit's [remote functions](https://svelte.dev/docs/kit/remote-functions) with AI SDK. No global state — each instance holds its own model.
+Wraps SvelteKit's [remote functions](https://svelte.dev/docs/kit/remote-functions) with AI SDK.
 
 ```ts
 // src/lib/ai.server.ts
-import { AIServer } from 'svai/server';
-import { anthropic } from '@ai-sdk/anthropic';
+import { AIServer } from '@aibind/svelte/server';
 
 export const ai = new AIServer(anthropic('claude-sonnet-4-20250514'));
 ```
 
-#### `ai.query(schema, promptFn)` — Text response
+##### `ai.query(schema, promptFn)` — Text response
 
 ```ts
 // src/routes/api/summarize.remote.ts
@@ -214,26 +192,26 @@ import { ai } from '$lib/ai.server';
 import { z } from 'zod';
 
 export const summarize = ai.query(
-  z.object({ text: z.string() }),
-  (input) => `Summarize this: ${input.text}`
+  z.string(),
+  (text) => `Summarize this: ${text}`
 );
 ```
 
-#### `ai.structuredQuery({ input, output, prompt })` — Typed response
+##### `ai.structuredQuery({ input, output, prompt })` — Typed response
 
 ```ts
 export const analyze = ai.structuredQuery({
-  input: z.object({ text: z.string() }),
+  input: z.string(),
   output: z.object({
     sentiment: z.enum(['positive', 'negative', 'neutral']),
     confidence: z.number()
   }),
-  prompt: (input) => `Analyze: ${input.text}`,
+  prompt: (text) => `Analyze: ${text}`,
   system: 'Return JSON matching the output schema.'
 });
 ```
 
-#### `ai.command(schema, handler)` — Mutations
+##### `ai.command(schema, handler)` — Mutations
 
 ```ts
 export const generatePost = ai.command(
@@ -248,59 +226,117 @@ export const generatePost = ai.command(
 
 ---
 
-### `svai/agent` — Agents
+### `@aibind/svelte/agent` — Agents
 
-Server-side agent definition and client-side reactive state.
-
-```ts
-import { ServerAgent, Agent } from 'svai/agent';
-```
+Server-side agent with tools and client-side reactive state.
 
 #### `new ServerAgent(config)` — Server
 
+Define an agent with a system prompt, tools, and a stop condition. Uses AI SDK's `generateText`/`streamText` with multi-step tool loops.
+
 ```ts
-import { ServerAgent } from 'svai/agent';
-import { tool } from 'ai';
+// src/routes/api/agent/+server.ts
+import { ServerAgent } from '@aibind/svelte/agent';
+import { tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 
 const agent = new ServerAgent({
   model: anthropic('claude-sonnet-4-20250514'),
   system: 'You are a helpful assistant with access to tools.',
   tools: {
-    getWeather: tool({
+    get_weather: tool({
       description: 'Get weather for a city',
-      parameters: z.object({ city: z.string() }),
-      execute: async ({ city }) => `72F in ${city}`
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({
+        city,
+        temperature: '72°F',
+        condition: 'sunny'
+      })
+    }),
+    get_time: tool({
+      description: 'Get the current time',
+      inputSchema: z.object({}),
+      execute: async () => ({ time: new Date().toLocaleTimeString() })
     })
   },
-  maxSteps: 10
+  stopWhen: stepCountIs(5) // stop after 5 tool-use steps
 });
+```
 
+##### `agent.stream(prompt, options?)` — Streaming response
+
+Returns a `StreamTextResult` synchronously (no await needed). Use in SvelteKit endpoints:
+
+```ts
+export async function POST({ request }) {
+  const { messages } = await request.json();
+  const lastMessage = messages[messages.length - 1];
+
+  const result = agent.stream(lastMessage.content, {
+    messages: messages.slice(0, -1) // pass conversation history
+  });
+
+  return result.toTextStreamResponse();
+}
+```
+
+##### `agent.run(prompt, options?)` — Non-streaming response
+
+```ts
 const result = await agent.run('What is the weather in SF?');
+console.log(result.text);
 ```
 
 #### `new Agent(options?)` — Client
 
-Reactive agent state for the client. All properties are `$state` fields.
+Reactive agent state for the client. Messages stream in incrementally — the UI updates as chunks arrive.
 
-```ts
-const agent = new Agent({
-  endpoint: '/api/agent',
-  onMessage: (msg) => console.log(msg),
-  onError: (err) => console.error(err)
-});
+```svelte
+<script lang="ts">
+  import { Agent } from '@aibind/svelte/agent';
 
-agent.send('Plan a trip to Tokyo');
-agent.messages; // reactive message list
-agent.status;   // 'idle' | 'running' | 'awaiting-approval' | 'error'
-agent.stop();   // abort the current request
+  const agent = new Agent({
+    endpoint: '/api/svai/agent',  // default
+    fetch: customFetch,            // optional
+    onMessage: (msg) => console.log(msg),
+    onError: (err) => console.error(err)
+  });
+
+  let prompt = $state('');
+</script>
+
+<form onsubmit={(e) => { e.preventDefault(); agent.send(prompt); prompt = ''; }}>
+  <input bind:value={prompt} />
+  <button disabled={agent.status === 'running'}>Send</button>
+</form>
+
+{#each agent.messages as message (message.id)}
+  <div class={message.role}>
+    {message.content}
+  </div>
+{/each}
+
+{#if agent.status === 'running'}
+  <button onclick={() => agent.stop()}>Stop</button>
+{/if}
 ```
+
+**Reactive properties:**
+- `messages` — array of `{ id, role, content, type }` messages
+- `status` — `'idle' | 'running' | 'awaiting-approval' | 'error'`
+- `error` — `Error | null`
+- `pendingApproval` — `{ id, toolName, args } | null`
+
+**Methods:**
+- `send(prompt)` — send a message, streams response incrementally
+- `stop()` — abort the current request
+- `approve(id)` / `deny(id)` — respond to tool approval requests
 
 ## Requirements
 
 - Svelte 5.53+
 - AI SDK 6.0+
-- SvelteKit 2.53+ (for `svai/server` remote functions)
+- SvelteKit 2.53+ (for remote functions)
 - Node.js 20+
 
 ## License
