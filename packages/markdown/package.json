@@ -1,0 +1,49 @@
+{
+  "name": "@aibind/markdown",
+  "version": "0.1.0",
+  "description": "Streaming markdown renderer for AI chat — framework-agnostic core with Svelte/Vue/Solid components",
+  "license": "MIT",
+  "keywords": [
+    "markdown",
+    "streaming",
+    "ai",
+    "chat",
+    "llm",
+    "svelte",
+    "incremental",
+    "parser"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puruvj/aibind"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "tsx bench/parser.bench.ts"
+  },
+  "devDependencies": {
+    "tinybench": "^6.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

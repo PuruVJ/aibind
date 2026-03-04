@@ -244,6 +244,33 @@ const prompt = ref('');
 - `stop()` — abort the current request
 - `approve(id)` / `deny(id)` — respond to tool approval requests
 
+---
+
+### `@aibind/nuxt/markdown` — Streaming Markdown
+
+```ts
+import { StreamMarkdown } from '@aibind/nuxt/markdown';
+```
+
+Renders streaming markdown with recovery for unterminated syntax. Uses `@aibind/markdown` under the hood.
+
+```vue
+<script setup lang="ts">
+import { useStream } from '@aibind/nuxt';
+import { StreamMarkdown } from '@aibind/nuxt/markdown';
+
+const { text, loading } = useStream({ system: 'You are a helpful assistant.' });
+</script>
+
+<template>
+  <StreamMarkdown :text="text" :streaming="loading" />
+</template>
+```
+
+**Props:**
+- `text` — markdown string to render
+- `streaming` — when `true`, applies markdown recovery (closes unterminated bold, code blocks, etc.)
+
 ## Requirements
 
 - Vue 3.3+

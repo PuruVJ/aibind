@@ -322,6 +322,32 @@ Reactive agent state. Endpoint defaults to `/api/__aibind__/agent`.
 - `stop()` — abort the current request
 - `approve(id)` / `deny(id)` — respond to tool approval requests
 
+---
+
+### `@aibind/sveltekit/markdown` — Streaming Markdown
+
+```ts
+import { StreamMarkdown } from '@aibind/sveltekit/markdown';
+```
+
+Renders streaming markdown with recovery for unterminated syntax. Uses `@aibind/markdown` under the hood.
+
+```svelte
+<script lang="ts">
+  import { Stream } from '@aibind/sveltekit';
+  import { StreamMarkdown } from '@aibind/sveltekit/markdown';
+
+  const stream = new Stream({ system: 'You are a helpful assistant.' });
+</script>
+
+<StreamMarkdown text={stream.text} streaming={stream.loading} />
+```
+
+**Props:**
+- `text` — markdown string to render
+- `streaming` — when `true`, applies markdown recovery (closes unterminated bold, code blocks, etc.)
+- `class` — optional CSS class
+
 ## Requirements
 
 - Svelte 5.53+

@@ -40,6 +40,11 @@
     "./remote": {
       "types": "./src/lib/remote/index.ts",
       "default": "./src/lib/remote/index.ts"
+    },
+    "./markdown": {
+      "types": "./src/lib/markdown.ts",
+      "svelte": "./src/lib/markdown.ts",
+      "default": "./src/lib/markdown.ts"
     }
   },
   "publishConfig": {
@@ -63,6 +68,11 @@
       "./remote": {
         "types": "./dist/remote/index.d.ts",
         "default": "./dist/remote/index.js"
+      },
+      "./markdown": {
+        "types": "./dist/markdown.d.ts",
+        "svelte": "./dist/markdown.js",
+        "default": "./dist/markdown.js"
       }
     }
   },
@@ -81,7 +91,8 @@
   },
   "dependencies": {
     "@aibind/svelte": "workspace:*",
-    "@aibind/common": "workspace:*"
+    "@aibind/common": "workspace:*",
+    "@aibind/markdown": "workspace:*"
   },
   "peerDependencies": {
     "@sveltejs/kit": "^2.53.0",

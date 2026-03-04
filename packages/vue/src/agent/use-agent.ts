@@ -5,12 +5,23 @@ import { consumeTextStream } from '@aibind/common';
 
 export type { AgentOptions } from '../types.js';
 
+export interface UseAgentReturn {
+	messages: Ref<AgentMessage[]>;
+	status: Ref<AgentStatus>;
+	error: Ref<Error | null>;
+	pendingApproval: Ref<{ id: string; toolName: string; args: unknown } | null>;
+	send: (prompt: string) => Promise<void>;
+	stop: () => void;
+	approve: (id: string) => void;
+	deny: (id: string, reason?: string) => void;
+}
+
 /**
  * Reactive agent composable.
  * Streams responses from a server-side agent endpoint.
  * Call inside a component's `setup()`.
  */
-export function useAgent(options: AgentOptions) {
+export function useAgent(options: AgentOptions): UseAgentReturn {
 	if (!options.endpoint) {
 		throw new Error('@aibind/vue: useAgent requires an `endpoint` option. If using @aibind/nuxt, endpoints are configured automatically.');
 	}

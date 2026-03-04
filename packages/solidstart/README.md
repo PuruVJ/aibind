@@ -249,6 +249,32 @@ function AgentChat() {
 - `stop()` — abort the current request
 - `approve(id)` / `deny(id)` — respond to tool approval requests
 
+---
+
+### `@aibind/solidstart/markdown` — Streaming Markdown
+
+```ts
+import { useStreamMarkdown } from '@aibind/solidstart/markdown';
+```
+
+Reactive hook that parses streaming markdown with recovery for unterminated syntax. Uses `@aibind/markdown` under the hood.
+
+```tsx
+import { useStream } from '@aibind/solidstart';
+import { useStreamMarkdown } from '@aibind/solidstart/markdown';
+
+function Chat() {
+  const { text, loading } = useStream({ system: 'You are a helpful assistant.' });
+  const html = useStreamMarkdown(() => text(), () => loading());
+
+  return <div innerHTML={html()} />;
+}
+```
+
+**Parameters:**
+- `getText` — accessor returning the markdown string
+- `getStreaming` — accessor returning whether the stream is active (enables recovery)
+
 ## Requirements
 
 - SolidJS 1.8+

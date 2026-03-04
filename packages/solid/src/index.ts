@@ -20,6 +20,16 @@ export function defineModels<const T extends Record<string, LanguageModel>>(
 
 // --- useStream ---
 
+export interface UseStreamReturn {
+	text: Accessor<string>;
+	loading: Accessor<boolean>;
+	error: Accessor<Error | null>;
+	done: Accessor<boolean>;
+	send: (prompt: string, options?: SendOptions) => void;
+	abort: () => void;
+	retry: () => void;
+}
+
 export interface StreamOptions<M extends string = string> {
 	/** Model key (must match a key from defineModels). */
 	model?: M;
@@ -36,7 +46,7 @@ export interface StreamOptions<M extends string = string> {
  * Reactive streaming text hook.
  * Call inside a component — lifecycle is tied to the component.
  */
-export function useStream<M extends string = string>(options: StreamOptions<M>) {
+export function useStream<M extends string = string>(options: StreamOptions<M>): UseStreamReturn {
 	if (!options.endpoint) {
 		throw new Error('@aibind/solid: useStream requires an `endpoint` option. If using @aibind/solidstart, endpoints are configured automatically.');
 	}
@@ -117,6 +127,18 @@ export function useStream<M extends string = string>(options: StreamOptions<M>) 
 
 // --- useStructuredStream ---
 
+export interface UseStructuredStreamReturn<T> {
+	data: Accessor<T | null>;
+	partial: Accessor<Partial<T> | null>;
+	raw: Accessor<string>;
+	loading: Accessor<boolean>;
+	error: Accessor<Error | null>;
+	done: Accessor<boolean>;
+	send: (prompt: string, options?: SendOptions) => void;
+	abort: () => void;
+	retry: () => void;
+}
+
 export interface StructuredStreamOptions<T, M extends string = string> {
 	/** Model key (must match a key from defineModels). */
 	model?: M;
@@ -136,7 +158,7 @@ export interface StructuredStreamOptions<T, M extends string = string> {
  * Streams JSON and parses partial objects as they arrive.
  * Validates the final result with any Standard Schema-compatible library.
  */
-export function useStructuredStream<M extends string, T>(opts: StructuredStreamOptions<T, M>) {
+export function useStructuredStream<M extends string, T>(opts: StructuredStreamOptions<T, M>): UseStructuredStreamReturn<T> {
 	if (!opts.endpoint) {
 		throw new Error('@aibind/solid: useStructuredStream requires an `endpoint` option. If using @aibind/solidstart, endpoints are configured automatically.');
 	}

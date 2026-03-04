@@ -1,0 +1,23 @@
+{
+  "name": "solidstart-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "preview": "vinxi start"
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "^2.2.3",
+    "ai": "^6.0.108",
+    "@aibind/solidstart": "workspace:*",
+    "@solidjs/router": "^0.15.3",
+    "@solidjs/start": "^1.1.0",
+    "solid-js": "^1.9.0",
+    "vinxi": "^0.5.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

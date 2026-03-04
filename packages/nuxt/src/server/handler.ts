@@ -23,7 +23,7 @@ interface StreamHandlerConfig {
  * export default createStreamHandler({ models });
  * ```
  */
-export function createStreamHandler(config: StreamHandlerConfig) {
+export function createStreamHandler(config: StreamHandlerConfig): (request: Request) => Promise<Response> {
 	const prefix = config.prefix ?? '/api/__aibind__';
 
 	function resolveModel(requested?: string): import('ai').LanguageModel {

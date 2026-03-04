@@ -1,0 +1,278 @@
+{
+  "generated_at": "2026-03-04T11:28:53.771Z",
+  "packages": {
+    "@aibind/markdown": {
+      "name": "@aibind/markdown",
+      "esm": {
+        "raw": 16084,
+        "min": 7290,
+        "brotli": 1973,
+        "raw_formatted": "15.71 kB",
+        "min_formatted": "7.12 kB",
+        "brotli_formatted": "1.93 kB"
+      },
+      "js_files": 2,
+      "dts_files": 2,
+      "entries": {
+        "index.js": {
+          "raw": 16084,
+          "min": 7290,
+          "brotli": 1973,
+          "raw_formatted": "15.71 kB",
+          "min_formatted": "7.12 kB",
+          "brotli_formatted": "1.93 kB"
+        }
+      }
+    },
+    "@aibind/nuxt": {
+      "name": "@aibind/nuxt",
+      "esm": {
+        "raw": 2779,
+        "min": 1579,
+        "brotli": 773,
+        "raw_formatted": "2.71 kB",
+        "min_formatted": "1.54 kB",
+        "brotli_formatted": "773 B"
+      },
+      "js_files": 6,
+      "dts_files": 6,
+      "entries": {
+        "composables/agent.js": {
+          "raw": 328,
+          "min": 196,
+          "brotli": 118,
+          "raw_formatted": "328 B",
+          "min_formatted": "196 B",
+          "brotli_formatted": "118 B"
+        },
+        "index.js": {
+          "raw": 556,
+          "min": 313,
+          "brotli": 152,
+          "raw_formatted": "556 B",
+          "min_formatted": "313 B",
+          "brotli_formatted": "152 B"
+        },
+        "server/index.js": {
+          "raw": 1895,
+          "min": 1070,
+          "brotli": 503,
+          "raw_formatted": "1.85 kB",
+          "min_formatted": "1.04 kB",
+          "brotli_formatted": "503 B"
+        }
+      }
+    },
+    "@aibind/solid": {
+      "name": "@aibind/solid",
+      "esm": {
+        "raw": 9231,
+        "min": 4853,
+        "brotli": 1861,
+        "raw_formatted": "9.01 kB",
+        "min_formatted": "4.74 kB",
+        "brotli_formatted": "1.82 kB"
+      },
+      "js_files": 4,
+      "dts_files": 4,
+      "entries": {
+        "agent/index.js": {
+          "raw": 2754,
+          "min": 1447,
+          "brotli": 667,
+          "raw_formatted": "2.69 kB",
+          "min_formatted": "1.41 kB",
+          "brotli_formatted": "667 B"
+        },
+        "index.js": {
+          "raw": 6477,
+          "min": 3406,
+          "brotli": 1194,
+          "raw_formatted": "6.33 kB",
+          "min_formatted": "3.33 kB",
+          "brotli_formatted": "1.17 kB"
+        }
+      }
+    },
+    "@aibind/solidstart": {
+      "name": "@aibind/solidstart",
+      "esm": {
+        "raw": 2773,
+        "min": 1585,
+        "brotli": 775,
+        "raw_formatted": "2.71 kB",
+        "min_formatted": "1.55 kB",
+        "brotli_formatted": "775 B"
+      },
+      "js_files": 6,
+      "dts_files": 6,
+      "entries": {
+        "agent.js": {
+          "raw": 318,
+          "min": 198,
+          "brotli": 116,
+          "raw_formatted": "318 B",
+          "min_formatted": "198 B",
+          "brotli_formatted": "116 B"
+        },
+        "index.js": {
+          "raw": 560,
+          "min": 317,
+          "brotli": 156,
+          "raw_formatted": "560 B",
+          "min_formatted": "317 B",
+          "brotli_formatted": "156 B"
+        },
+        "server/index.js": {
+          "raw": 1895,
+          "min": 1070,
+          "brotli": 503,
+          "raw_formatted": "1.85 kB",
+          "min_formatted": "1.04 kB",
+          "brotli_formatted": "503 B"
+        }
+      }
+    },
+    "@aibind/svelte": {
+      "name": "@aibind/svelte",
+      "esm": {
+        "raw": 11722,
+        "min": 5397,
+        "brotli": 1772,
+        "raw_formatted": "11.45 kB",
+        "min_formatted": "5.27 kB",
+        "brotli_formatted": "1.73 kB"
+      },
+      "js_files": 4,
+      "dts_files": 4,
+      "entries": {
+        "agent/agent.svelte.js": {
+          "raw": 3139,
+          "min": 1601,
+          "brotli": 636,
+          "raw_formatted": "3.07 kB",
+          "min_formatted": "1.56 kB",
+          "brotli_formatted": "636 B"
+        },
+        "agent/index.js": {
+          "raw": 43,
+          "min": 37,
+          "brotli": 41,
+          "raw_formatted": "43 B",
+          "min_formatted": "37 B",
+          "brotli_formatted": "41 B"
+        },
+        "index.svelte.js": {
+          "raw": 8529,
+          "min": 3750,
+          "brotli": 1082,
+          "raw_formatted": "8.33 kB",
+          "min_formatted": "3.66 kB",
+          "brotli_formatted": "1.06 kB"
+        },
+        "types.js": {
+          "raw": 11,
+          "min": 9,
+          "brotli": 13,
+          "raw_formatted": "11 B",
+          "min_formatted": "9 B",
+          "brotli_formatted": "13 B"
+        }
+      }
+    },
+    "@aibind/sveltekit": {
+      "name": "@aibind/sveltekit",
+      "esm": {
+        "raw": 5182,
+        "min": 2187,
+        "brotli": 1093,
+        "raw_formatted": "5.06 kB",
+        "min_formatted": "2.14 kB",
+        "brotli_formatted": "1.07 kB"
+      },
+      "js_files": 6,
+      "dts_files": 6,
+      "entries": {
+        "agent.js": {
+          "raw": 407,
+          "min": 180,
+          "brotli": 114,
+          "raw_formatted": "407 B",
+          "min_formatted": "180 B",
+          "brotli_formatted": "114 B"
+        },
+        "index.js": {
+          "raw": 750,
+          "min": 330,
+          "brotli": 154,
+          "raw_formatted": "750 B",
+          "min_formatted": "330 B",
+          "brotli_formatted": "154 B"
+        },
+        "remote/ai-remote.js": {
+          "raw": 1517,
+          "min": 555,
+          "brotli": 246,
+          "raw_formatted": "1.48 kB",
+          "min_formatted": "555 B",
+          "brotli_formatted": "246 B"
+        },
+        "remote/index.js": {
+          "raw": 43,
+          "min": 37,
+          "brotli": 41,
+          "raw_formatted": "43 B",
+          "min_formatted": "37 B",
+          "brotli_formatted": "41 B"
+        },
+        "server/handler.js": {
+          "raw": 2367,
+          "min": 999,
+          "brotli": 472,
+          "raw_formatted": "2.31 kB",
+          "min_formatted": "999 B",
+          "brotli_formatted": "472 B"
+        },
+        "server/index.js": {
+          "raw": 98,
+          "min": 86,
+          "brotli": 66,
+          "raw_formatted": "98 B",
+          "min_formatted": "86 B",
+          "brotli_formatted": "66 B"
+        }
+      }
+    },
+    "@aibind/vue": {
+      "name": "@aibind/vue",
+      "esm": {
+        "raw": 8964,
+        "min": 4946,
+        "brotli": 1825,
+        "raw_formatted": "8.75 kB",
+        "min_formatted": "4.83 kB",
+        "brotli_formatted": "1.78 kB"
+      },
+      "js_files": 4,
+      "dts_files": 4,
+      "entries": {
+        "agent/index.js": {
+          "raw": 2699,
+          "min": 1508,
+          "brotli": 663,
+          "raw_formatted": "2.64 kB",
+          "min_formatted": "1.47 kB",
+          "brotli_formatted": "663 B"
+        },
+        "index.js": {
+          "raw": 6265,
+          "min": 3438,
+          "brotli": 1162,
+          "raw_formatted": "6.12 kB",
+          "min_formatted": "3.36 kB",
+          "brotli_formatted": "1.13 kB"
+        }
+      }
+    }
+  }
+}

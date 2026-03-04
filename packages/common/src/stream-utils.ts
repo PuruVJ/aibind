@@ -18,6 +18,8 @@ export async function* consumeTextStream(response: Response): AsyncGenerator<str
 	}
 }
 
+const RE_TRAILING_COMMA = /,\s*$/;
+
 /**
  * Attempt to parse potentially incomplete JSON into a partial object.
  * Tries to repair unclosed strings, arrays, and objects.
@@ -64,7 +66,7 @@ export function parsePartialJSON<T>(text: string): Partial<T> | null {
 	if (inString) repaired += '"';
 
 	// Remove trailing comma before closing
-	repaired = repaired.replace(/,\s*$/, '');
+	repaired = repaired.replace(RE_TRAILING_COMMA, '');
 
 	// Close unclosed braces/brackets
 	for (let i = 0; i < openBrackets; i++) repaired += ']';

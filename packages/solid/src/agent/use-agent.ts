@@ -1,15 +1,27 @@
 import { createSignal, onCleanup } from 'solid-js';
+import type { Accessor } from 'solid-js';
 import type { AgentStatus, AgentMessage, AgentOptions } from '../types.js';
 import { consumeTextStream } from '@aibind/common';
 
 export type { AgentOptions } from '../types.js';
+
+export interface UseAgentReturn {
+	messages: Accessor<AgentMessage[]>;
+	status: Accessor<AgentStatus>;
+	error: Accessor<Error | null>;
+	pendingApproval: Accessor<{ id: string; toolName: string; args: unknown } | null>;
+	send: (prompt: string) => Promise<void>;
+	stop: () => void;
+	approve: (id: string) => void;
+	deny: (id: string, reason?: string) => void;
+}
 
 /**
  * Reactive agent hook.
  * Streams responses from a server-side agent endpoint.
  * Call inside a component.
  */
-export function useAgent(options: AgentOptions) {
+export function useAgent(options: AgentOptions): UseAgentReturn {
 	if (!options.endpoint) {
 		throw new Error('@aibind/solid: useAgent requires an `endpoint` option. If using @aibind/solidstart, endpoints are configured automatically.');
 	}

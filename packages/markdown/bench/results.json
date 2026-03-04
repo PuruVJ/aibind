@@ -1,0 +1,165 @@
+{
+  "timestamp": "2026-03-04T12:22:21.446Z",
+  "runtime": "Node.js v24.1.0",
+  "platform": "darwin arm64",
+  "documents": {
+    "short": {
+      "chars": 113,
+      "lines": 8
+    },
+    "medium": {
+      "chars": 654,
+      "lines": 37
+    },
+    "long": {
+      "chars": 3095,
+      "lines": 116
+    }
+  },
+  "results": [
+    {
+      "name": "parse:short (full)",
+      "latency_avg_ns": 1014,
+      "latency_med_ns": 1000,
+      "throughput_avg": 1002951,
+      "throughput_med": 1000000,
+      "samples": 1972681
+    },
+    {
+      "name": "parse:medium (full)",
+      "latency_avg_ns": 4526,
+      "latency_med_ns": 4416,
+      "throughput_avg": 227191,
+      "throughput_med": 226449,
+      "samples": 441864
+    },
+    {
+      "name": "parse:long (full)",
+      "latency_avg_ns": 25323,
+      "latency_med_ns": 25333,
+      "throughput_avg": 39859,
+      "throughput_med": 39474,
+      "samples": 78981
+    },
+    {
+      "name": "parse:short (10-char chunks)",
+      "latency_avg_ns": 1326,
+      "latency_med_ns": 1333,
+      "throughput_avg": 762987,
+      "throughput_med": 750188,
+      "samples": 1508212
+    },
+    {
+      "name": "parse:medium (10-char chunks)",
+      "latency_avg_ns": 6528,
+      "latency_med_ns": 6500,
+      "throughput_avg": 156352,
+      "throughput_med": 153846,
+      "samples": 306368
+    },
+    {
+      "name": "parse:long (10-char chunks)",
+      "latency_avg_ns": 34562,
+      "latency_med_ns": 34541,
+      "throughput_avg": 29287,
+      "throughput_med": 28951,
+      "samples": 57867
+    },
+    {
+      "name": "parse:medium (50-char chunks)",
+      "latency_avg_ns": 5006,
+      "latency_med_ns": 4958,
+      "throughput_avg": 203909,
+      "throughput_med": 201694,
+      "samples": 399489
+    },
+    {
+      "name": "parse:long (50-char chunks)",
+      "latency_avg_ns": 27585,
+      "latency_med_ns": 27584,
+      "throughput_avg": 36624,
+      "throughput_med": 36253,
+      "samples": 72503
+    },
+    {
+      "name": "recovery:short",
+      "latency_avg_ns": 1029,
+      "latency_med_ns": 1000,
+      "throughput_avg": 983746,
+      "throughput_med": 1000000,
+      "samples": 1942818
+    },
+    {
+      "name": "recovery:medium",
+      "latency_avg_ns": 4475,
+      "latency_med_ns": 4292,
+      "throughput_avg": 226233,
+      "throughput_med": 232992,
+      "samples": 446912
+    },
+    {
+      "name": "recovery:long",
+      "latency_avg_ns": 18075,
+      "latency_med_ns": 17584,
+      "throughput_avg": 55887,
+      "throughput_med": 56870,
+      "samples": 110651
+    },
+    {
+      "name": "parse+recovery:medium (10-char chunks)",
+      "latency_avg_ns": 9190,
+      "latency_med_ns": 8792,
+      "throughput_avg": 110754,
+      "throughput_med": 113740,
+      "samples": 217622
+    },
+    {
+      "name": "parse+recovery:long (10-char chunks)",
+      "latency_avg_ns": 43875,
+      "latency_med_ns": 42708,
+      "throughput_avg": 22962,
+      "throughput_med": 23415,
+      "samples": 45584
+    },
+    {
+      "name": "parse:short (reuse)",
+      "latency_avg_ns": 1085,
+      "latency_med_ns": 1083,
+      "throughput_avg": 934449,
+      "throughput_med": 923361,
+      "samples": 1843004
+    },
+    {
+      "name": "parse:medium (reuse)",
+      "latency_avg_ns": 4466,
+      "latency_med_ns": 4500,
+      "throughput_avg": 226326,
+      "throughput_med": 222222,
+      "samples": 447840
+    },
+    {
+      "name": "parse:long (reuse)",
+      "latency_avg_ns": 25632,
+      "latency_med_ns": 25625,
+      "throughput_avg": 39473,
+      "throughput_med": 39024,
+      "samples": 78027
+    },
+    {
+      "name": "renderer:new each time",
+      "latency_avg_ns": 99761,
+      "latency_med_ns": 99584,
+      "throughput_avg": 10080,
+      "throughput_med": 10042,
+      "samples": 20048
+    },
+    {
+      "name": "renderer:reuse with reset",
+      "latency_avg_ns": 104763,
+      "latency_med_ns": 104667,
+      "throughput_avg": 9587,
+      "throughput_med": 9554,
+      "samples": 19091
+    }
+  ]
+}

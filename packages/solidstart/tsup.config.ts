@@ -23,4 +23,11 @@ export default defineConfig([
 		outDir: 'dist',
 		external: ['ai'],
 	},
+	{
+		entry: { markdown: 'src/markdown.ts' },
+		format: ['esm', 'cjs'],
+		dts: true,
+		outDir: 'dist',
+		external: ['solid-js'],
+	},
 ]);

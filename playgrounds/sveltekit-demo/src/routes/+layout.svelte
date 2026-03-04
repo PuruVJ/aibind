@@ -10,6 +10,7 @@
 	<a href="/structured">Structured</a>
 	<a href="/agent">Agent</a>
 	<a href="/query">Query</a>
+	<a href="/markdown">Markdown</a>
 </nav>
 
 <main>

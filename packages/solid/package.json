@@ -29,6 +29,11 @@
       "types": "./dist/agent/index.d.ts",
       "import": "./dist/agent/index.js",
       "require": "./dist/agent/index.cjs"
+    },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "import": "./dist/markdown/index.js",
+      "require": "./dist/markdown/index.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -45,7 +50,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aibind/common": "workspace:*"
+    "@aibind/common": "workspace:*",
+    "@aibind/markdown": "workspace:*"
   },
   "peerDependencies": {
     "ai": "^6.0.0",

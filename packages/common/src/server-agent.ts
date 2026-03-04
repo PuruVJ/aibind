@@ -54,7 +54,7 @@ export class ServerAgent {
 	}
 
 	/** Stream a response. Returns StreamTextResult synchronously — no await needed. */
-	stream(prompt: string, options?: RunOptions) {
+	stream(prompt: string, options?: RunOptions): import('ai').StreamTextResult<any, any> {
 		const messages = this.#buildMessages(prompt, options?.messages);
 		return streamText({
 			...this.#baseOpts(),
@@ -63,7 +63,7 @@ export class ServerAgent {
 	}
 
 	/** Generate a complete response (non-streaming). */
-	async run(prompt: string, options?: RunOptions) {
+	async run(prompt: string, options?: RunOptions): Promise<import('ai').GenerateTextResult<any, any>> {
 		const messages = this.#buildMessages(prompt, options?.messages);
 		return generateText({
 			...this.#baseOpts(),

@@ -15,6 +15,6 @@ const DEFAULT_PREFIX = '/api/__aibind__';
  */
 export function useAgent(
 	options: Partial<Pick<AgentOptions, 'endpoint'>> & Omit<AgentOptions, 'endpoint'> = {} as any
-) {
+): ReturnType<typeof baseUseAgent> {
 	return baseUseAgent({ endpoint: `${DEFAULT_PREFIX}/agent`, ...options });
 }
