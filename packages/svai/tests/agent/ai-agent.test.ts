@@ -2,46 +2,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('ai', () => ({
 	generateText: vi.fn(),
-	streamText: vi.fn()
+	streamText: vi.fn(),
+	stepCountIs: vi.fn((n: number) => ({ type: 'stepCount', count: n }))
 }));
 
-import { aiAgent } from '../../src/lib/agent/ai-agent.js';
+import { ServerAgent } from '../../src/lib/agent/server.js';
 import { generateText, streamText } from 'ai';
 
 const mockGenerateText = vi.mocked(generateText);
 const mockStreamText = vi.mocked(streamText);
 
-describe('aiAgent', () => {
+describe('ServerAgent', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
-	it('creates an agent definition with config', () => {
-		const agent = aiAgent({
-			model: 'test-model',
-			system: 'You are helpful.',
-			maxSteps: 5
-		});
-
-		expect(agent.config.system).toBe('You are helpful.');
-		expect(agent.config.maxSteps).toBe(5);
+	it('throws if no model provided', () => {
+		expect(() => new ServerAgent({ system: 'You are helpful.' })).toThrow('model is required');
 	});
 
-	it('throws if no model configured', async () => {
-		const agent = aiAgent({
-			system: 'You are helpful.'
-		});
-
-		await expect(agent.run('hello')).rejects.toThrow('model is required');
-	});
-
-	it('calls generateText by default', async () => {
+	it('run() calls generateText', async () => {
 		mockGenerateText.mockResolvedValue({ text: 'response' } as never);
 
-		const agent = aiAgent({
+		const agent = new ServerAgent({
 			model: 'test-model',
 			system: 'Be helpful',
-			maxSteps: 3
+			stopWhen: { type: 'stepCount', count: 3 } as never
 		});
 
 		await agent.run('hello');
@@ -50,21 +36,20 @@ describe('aiAgent', () => {
 			expect.objectContaining({
 				model: 'test-model',
 				system: 'Be helpful',
-				prompt: 'hello',
-				maxSteps: 3
+				prompt: 'hello'
 			})
 		);
 	});
 
-	it('calls streamText when stream option is true', async () => {
+	it('stream() calls streamText', () => {
 		mockStreamText.mockReturnValue({ textStream: [] } as never);
 
-		const agent = aiAgent({
+		const agent = new ServerAgent({
 			model: 'test-model',
 			system: 'Be helpful'
 		});
 
-		await agent.run('hello', { stream: true });
+		agent.stream('hello');
 
 		expect(mockStreamText).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -85,7 +70,7 @@ describe('aiAgent', () => {
 			}
 		};
 
-		const agent = aiAgent({
+		const agent = new ServerAgent({
 			model: 'test-model',
 			system: 'Be helpful',
 			tools: tools as never
@@ -100,10 +85,10 @@ describe('aiAgent', () => {
 		);
 	});
 
-	it('defaults maxSteps to 10', async () => {
+	it('uses stopWhen with stepCountIs', async () => {
 		mockGenerateText.mockResolvedValue({ text: 'response' } as never);
 
-		const agent = aiAgent({
+		const agent = new ServerAgent({
 			model: 'test-model',
 			system: 'Be helpful'
 		});
@@ -112,7 +97,104 @@ describe('aiAgent', () => {
 
 		expect(mockGenerateText).toHaveBeenCalledWith(
 			expect.objectContaining({
-				maxSteps: 10
+				stopWhen: { type: 'stepCount', count: 10 }
+			})
+		);
+	});
+
+	it('stream() builds messages from history', () => {
+		mockStreamText.mockReturnValue({ textStream: [] } as never);
+
+		const agent = new ServerAgent({
+			model: 'test-model',
+			system: 'Be helpful'
+		});
+
+		agent.stream('follow up', {
+			messages: [
+				{ role: 'user', content: 'hello' },
+				{ role: 'assistant', content: 'hi there' }
+			]
+		});
+
+		expect(mockStreamText).toHaveBeenCalledWith(
+			expect.objectContaining({
+				messages: [
+					{ role: 'user', content: 'hello' },
+					{ role: 'assistant', content: 'hi there' },
+					{ role: 'user', content: 'follow up' }
+				]
+			})
+		);
+	});
+
+	it('run() with message history builds messages correctly', async () => {
+		mockGenerateText.mockResolvedValue({ text: 'response' } as never);
+
+		const agent = new ServerAgent({
+			model: 'test-model',
+			system: 'Be helpful'
+		});
+
+		await agent.run('follow up', {
+			messages: [
+				{ role: 'user', content: 'hello' },
+				{ role: 'assistant', content: 'hi there' }
+			]
+		});
+
+		expect(mockGenerateText).toHaveBeenCalledWith(
+			expect.objectContaining({
+				messages: [
+					{ role: 'user', content: 'hello' },
+					{ role: 'assistant', content: 'hi there' },
+					{ role: 'user', content: 'follow up' }
+				]
+			})
+		);
+	});
+
+	it('run() with empty messages uses prompt directly', async () => {
+		mockGenerateText.mockResolvedValue({ text: 'response' } as never);
+
+		const agent = new ServerAgent({
+			model: 'test-model',
+			system: 'Be helpful'
+		});
+
+		await agent.run('hello', { messages: [] });
+
+		const call = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+		expect(call.prompt).toBe('hello');
+		expect(call.messages).toBeUndefined();
+	});
+
+	it('run() propagates generateText errors', async () => {
+		mockGenerateText.mockRejectedValue(new Error('API down'));
+
+		const agent = new ServerAgent({
+			model: 'test-model',
+			system: 'Be helpful'
+		});
+
+		await expect(agent.run('hello')).rejects.toThrow('API down');
+	});
+
+	it('custom stopWhen is passed through', async () => {
+		mockGenerateText.mockResolvedValue({ text: 'response' } as never);
+
+		const customStop = { type: 'custom', value: 42 };
+		const agent = new ServerAgent({
+			model: 'test-model',
+			system: 'Be helpful',
+			stopWhen: customStop as never
+		});
+
+		await agent.run('hello');
+
+		expect(mockGenerateText).toHaveBeenCalledWith(
+			expect.objectContaining({
+				stopWhen: customStop
 			})
 		);
 	});

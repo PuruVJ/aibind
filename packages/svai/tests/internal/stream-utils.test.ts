@@ -82,4 +82,82 @@ describe('consumeTextStream', () => {
 
 		expect(result.join('')).toBe('');
 	});
+
+	it('handles stream error mid-read', async () => {
+		let enqueueRef: ReadableStreamDefaultController<Uint8Array>;
+		const stream = new ReadableStream({
+			start(controller) {
+				enqueueRef = controller;
+			}
+		});
+
+		// Enqueue then error after a tick to ensure the first chunk is read
+		setTimeout(() => {
+			enqueueRef.enqueue(new TextEncoder().encode('hello'));
+			enqueueRef.error(new Error('stream broke'));
+		}, 0);
+
+		const response = new Response(stream);
+		const result: string[] = [];
+
+		await expect(async () => {
+			for await (const chunk of consumeTextStream(response)) {
+				result.push(chunk);
+			}
+		}).rejects.toThrow('stream broke');
+
+		expect(result).toEqual(['hello']);
+	});
+
+	it('handles multi-byte UTF-8 characters', async () => {
+		const text = 'Hello 🌍 World';
+		const encoded = new TextEncoder().encode(text);
+		// Split in the middle of the emoji (4 bytes)
+		const mid = encoded.indexOf(0xf0); // start of emoji
+		const chunk1 = encoded.slice(0, mid + 2); // partial emoji
+		const chunk2 = encoded.slice(mid + 2); // rest of emoji + " World"
+
+		const stream = new ReadableStream({
+			start(controller) {
+				controller.enqueue(chunk1);
+				controller.enqueue(chunk2);
+				controller.close();
+			}
+		});
+
+		const response = new Response(stream);
+		const result: string[] = [];
+		for await (const chunk of consumeTextStream(response)) {
+			result.push(chunk);
+		}
+
+		expect(result.join('')).toBe(text);
+	});
+});
+
+describe('parsePartialJSON edge cases', () => {
+	it('handles strings with escaped quotes', () => {
+		expect(parsePartialJSON('{"msg":"he said \\"hello\\""}')).toEqual({
+			msg: 'he said "hello"'
+		});
+	});
+
+	it('handles incomplete string with escaped quote', () => {
+		expect(parsePartialJSON('{"msg":"he said \\"hel')).toEqual({
+			msg: 'he said "hel'
+		});
+	});
+
+	it('handles deeply nested incomplete objects', () => {
+		expect(parsePartialJSON('{"a":{"b":{"c":"d"')).toEqual({
+			a: { b: { c: 'd' } }
+		});
+	});
+
+	it('handles incomplete array inside object', () => {
+		// {"id":2 is missing closing }, ] and } — our parser handles } but not mixed ] }
+		expect(parsePartialJSON('{"items":[{"id":1},{"id":2}')).toEqual({
+			items: [{ id: 1 }, { id: 2 }]
+		});
+	});
 });

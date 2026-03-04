@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('$app/server', () => ({
 	query: vi.fn((_schema: unknown, fn: unknown) => fn),
 	command: vi.fn((_schema: unknown, fn: unknown) => fn),
-	form: vi.fn((_schema: unknown, fn: unknown) => fn),
 	getRequestEvent: vi.fn(() => ({
 		request: new Request('http://localhost'),
 		cookies: {},
@@ -22,39 +21,24 @@ vi.mock('ai', () => ({
 	}
 }));
 
-import { configureServer, getServerModel, aiQuery, aiCommand, aiForm } from '../../src/lib/server/index.js';
+import { AIServer } from '../../src/lib/server/index.js';
 import { generateText } from 'ai';
-import { z } from 'zod';
+import * as v from 'valibot';
 
 const mockGenerateText = vi.mocked(generateText);
 
-describe('configureServer / getServerModel', () => {
+describe('AIServer.query', () => {
+	let ai: AIServer;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-	});
-
-	it('configures and retrieves server model', () => {
-		configureServer({ model: 'anthropic/claude-sonnet-4' });
-		expect(getServerModel()).toBe('anthropic/claude-sonnet-4');
-	});
-
-	it('returns override when provided', () => {
-		configureServer({ model: 'anthropic/claude-sonnet-4' });
-		expect(getServerModel('openai/gpt-4')).toBe('openai/gpt-4');
-	});
-});
-
-describe('aiQuery', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		configureServer({ model: 'test-model' });
+		ai = new AIServer('test-model');
 	});
 
 	it('simple text query calls generateText with prompt', async () => {
 		mockGenerateText.mockResolvedValue({ text: 'AI response' } as never);
 
-		// aiQuery returns the inner handler directly (because our mock query() does)
-		const handler = aiQuery(z.string(), async (input) => `Explain: ${input}`);
+		const handler = ai.query(v.string(), async (input) => `Explain: ${input}`);
 		const result = await (handler as unknown as (input: string) => Promise<string>)('quantum');
 
 		expect(mockGenerateText).toHaveBeenCalledWith({
@@ -63,15 +47,24 @@ describe('aiQuery', () => {
 		});
 		expect(result).toBe('AI response');
 	});
+});
 
-	it('structured query calls generateText with Output.object', async () => {
-		const outputSchema = z.object({ sentiment: z.string(), score: z.number() });
+describe('AIServer.structuredQuery', () => {
+	let ai: AIServer;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		ai = new AIServer('test-model');
+	});
+
+	it('calls generateText with Output.object', async () => {
+		const outputSchema = v.object({ sentiment: v.string(), score: v.number() });
 		mockGenerateText.mockResolvedValue({
 			output: { sentiment: 'positive', score: 0.9 }
 		} as never);
 
-		const handler = aiQuery({
-			input: z.string(),
+		const handler = ai.structuredQuery({
+			input: v.string(),
 			output: outputSchema,
 			prompt: async (text) => `Analyze: ${text}`,
 			system: 'Be precise'
@@ -89,17 +82,18 @@ describe('aiQuery', () => {
 	});
 });
 
-describe('aiCommand', () => {
+describe('AIServer.command', () => {
+	let ai: AIServer;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-		configureServer({ model: 'test-model' });
+		ai = new AIServer('test-model');
 	});
 
 	it('injects model and event into handler', async () => {
 		const handler = vi.fn().mockResolvedValue({ id: '123' });
 
-		// aiCommand wraps command(), which our mock returns the inner fn
-		const innerFn = aiCommand(z.object({ topic: z.string() }), handler);
+		const innerFn = ai.command(v.object({ topic: v.string() }), handler);
 		await (innerFn as unknown as (input: { topic: string }) => Promise<unknown>)({
 			topic: 'test'
 		});
@@ -112,31 +106,56 @@ describe('aiCommand', () => {
 			})
 		);
 	});
+
+	it('propagates handler errors', async () => {
+		const handler = vi.fn().mockRejectedValue(new Error('handler failed'));
+		const innerFn = ai.command(v.object({ topic: v.string() }), handler);
+
+		await expect(
+			(innerFn as unknown as (input: { topic: string }) => Promise<unknown>)({ topic: 'test' })
+		).rejects.toThrow('handler failed');
+	});
 });
 
-describe('aiForm', () => {
+describe('AIServer error propagation', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		configureServer({ model: 'test-model' });
 	});
 
-	it('injects model, event, and issue into handler', async () => {
-		const handler = vi.fn().mockResolvedValue({ rewritten: 'new text' });
+	it('propagates generateText errors from query', async () => {
+		mockGenerateText.mockRejectedValue(new Error('AI service down'));
+		const ai = new AIServer('test-model');
+		const handler = ai.query(v.string(), async (input) => `Explain: ${input}`);
 
-		// aiForm wraps form(), which our mock returns the inner fn
-		const innerFn = aiForm(z.object({ text: z.string() }), handler);
-		await (innerFn as unknown as (data: { text: string }, issue: unknown) => Promise<unknown>)(
-			{ text: 'hello' },
-			'mockIssue'
-		);
+		await expect(
+			(handler as unknown as (input: string) => Promise<string>)('test')
+		).rejects.toThrow('AI service down');
+	});
 
-		expect(handler).toHaveBeenCalledWith(
-			{ text: 'hello' },
-			expect.objectContaining({
-				model: 'test-model',
-				event: expect.objectContaining({ request: expect.any(Request) }),
-				issue: 'mockIssue'
-			})
-		);
+	it('propagates promptFn errors from query', async () => {
+		const ai = new AIServer('test-model');
+		const handler = ai.query(v.string(), async () => {
+			throw new Error('prompt generation failed');
+		});
+
+		await expect(
+			(handler as unknown as (input: string) => Promise<string>)('test')
+		).rejects.toThrow('prompt generation failed');
+	});
+
+	it('uses different model per instance', async () => {
+		mockGenerateText.mockResolvedValue({ text: 'result' } as never);
+
+		const ai1 = new AIServer('model-a');
+		const ai2 = new AIServer('model-b');
+
+		const h1 = ai1.query(v.string(), async (input) => input);
+		const h2 = ai2.query(v.string(), async (input) => input);
+
+		await (h1 as unknown as (input: string) => Promise<string>)('test');
+		await (h2 as unknown as (input: string) => Promise<string>)('test');
+
+		expect(mockGenerateText).toHaveBeenNthCalledWith(1, expect.objectContaining({ model: 'model-a' }));
+		expect(mockGenerateText).toHaveBeenNthCalledWith(2, expect.objectContaining({ model: 'model-b' }));
 	});
 });

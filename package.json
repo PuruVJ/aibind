@@ -6,11 +6,16 @@
     "dev": "pnpm -r --filter demo dev",
     "build": "pnpm -r --filter svai build",
     "test": "pnpm -r --filter svai test",
-    "package": "pnpm -r --filter svai package"
+    "package": "pnpm -r --filter svai package",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "prettier": "^3.4.0"
+    "@changesets/changelog-github": "^0.6.0",
+    "@changesets/cli": "^2.30.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
   },
   "engines": {
     "node": ">=20",
@@ -20,5 +25,6 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
-  }
+  },
+  "packageManager": "pnpm@10.22.0+sha512.bf049efe995b28f527fd2b41ae0474ce29186f7edcb3bf545087bd61fbbebb2bf75362d1307fda09c2d288e1e499787ac12d4fcb617a974718a6051f2eee741c"
 }

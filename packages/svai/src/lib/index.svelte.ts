@@ -1,214 +1,289 @@
-export { createAI } from './internal/config.svelte.js';
-
-export type {
-	SvaiConfig,
-	LanguageModel,
-	UseStreamOptions,
-	UseStreamReturn,
-	UseStructuredStreamOptions,
-	UseStructuredStreamReturn,
-	DeepPartial
-} from './types.js';
-
-import { getBaseUrl, getModel } from './internal/config.svelte.js';
+import { onDestroy } from 'svelte';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { consumeTextStream, parsePartialJSON } from './internal/stream-utils.js';
-import type {
-	UseStreamOptions,
-	UseStreamReturn,
-	UseStructuredStreamOptions,
-	UseStructuredStreamReturn,
-	LanguageModel
-} from './types.js';
+import type { LanguageModel, SendOptions } from './types.js';
+
+export type { SendOptions, DeepPartial, LanguageModel } from './types.js';
+
+// --- defineModels ---
 
 /**
- * Reactive streaming text primitive.
- * POSTs to a streaming endpoint and accumulates tokens into reactive $state.
+ * Define named AI models for type-safe model selection across client and server.
+ * Returns the same object with a phantom `$infer` type for extracting model keys.
+ *
+ * @example
+ * ```ts
+ * // src/lib/models.ts
+ * import { defineModels } from 'svai';
+ * import { anthropic } from '@ai-sdk/anthropic';
+ *
+ * export const models = defineModels({
+ *   default: anthropic('claude-sonnet-4'),
+ *   fast: anthropic('claude-haiku'),
+ * });
+ * export type Models = typeof models.$infer; // 'default' | 'fast'
+ * ```
  */
-export function useStream(options: UseStreamOptions = {}): UseStreamReturn {
-	let text = $state('');
-	let loading = $state(false);
-	let error = $state<Error | null>(null);
-	let done = $state(false);
-	let abortController: AbortController | null = null;
-	let lastPrompt = '';
+export function defineModels<const T extends Record<string, LanguageModel>>(
+	models: T,
+): T & { readonly $infer: Extract<keyof T, string> } {
+	return models as T & { readonly $infer: Extract<keyof T, string> };
+}
 
-	async function send(prompt: string) {
-		lastPrompt = prompt;
-		text = '';
-		loading = true;
-		error = null;
-		done = false;
+// --- Stream ---
 
-		const controller = new AbortController();
-		abortController = controller;
-
-		try {
-			const endpoint = options.endpoint ?? `${getBaseUrl()}/stream`;
-			const model = getModel(options.model);
-
-			const response = await fetch(endpoint, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					prompt,
-					model: typeof model === 'string' ? model : undefined,
-					system: options.system
-				}),
-				signal: controller.signal
-			});
-
-			if (!response.ok) {
-				throw new Error(`Stream request failed: ${response.status}`);
-			}
-
-			for await (const chunk of consumeTextStream(response)) {
-				if (controller.signal.aborted) break;
-				text += chunk;
-			}
-
-			done = true;
-			options.onFinish?.(text);
-		} catch (e) {
-			if (e instanceof DOMException && e.name === 'AbortError') {
-				done = true;
-			} else {
-				error = e instanceof Error ? e : new Error(String(e));
-				options.onError?.(error);
-			}
-		} finally {
-			loading = false;
-			abortController = null;
-		}
-	}
-
-	function abort() {
-		abortController?.abort();
-	}
-
-	function retry() {
-		if (lastPrompt) send(lastPrompt);
-	}
-
-	return {
-		get text() {
-			return text;
-		},
-		get loading() {
-			return loading;
-		},
-		get error() {
-			return error;
-		},
-		get done() {
-			return done;
-		},
-		send,
-		abort,
-		retry
-	};
+export interface StreamOptions<M extends string = string> {
+	/** Model key (must match a key from defineModels). */
+	model?: M;
+	system?: string;
+	/** Streaming endpoint. Default: '/api/svai/stream' */
+	endpoint?: string;
+	/** Custom fetch implementation. Defaults to globalThis.fetch. */
+	fetch?: typeof globalThis.fetch;
+	onFinish?: (text: string) => void;
+	onError?: (error: Error) => void;
 }
 
 /**
- * Reactive structured streaming primitive.
- * Streams JSON from server and parses partial objects as they arrive.
+ * Reactive streaming text.
+ * Instantiate in a component's <script> block — lifecycle is tied to the component.
  */
-export function useStructuredStream<T>(
-	options: UseStructuredStreamOptions<T>
-): UseStructuredStreamReturn<T> {
-	let data = $state<T | null>(null);
-	let partial = $state<Partial<T> | null>(null);
-	let raw = $state('');
-	let loading = $state(false);
-	let error = $state<Error | null>(null);
-	let done = $state(false);
-	let abortController: AbortController | null = null;
-	let lastPrompt = '';
+export class Stream<M extends string = string> {
+	text = $state('');
+	loading = $state(false);
+	error: Error | null = $state(null);
+	done = $state(false);
 
-	async function send(prompt: string) {
-		lastPrompt = prompt;
-		data = null;
-		partial = null;
-		raw = '';
-		loading = true;
-		error = null;
-		done = false;
+	#controller: AbortController | null = null;
+	#lastPrompt = '';
+	#lastOptions: SendOptions | undefined;
+	#config: StreamOptions<M>;
+
+	constructor(options: StreamOptions<M> = {} as StreamOptions<M>) {
+		this.#config = options;
+		onDestroy(() => this.abort());
+	}
+
+	send(prompt: string, options?: SendOptions) {
+		this.#controller?.abort();
+		this.#lastPrompt = prompt;
+		this.#lastOptions = options;
+		this.text = '';
+		this.loading = true;
+		this.error = null;
+		this.done = false;
 
 		const controller = new AbortController();
-		abortController = controller;
+		this.#controller = controller;
 
+		this.#run(prompt, options, controller);
+	}
+
+	abort() {
+		this.#controller?.abort();
+		this.#controller = null;
+	}
+
+	retry() {
+		if (this.#lastPrompt) this.send(this.#lastPrompt, this.#lastOptions);
+	}
+
+	async #run(prompt: string, options: SendOptions | undefined, controller: AbortController) {
 		try {
-			const endpoint = options.endpoint ?? `${getBaseUrl()}/structured`;
-			const model = getModel(options.model);
+			const endpoint = this.#config.endpoint ?? '/api/svai/stream';
+			const system = options?.system ?? this.#config.system;
 
-			const response = await fetch(endpoint, {
+			const fetcher = this.#config.fetch ?? globalThis.fetch;
+			const response = await fetcher(endpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ prompt, system, model: this.#config.model }),
+				signal: controller.signal,
+			});
+
+			if (!response.ok) throw new Error(`Stream request failed: ${response.status}`);
+
+			for await (const chunk of consumeTextStream(response)) {
+				if (controller.signal.aborted) break;
+				this.text += chunk;
+			}
+
+			this.done = true;
+			this.#config.onFinish?.(this.text);
+		} catch (e) {
+			if (e instanceof DOMException && e.name === 'AbortError') {
+				this.done = true;
+				return;
+			}
+
+			this.error = e instanceof Error ? e : new Error(String(e));
+			this.#config.onError?.(this.error);
+		} finally {
+			this.loading = false;
+			this.#controller = null;
+		}
+	}
+}
+
+// --- StructuredStream ---
+
+export interface StructuredStreamOptions<T, M extends string = string> {
+	/** Model key (must match a key from defineModels). */
+	model?: M;
+	/** Any Standard Schema-compatible schema (Zod, Valibot, ArkType, etc.) */
+	schema: StandardSchemaV1<unknown, T>;
+	system?: string;
+	/** Structured streaming endpoint. Default: '/api/svai/structured' */
+	endpoint?: string;
+	/** Custom fetch implementation. Defaults to globalThis.fetch. */
+	fetch?: typeof globalThis.fetch;
+	onFinish?: (data: T) => void;
+	onError?: (error: Error) => void;
+}
+
+/**
+ * Reactive structured streaming.
+ * Streams JSON and parses partial objects as they arrive.
+ * Validates the final result with any Standard Schema-compatible library.
+ */
+export class StructuredStream<M extends string, T> {
+	data: T | null = $state(null);
+	partial: Partial<T> | null = $state(null);
+	raw = $state('');
+	loading = $state(false);
+	error: Error | null = $state(null);
+	done = $state(false);
+
+	#controller: AbortController | null = null;
+	#lastPrompt = '';
+	#lastOptions: SendOptions | undefined;
+	#config: StructuredStreamOptions<T, M>;
+	#resolvedJsonSchema: Record<string, unknown> | null = null;
+	#schemaResolved = false;
+
+	constructor(options: StructuredStreamOptions<T, M>) {
+		this.#config = options;
+		onDestroy(() => this.abort());
+	}
+
+	send(prompt: string, options?: SendOptions) {
+		this.#controller?.abort();
+		this.#lastPrompt = prompt;
+		this.#lastOptions = options;
+		this.data = null;
+		this.partial = null;
+		this.raw = '';
+		this.loading = true;
+		this.error = null;
+		this.done = false;
+
+		const controller = new AbortController();
+		this.#controller = controller;
+
+		this.#run(prompt, options, controller);
+	}
+
+	abort() {
+		this.#controller?.abort();
+		this.#controller = null;
+	}
+
+	retry() {
+		if (this.#lastPrompt) this.send(this.#lastPrompt, this.#lastOptions);
+	}
+
+	async #resolveSchema(): Promise<Record<string, unknown> | null> {
+		if (this.#schemaResolved) return this.#resolvedJsonSchema;
+		this.#schemaResolved = true;
+
+		const std = (this.#config.schema as any)['~standard'];
+
+		// 1. StandardJSONSchemaV1 (e.g. Zod v4)
+		if (std?.jsonSchema && Object.keys(std.jsonSchema).length > 0) {
+			this.#resolvedJsonSchema = std.jsonSchema as Record<string, unknown>;
+			return this.#resolvedJsonSchema;
+		}
+
+		// 2. Schema instance has .toJsonSchema() (ArkType)
+		const schema = this.#config.schema as any;
+		if (typeof schema.toJsonSchema === 'function') {
+			try {
+				this.#resolvedJsonSchema = schema.toJsonSchema() as Record<string, unknown>;
+				return this.#resolvedJsonSchema;
+			} catch { /* toJsonSchema() failed */ }
+		}
+
+		// 3. Vendor-specific auto-conversion
+		if (std?.vendor === 'valibot') {
+			try {
+				const { toJsonSchema } = await import('@valibot/to-json-schema');
+				this.#resolvedJsonSchema = toJsonSchema(schema as never) as Record<string, unknown>;
+				return this.#resolvedJsonSchema;
+			} catch {
+				throw new Error('svai: Valibot schema detected but "@valibot/to-json-schema" is not installed. Install it or switch to a schema library with built-in JSON Schema support.');
+			}
+		}
+
+		if (std?.vendor === 'zod') {
+			try {
+				const { toJSONSchema } = await import('zod/v4');
+				this.#resolvedJsonSchema = toJSONSchema(schema as never) as Record<string, unknown>;
+				return this.#resolvedJsonSchema;
+			} catch {
+				throw new Error('svai: Zod schema detected but "zod/v4" is not available. Use `import { z } from "zod/v4"` to create schemas, or install a newer version of zod.');
+			}
+		}
+
+		return null;
+	}
+
+	async #run(prompt: string, options: SendOptions | undefined, controller: AbortController) {
+		try {
+			const endpoint = this.#config.endpoint ?? '/api/svai/structured';
+			const system = options?.system ?? this.#config.system;
+			const schema = await this.#resolveSchema();
+
+			const fetcher = this.#config.fetch ?? globalThis.fetch;
+			const response = await fetcher(endpoint, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					prompt,
-					model: typeof model === 'string' ? model : undefined,
-					system: options.system
+					system,
+					model: this.#config.model,
+					...(schema && { schema }),
 				}),
-				signal: controller.signal
+				signal: controller.signal,
 			});
 
-			if (!response.ok) {
-				throw new Error(`Structured stream failed: ${response.status}`);
-			}
+			if (!response.ok) throw new Error(`Structured stream failed: ${response.status}`);
 
 			for await (const chunk of consumeTextStream(response)) {
 				if (controller.signal.aborted) break;
-				raw += chunk;
-				const parsed = parsePartialJSON<T>(raw);
-				if (parsed) partial = parsed;
+				this.raw += chunk;
+				const parsed = parsePartialJSON<T>(this.raw);
+				if (parsed) this.partial = parsed;
 			}
 
-			// Final parse + validate with Zod schema
-			const finalParsed = JSON.parse(raw);
-			data = options.schema.parse(finalParsed) as T;
-			done = true;
-			options.onFinish?.(data!);
+			const finalParsed = JSON.parse(this.raw);
+			const result = await this.#config.schema['~standard'].validate(finalParsed);
+			if (result.issues) {
+				throw new Error(`Validation failed: ${result.issues.map((i) => i.message).join(', ')}`);
+			}
+			this.data = result.value;
+			this.done = true;
+			this.#config.onFinish?.(result.value);
 		} catch (e) {
 			if (e instanceof DOMException && e.name === 'AbortError') {
-				done = true;
-			} else {
-				error = e instanceof Error ? e : new Error(String(e));
-				options.onError?.(error);
+				this.done = true;
+				return;
 			}
+
+			this.error = e instanceof Error ? e : new Error(String(e));
+			this.#config.onError?.(this.error);
 		} finally {
-			loading = false;
-			abortController = null;
+			this.loading = false;
+			this.#controller = null;
 		}
 	}
-
-	function abort() {
-		abortController?.abort();
-	}
-
-	function retry() {
-		if (lastPrompt) send(lastPrompt);
-	}
-
-	return {
-		get data() {
-			return data;
-		},
-		get partial() {
-			return partial;
-		},
-		get raw() {
-			return raw;
-		},
-		get loading() {
-			return loading;
-		},
-		get error() {
-			return error;
-		},
-		get done() {
-			return done;
-		},
-		send,
-		abort,
-		retry
-	};
 }

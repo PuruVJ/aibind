@@ -1,5 +1,4 @@
 <script lang="ts">
-	import '$lib/ai';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -9,7 +8,8 @@
 	<a href="/">Home</a>
 	<a href="/stream">Stream</a>
 	<a href="/structured">Structured</a>
-	<a href="/chat">Chat</a>
+	<a href="/agent">Agent</a>
+	<a href="/query">Query</a>
 </nav>
 
 <main>

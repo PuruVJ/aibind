@@ -1,16 +1,23 @@
 <script lang="ts">
-	import { useStream } from 'svai';
+	import { Stream } from 'svai';
 
-	const stream = useStream({
-		system: 'You are a helpful assistant. Keep responses concise.'
+	const stream = new Stream({
+		system: 'You are a helpful assistant. Keep responses concise.',
+		model: 'gpt',
 	});
 
 	let prompt = $state('');
 </script>
 
-<h1>useStream Demo</h1>
+<h1>Stream Demo</h1>
 
-<form onsubmit={(e) => { e.preventDefault(); stream.send(prompt); prompt = ''; }}>
+<form
+	onsubmit={(e) => {
+		e.preventDefault();
+		stream.send(prompt);
+		prompt = '';
+	}}
+>
 	<input bind:value={prompt} placeholder="Ask something..." />
 	<button type="submit" disabled={stream.loading}>
 		{stream.loading ? 'Streaming...' : 'Send'}
@@ -34,9 +41,26 @@
 {/if}
 
 <style>
-	form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-	input { flex: 1; padding: 0.5rem; }
-	.response { padding: 1rem; background: #f9fafb; border-radius: 0.5rem; white-space: pre-wrap; }
-	.streaming { opacity: 0.8; }
-	.error { color: #dc2626; padding: 1rem; }
+	form {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	input {
+		flex: 1;
+		padding: 0.5rem;
+	}
+	.response {
+		padding: 1rem;
+		background: #f9fafb;
+		border-radius: 0.5rem;
+		white-space: pre-wrap;
+	}
+	.streaming {
+		opacity: 0.8;
+	}
+	.error {
+		color: #dc2626;
+		padding: 1rem;
+	}
 </style>
