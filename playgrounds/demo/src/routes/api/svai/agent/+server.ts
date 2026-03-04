@@ -1,4 +1,4 @@
-import { ServerAgent } from 'svai/agent';
+import { ServerAgent } from '@aibind/svelte/agent';
 import { tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { models } from '../../../../models.server';

@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -r --filter demo dev",
-    "build": "pnpm -r --filter svai build",
-    "test": "pnpm -r --filter svai test",
-    "package": "pnpm -r --filter svai package",
+    "build": "pnpm -r --filter @aibind/svelte build",
+    "test": "pnpm -r --filter @aibind/svelte test",
+    "package": "pnpm -r --filter @aibind/svelte package",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"

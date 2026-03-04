@@ -21,7 +21,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/svai:
+  packages/svelte:
     devDependencies:
       '@ai-sdk/anthropic':
         specifier: ^3.0.53
@@ -83,15 +83,15 @@ importers:
 
   playgrounds/demo:
     dependencies:
+      '@aibind/svelte':
+        specifier: workspace:*
+        version: link:../../packages/svelte
       '@openrouter/ai-sdk-provider':
         specifier: ^2.2.3
         version: 2.2.3(ai@6.0.108(zod@3.25.76))(zod@3.25.76)
       ai:
         specifier: ^6.0.108
         version: 6.0.108(zod@3.25.76)
-      svai:
-        specifier: workspace:*
-        version: link:../../packages/svai
       zod:
         specifier: ^3.24.0
         version: 3.25.76

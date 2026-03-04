@@ -1,5 +1,5 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { defineModels } from 'svai';
+import { defineModels } from '@aibind/svelte';
 import { OPENROUTER_API_KEY } from '$env/static/private';
 
 if (!OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY is required');

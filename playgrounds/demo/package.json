@@ -10,7 +10,7 @@
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "ai": "^6.0.108",
-    "svai": "workspace:*",
+    "@aibind/svelte": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": {
