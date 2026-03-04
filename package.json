@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -r --filter demo dev",
-    "build": "pnpm -r --filter @aibind/svelte build",
-    "test": "pnpm -r --filter @aibind/svelte test",
+    "build": "pnpm -r --filter '@aibind/*' build",
+    "test": "pnpm -r --filter '@aibind/*' test",
     "package": "pnpm -r --filter @aibind/svelte package",
     "changeset": "changeset",
     "version": "changeset version",

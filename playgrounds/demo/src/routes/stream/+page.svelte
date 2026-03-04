@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Stream } from '@aibind/svelte';
+	import { Stream } from '@aibind/sveltekit';
 
 	const stream = new Stream({
 		system: 'You are a helpful assistant. Keep responses concise.',

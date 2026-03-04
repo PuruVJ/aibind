@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Agent } from '@aibind/svelte/agent';
+	import { Agent } from '@aibind/sveltekit/agent';
 
 	const agent = new Agent();
 

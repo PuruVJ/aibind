@@ -1,10 +1,10 @@
 import { onDestroy } from 'svelte';
 import type { AgentStatus, AgentMessage } from '../types.js';
-import { consumeTextStream } from '../internal/stream-utils.js';
+import { consumeTextStream } from '@aibind/common';
 
 export interface AgentOptions {
-	/** API endpoint for the agent. Default: '/api/svai/agent' */
-	endpoint?: string;
+	/** API endpoint for the agent. Required — no default. */
+	endpoint: string;
 	/** Custom fetch implementation. Defaults to globalThis.fetch. */
 	fetch?: typeof globalThis.fetch;
 	onMessage?: (message: AgentMessage) => void;
@@ -25,7 +25,10 @@ export class Agent {
 	#controller: AbortController | null = null;
 	#config: AgentOptions;
 
-	constructor(options: AgentOptions = {}) {
+	constructor(options: AgentOptions) {
+		if (!options.endpoint) {
+			throw new Error('@aibind/svelte: Agent requires an `endpoint` option. If using @aibind/sveltekit, endpoints are configured automatically.');
+		}
 		this.#config = options;
 		onDestroy(() => this.stop());
 	}
@@ -47,7 +50,7 @@ export class Agent {
 		this.#controller = controller;
 
 		try {
-			const endpoint = this.#config.endpoint ?? '/api/svai/agent';
+			const endpoint = this.#config.endpoint;
 			const fetcher = this.#config.fetch ?? globalThis.fetch;
 			const response = await fetcher(endpoint, {
 				method: 'POST',

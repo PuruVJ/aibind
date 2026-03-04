@@ -1,0 +1,66 @@
+{
+  "name": "@aibind/vue",
+  "version": "0.1.0",
+  "description": "AI SDK bindings for Vue 3 — reactive composables for streaming, structured output, and agents",
+  "license": "MIT",
+  "keywords": [
+    "vue",
+    "vue3",
+    "ai",
+    "ai-sdk",
+    "llm",
+    "streaming",
+    "openai",
+    "anthropic",
+    "agents",
+    "composables"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puruvj/aibind"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "import": "./dist/agent/index.js",
+      "require": "./dist/agent/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aibind/common": "workspace:*"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.0",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@valibot/to-json-schema": "^1.5.0",
+    "ai": "^6.0.108",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "valibot": "^1.2.0",
+    "vitest": "^3.0.0",
+    "vue": "^3.5.0",
+    "zod": "^3.25.76"
+  }
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { StructuredStream } from '@aibind/svelte';
+	import { StructuredStream } from '@aibind/sveltekit';
 	import { z } from 'zod/v4';
 
 	const AnalysisSchema = z.object({

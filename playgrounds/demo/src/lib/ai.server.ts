@@ -1,4 +1,4 @@
-import { AIServer } from '@aibind/svelte/server';
+import { AIRemote } from '@aibind/sveltekit/remote';
 import { models } from '../models.server';
 
-export const googleAi = new AIServer(models.google);
+export const googleAi = new AIRemote(models.google);

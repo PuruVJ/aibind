@@ -1,0 +1,69 @@
+{
+  "name": "@aibind/nuxt",
+  "version": "0.1.0",
+  "description": "AI SDK bindings for Nuxt — composables with defaults, server handlers, and agents",
+  "license": "MIT",
+  "keywords": [
+    "nuxt",
+    "vue",
+    "ai",
+    "ai-sdk",
+    "llm",
+    "streaming",
+    "openai",
+    "anthropic",
+    "agents",
+    "composables"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puruvj/aibind"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs"
+    },
+    "./agent": {
+      "types": "./dist/composables/agent.d.ts",
+      "import": "./dist/composables/agent.js",
+      "require": "./dist/composables/agent.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aibind/vue": "workspace:*",
+    "@aibind/common": "workspace:*"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.0",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "ai": "^6.0.108",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "vue": "^3.5.0"
+  }
+}

@@ -5,6 +5,8 @@ vi.mock('svelte', () => ({ onDestroy: vi.fn() }));
 import { Agent } from '../../src/lib/agent/agent.svelte.js';
 import { createMockResponse, createErrorResponse, flushPromises } from '../helpers.js';
 
+const ENDPOINT = '/api/agent';
+
 describe('Agent (client)', () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -13,7 +15,7 @@ describe('Agent (client)', () => {
 	it('send() adds user message and POSTs', async () => {
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['hi']));
 
-		const agent = new Agent({ fetch: mockFetch });
+		const agent = new Agent({ endpoint: ENDPOINT, fetch: mockFetch });
 		agent.send('hello');
 		await flushPromises();
 
@@ -21,7 +23,7 @@ describe('Agent (client)', () => {
 			expect.objectContaining({ role: 'user', content: 'hello' })
 		);
 		expect(mockFetch).toHaveBeenCalledWith(
-			'/api/svai/agent',
+			ENDPOINT,
 			expect.objectContaining({
 				method: 'POST',
 				body: expect.stringContaining('hello')
@@ -32,7 +34,7 @@ describe('Agent (client)', () => {
 	it('send() streams response into assistant message', async () => {
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['Hello', ' World']));
 
-		const agent = new Agent({ fetch: mockFetch });
+		const agent = new Agent({ endpoint: ENDPOINT, fetch: mockFetch });
 		agent.send('greet me');
 		await flushPromises();
 
@@ -46,7 +48,7 @@ describe('Agent (client)', () => {
 	it('stop() aborts request and sets status idle', async () => {
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['hello']));
 
-		const agent = new Agent({ fetch: mockFetch });
+		const agent = new Agent({ endpoint: ENDPOINT, fetch: mockFetch });
 		agent.send('prompt');
 		agent.stop();
 		await flushPromises();
@@ -55,7 +57,7 @@ describe('Agent (client)', () => {
 	});
 
 	it('approve() clears pendingApproval', () => {
-		const agent = new Agent();
+		const agent = new Agent({ endpoint: ENDPOINT });
 		agent.pendingApproval = { id: 'abc', toolName: 'search', args: {} };
 		agent.status = 'awaiting-approval';
 
@@ -66,7 +68,7 @@ describe('Agent (client)', () => {
 	});
 
 	it('deny() clears pendingApproval and sets idle', () => {
-		const agent = new Agent();
+		const agent = new Agent({ endpoint: ENDPOINT });
 		agent.pendingApproval = { id: 'abc', toolName: 'search', args: {} };
 		agent.status = 'awaiting-approval';
 
@@ -80,7 +82,7 @@ describe('Agent (client)', () => {
 		const onError = vi.fn();
 		const mockFetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
 
-		const agent = new Agent({ fetch: mockFetch, onError });
+		const agent = new Agent({ endpoint: ENDPOINT, fetch: mockFetch, onError });
 		agent.send('prompt');
 		await flushPromises();
 

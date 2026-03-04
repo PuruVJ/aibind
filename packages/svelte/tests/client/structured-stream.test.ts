@@ -13,6 +13,8 @@ vi.mock('zod/v4', () => {
 import { StructuredStream } from '../../src/lib/index.svelte.js';
 import { createMockResponse, flushPromises } from '../helpers.js';
 
+const ENDPOINT = '/api/structured';
+
 /** Create a minimal Standard Schema v1 compliant schema. */
 function createMockSchema<T>(
 	validateFn: (input: unknown) => { value: T } | { issues: Array<{ message: string }> },
@@ -50,12 +52,12 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{"name":"test"}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
 		expect(mockFetch).toHaveBeenCalledWith(
-			'/api/svai/structured',
+			ENDPOINT,
 			expect.objectContaining({
 				body: expect.stringContaining('"type":"object"')
 			})
@@ -71,7 +73,7 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{"age":25}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
@@ -86,7 +88,7 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{"test":1}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
@@ -103,7 +105,7 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{"test":1}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
@@ -120,7 +122,7 @@ describe('StructuredStream', () => {
 			createMockResponse(['{"name":', '"John","age":', '30}'])
 		);
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
@@ -135,7 +137,7 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{"title":"hello"}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
@@ -150,7 +152,7 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{"bad":true}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 		stream.send('prompt');
 		await flushPromises();
 
@@ -167,7 +169,7 @@ describe('StructuredStream', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue(createMockResponse(['{}']));
 
-		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch });
+		const stream = new StructuredStream({ schema: schema as never, fetch: mockFetch, endpoint: ENDPOINT });
 
 		stream.send('first');
 		await flushPromises();

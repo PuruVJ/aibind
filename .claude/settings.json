@@ -36,7 +36,30 @@
       "Bash(pnpm add -Dw @changesets/cli @changesets/changelog-github)",
       "Bash(pnpx changeset init)",
       "Bash(pnpx @changesets/cli init)",
-      "Bash(npm whoami)"
+      "Bash(npm whoami)",
+      "Bash(pnpm --filter @aibind/svelte test)",
+      "Bash(pnpm --filter @aibind/vue test)",
+      "Bash(pnpm --filter @aibind/vue build)",
+      "Bash(pnpm --filter @aibind/common test)",
+      "Bash(pnpm --filter @aibind/sveltekit test)",
+      "Bash(pnpm --filter @aibind/nuxt test)",
+      "Bash(xargs sed -i '' 's/@aibind\\\\/utils/@aibind\\\\/common/g')",
+      "Bash(pnpm --filter @aibind/solid test)",
+      "Bash(pnpm --filter @aibind/solidstart test)",
+      "Bash(pnpm --filter @aibind/solid build)",
+      "Bash(pnpm -r test)",
+      "WebFetch(domain:schnabl.cx)",
+      "WebFetch(domain:news.ycombinator.com)",
+      "WebFetch(domain:www.better-stack.ai)",
+      "WebFetch(domain:vimal-dwarampudi.medium.com)",
+      "WebFetch(domain:community.vercel.com)",
+      "WebFetch(domain:streamdown.ai)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:www.incremark.com)",
+      "WebFetch(domain:medium.com)"
+    ],
+    "additionalDirectories": [
+      "/Users/puruvijay/Projects/svai/.claude"
     ]
   }
 }

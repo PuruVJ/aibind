@@ -1,6 +1,6 @@
 import { onDestroy } from 'svelte';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-import { consumeTextStream, parsePartialJSON } from './internal/stream-utils.js';
+import { consumeTextStream, parsePartialJSON } from '@aibind/common';
 import type { LanguageModel, SendOptions } from './types.js';
 
 export type { SendOptions, DeepPartial, LanguageModel } from './types.js';
@@ -36,8 +36,8 @@ export interface StreamOptions<M extends string = string> {
 	/** Model key (must match a key from defineModels). */
 	model?: M;
 	system?: string;
-	/** Streaming endpoint. Default: '/api/svai/stream' */
-	endpoint?: string;
+	/** Streaming endpoint. Required — no default. */
+	endpoint: string;
 	/** Custom fetch implementation. Defaults to globalThis.fetch. */
 	fetch?: typeof globalThis.fetch;
 	onFinish?: (text: string) => void;
@@ -59,7 +59,10 @@ export class Stream<M extends string = string> {
 	#lastOptions: SendOptions | undefined;
 	#config: StreamOptions<M>;
 
-	constructor(options: StreamOptions<M> = {} as StreamOptions<M>) {
+	constructor(options: StreamOptions<M>) {
+		if (!options.endpoint) {
+			throw new Error('@aibind/svelte: Stream requires an `endpoint` option. If using @aibind/sveltekit, endpoints are configured automatically.');
+		}
 		this.#config = options;
 		onDestroy(() => this.abort());
 	}
@@ -90,7 +93,7 @@ export class Stream<M extends string = string> {
 
 	async #run(prompt: string, options: SendOptions | undefined, controller: AbortController) {
 		try {
-			const endpoint = this.#config.endpoint ?? '/api/svai/stream';
+			const endpoint = this.#config.endpoint;
 			const system = options?.system ?? this.#config.system;
 
 			const fetcher = this.#config.fetch ?? globalThis.fetch;
@@ -133,8 +136,8 @@ export interface StructuredStreamOptions<T, M extends string = string> {
 	/** Any Standard Schema-compatible schema (Zod, Valibot, ArkType, etc.) */
 	schema: StandardSchemaV1<unknown, T>;
 	system?: string;
-	/** Structured streaming endpoint. Default: '/api/svai/structured' */
-	endpoint?: string;
+	/** Structured streaming endpoint. Required — no default. */
+	endpoint: string;
 	/** Custom fetch implementation. Defaults to globalThis.fetch. */
 	fetch?: typeof globalThis.fetch;
 	onFinish?: (data: T) => void;
@@ -162,6 +165,9 @@ export class StructuredStream<M extends string, T> {
 	#schemaResolved = false;
 
 	constructor(options: StructuredStreamOptions<T, M>) {
+		if (!options.endpoint) {
+			throw new Error('@aibind/svelte: StructuredStream requires an `endpoint` option. If using @aibind/sveltekit, endpoints are configured automatically.');
+		}
 		this.#config = options;
 		onDestroy(() => this.abort());
 	}
@@ -239,7 +245,7 @@ export class StructuredStream<M extends string, T> {
 
 	async #run(prompt: string, options: SendOptions | undefined, controller: AbortController) {
 		try {
-			const endpoint = this.#config.endpoint ?? '/api/svai/structured';
+			const endpoint = this.#config.endpoint;
 			const system = options?.system ?? this.#config.system;
 			const schema = await this.#resolveSchema();
 

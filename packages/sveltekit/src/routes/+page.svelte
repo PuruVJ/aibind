@@ -1,0 +1,1 @@
+<p>@aibind/sveltekit</p>

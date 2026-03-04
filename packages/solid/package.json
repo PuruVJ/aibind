@@ -1,0 +1,65 @@
+{
+  "name": "@aibind/solid",
+  "version": "0.1.0",
+  "description": "AI SDK bindings for SolidJS — reactive hooks for streaming, structured output, and agents",
+  "license": "MIT",
+  "keywords": [
+    "solid",
+    "solidjs",
+    "ai",
+    "ai-sdk",
+    "llm",
+    "streaming",
+    "openai",
+    "anthropic",
+    "agents"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puruvj/aibind"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "import": "./dist/agent/index.js",
+      "require": "./dist/agent/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aibind/common": "workspace:*"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.0",
+    "solid-js": "^1.8.0"
+  },
+  "devDependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@valibot/to-json-schema": "^1.5.0",
+    "ai": "^6.0.108",
+    "solid-js": "^1.9.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "valibot": "^1.2.0",
+    "vitest": "^3.0.0",
+    "zod": "^3.25.76"
+  }
+}
