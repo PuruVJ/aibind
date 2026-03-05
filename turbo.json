@@ -1,12 +1,16 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "package": {
+      "dependsOn": ["^package"],
+      "outputs": ["dist/**", ".svelte-kit/**"]
+    },
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".svelte-kit/**", ".next/**", ".output/**", ".vinxi/**", ".vitepress/dist/**"]
+      "dependsOn": ["^package"],
+      "outputs": [".svelte-kit/**", ".next/**", ".output/**", ".vinxi/**", ".vitepress/dist/**"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^package"]
     },
     "dev": {
       "cache": false,

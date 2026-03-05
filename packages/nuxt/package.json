@@ -1,7 +1,7 @@
 {
   "name": "@aibind/nuxt",
   "version": "0.4.0",
-  "description": "AI SDK bindings for Nuxt — composables with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for Nuxt \u2014 composables with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "nuxt",
@@ -53,10 +53,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm package",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "package": "tsup"
   },
   "dependencies": {
     "@aibind/vue": "workspace:*",

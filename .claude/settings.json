@@ -179,7 +179,10 @@
       "Bash(pnpm --filter sveltekit-demo build)",
       "Bash(pnpm --filter solidstart-demo build)",
       "Bash(pnpm --filter nextjs-demo build)",
-      "Bash(find /Users/puruvijay/Projects/svai/packages -name dist -type d -maxdepth 2 -exec rm -rf {} +)"
+      "Bash(find /Users/puruvijay/Projects/svai/packages -name dist -type d -maxdepth 2 -exec rm -rf {} +)",
+      "Bash(for pkg in core markdown react solid vue nextjs nuxt solidstart tanstack-start)",
+      "Bash(do echo \"=== packages/$pkg ===\")",
+      "Bash(pnpm package)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

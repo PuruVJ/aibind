@@ -85,10 +85,9 @@
   ],
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && pnpm package",
-    "package": "svelte-package -o dist",
+    "package": "vite build && svelte-package -o dist",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm package",
     "test": "vitest run",
     "test:watch": "vitest"
   },

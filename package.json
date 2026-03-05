@@ -6,14 +6,14 @@
     "dev": "pnpm -r --filter sveltekit-demo dev",
     "dev:nuxt": "pnpm -r --filter nuxt-demo dev",
     "dev:solid": "pnpm -r --filter solidstart-demo dev",
+    "package": "turbo run package",
     "build": "turbo run build",
     "test": "turbo run test",
-    "package": "pnpm -r --filter @aibind/svelte package",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && changeset publish",
-    "release:jsr": "pnpm build && node scripts/publish-jsr.js",
-    "sizes": "pnpm build && node scripts/measure-sizes.js",
+    "release": "pnpm package && changeset publish",
+    "release:jsr": "pnpm package && node scripts/publish-jsr.js",
+    "sizes": "pnpm package && node scripts/measure-sizes.js",
     "bench": "pnpm --filter @aibind/markdown bench"
   },
   "devDependencies": {

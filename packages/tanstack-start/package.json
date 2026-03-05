@@ -1,7 +1,7 @@
 {
   "name": "@aibind/tanstack-start",
   "version": "0.4.0",
-  "description": "AI SDK bindings for TanStack Start — hooks with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for TanStack Start \u2014 hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "tanstack",
@@ -54,10 +54,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm package",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "package": "tsup"
   },
   "dependencies": {
     "@aibind/react": "workspace:*",
