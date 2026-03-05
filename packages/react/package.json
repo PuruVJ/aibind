@@ -43,6 +43,14 @@
   },
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "agent": ["dist/agent/index.d.ts"],
+      "markdown": ["dist/markdown/index.d.ts"],
+      "history": ["dist/history/index.d.ts"],
+      "project": ["dist/project/index.d.ts"]
+    }
+  },
   "files": [
     "dist",
     "README.md"

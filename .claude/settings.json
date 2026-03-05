@@ -182,12 +182,15 @@
       "Bash(find /Users/puruvijay/Projects/svai/packages -name dist -type d -maxdepth 2 -exec rm -rf {} +)",
       "Bash(for pkg in core markdown react solid vue nextjs nuxt solidstart tanstack-start)",
       "Bash(do echo \"=== packages/$pkg ===\")",
-      "Bash(pnpm package)"
+      "Bash(pnpm package)",
+      "Bash(pnpm run package)",
+      "Bash(pnpm run test)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",
       "/Users/puruvijay/.claude/projects/-Users-puruvijay-Projects-svai",
-      "/Users/puruvijay/Projects/svai"
+      "/Users/puruvijay/Projects/svai",
+      "/Users/puruvijay/Projects/svai/packages/*"
     ]
   }
 }
