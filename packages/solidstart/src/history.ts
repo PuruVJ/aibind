@@ -1,8 +1,4 @@
-export {
-  ReactiveChatHistory,
-  ReactiveMessageTree,
-} from "@aibind/solid/history";
-export { MessageTree, ChatHistory } from "@aibind/core";
+export { ChatHistory, MessageTree } from "@aibind/solid/history";
 export type {
   TreeNode,
   TreeConfig,

@@ -1,3 +1,16 @@
+// Shared types
+export { defineModels } from "./types";
+export type {
+  LanguageModel,
+  SendOptions,
+  StreamStatus,
+  AgentStatus,
+  ToolCallStatus,
+  AgentMessage,
+  AgentOptions,
+  DeepPartial,
+} from "./types";
+
 export { ServerAgent } from "./server-agent";
 export type { AgentConfig, RunOptions } from "./server-agent";
 export { consumeTextStream, parsePartialJSON } from "./stream-utils";
@@ -11,12 +24,45 @@ export type {
 export { ChatHistory } from "./chat-history";
 
 // Durable streams (abort + resume)
-export type { StreamStore, StreamChunk, StreamStatus } from "./stream-store";
-export { MemoryStreamStore } from "./memory-store";
-export { formatSSE, formatSSEEvent, consumeSSEStream } from "./sse";
-export type { SSEMessage } from "./sse";
-export { createDurableStream, createResumeResponse } from "./durable-stream";
 export type {
-  DurableStreamOptions,
-  DurableStreamResult,
-} from "./durable-stream";
+  StreamStore,
+  StreamChunk,
+  DurableStreamStatus,
+} from "./stream-store";
+export { MemoryStreamStore } from "./memory-store";
+export { SSE } from "./sse";
+export type { SSEMessage } from "./sse";
+export { DurableStream } from "./durable-stream";
+export type { DurableStreamOptions, ResumeOptions } from "./durable-stream";
+
+// Stream controllers (framework-agnostic)
+export { StreamController } from "./stream-controller";
+export type {
+  StreamCallbacks,
+  StreamControllerOptions,
+} from "./stream-controller";
+export { StructuredStreamController } from "./structured-stream-controller";
+export type {
+  StructuredStreamCallbacks,
+  StructuredStreamControllerOptions,
+} from "./structured-stream-controller";
+
+// Stream handler (framework-agnostic server handler)
+export { createStreamHandler } from "./stream-handler";
+export type { StreamHandlerConfig } from "./stream-handler";
+
+// Agent controller (framework-agnostic)
+export { AgentController } from "./agent-controller";
+export type { AgentCallbacks } from "./agent-controller";
+
+// Agent stream (NDJSON tool calling protocol)
+export { AgentStream } from "./agent-stream";
+export type { AgentStreamEvent } from "./agent-stream";
+
+// Projects (context management)
+export { Project } from "./project";
+export type {
+  ProjectConfig,
+  ProjectConversation,
+  SerializedProject,
+} from "./project";

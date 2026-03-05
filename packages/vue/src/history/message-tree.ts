@@ -1,6 +1,6 @@
 import { ref, computed, type ComputedRef } from "vue";
 import {
-  MessageTree,
+  MessageTree as CoreMessageTree,
   type TreeConfig,
   type TreeNode,
   type TreePath,
@@ -17,10 +17,10 @@ import {
  * @example
  * ```vue
  * <script setup lang="ts">
- * import { ReactiveMessageTree } from '@aibind/vue/history';
+ * import { MessageTree } from '@aibind/vue/history';
  *
  * interface Msg { role: string; content: string }
- * const tree = new ReactiveMessageTree<Msg>();
+ * const tree = new MessageTree<Msg>();
  *
  * tree.append({ role: 'user', content: 'Hello' });
  * tree.append({ role: 'assistant', content: 'Hi!' });
@@ -39,9 +39,9 @@ import {
  *
  * @typeParam M - The message type stored in the tree.
  */
-export class ReactiveMessageTree<M> {
+export class MessageTree<M> {
   /** The underlying non-reactive `MessageTree` instance. */
-  readonly inner: MessageTree<M>;
+  readonly inner: CoreMessageTree<M>;
 
   /**
    * Internal version counter. Bumped on every mutation so that
@@ -67,7 +67,7 @@ export class ReactiveMessageTree<M> {
   readonly activePath: ComputedRef<TreePath<M>>;
 
   constructor(config?: TreeConfig) {
-    this.inner = new MessageTree<M>(config);
+    this.inner = new CoreMessageTree<M>(config);
 
     this.size = computed(() => {
       this._version.value;
@@ -253,7 +253,7 @@ export class ReactiveMessageTree<M> {
   }
 
   /**
-   * Restore a `ReactiveMessageTree` from serialized data.
+   * Restore a `MessageTree` from serialized data.
    * The returned instance has fully reactive computed properties.
    *
    * @param data - Serialized tree data previously produced by `serialize()`.
@@ -262,10 +262,10 @@ export class ReactiveMessageTree<M> {
   static deserialize<M>(
     data: SerializedTree<M>,
     config?: TreeConfig,
-  ): ReactiveMessageTree<M> {
-    const instance = new ReactiveMessageTree<M>(config);
-    const restored = MessageTree.deserialize<M>(data, config);
-    (instance as { inner: MessageTree<M> }).inner = restored;
+  ): MessageTree<M> {
+    const instance = new MessageTree<M>(config);
+    const restored = CoreMessageTree.deserialize<M>(data, config);
+    (instance as { inner: CoreMessageTree<M> }).inner = restored;
     return instance;
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@aibind/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Shared internal utilities for @aibind packages",
   "license": "MIT",
   "repository": {
@@ -34,6 +34,7 @@
     "build": "tsup"
   },
   "devDependencies": {
+    "@standard-schema/spec": "^1.1.0",
     "ai": "^6.0.108",
     "tsup": "^8.5.1",
     "vitest": "^3.0.0"

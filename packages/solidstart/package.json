@@ -1,6 +1,6 @@
 {
   "name": "@aibind/solidstart",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "AI SDK bindings for SolidStart — reactive hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
@@ -40,6 +40,10 @@
     "./history": {
       "types": "./dist/history.d.ts",
       "import": "./dist/history.js"
+    },
+    "./project": {
+      "types": "./dist/project.d.ts",
+      "import": "./dist/project.js"
     }
   },
   "module": "./dist/index.js",

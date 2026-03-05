@@ -2,14 +2,6 @@
 
 Low-level SolidJS reactive hooks for AI streaming. **If you're using SolidStart, use [`@aibind/solidstart`](https://www.npmjs.com/package/@aibind/solidstart) instead** — it wraps this package with sensible defaults and server handlers.
 
-## Features
-
-🤏 **Tiny** — Ships only what you use. Tree-shakes per entry point.
-🐇 **Simple** — Three hooks: `useStream`, `useStructuredStream`, `useAgent`. Call and go.
-🧙‍♀️ **Elegant** — Returns SolidJS signals. Reactive by nature.
-🗃️ **Highly customizable** — Custom endpoints, custom fetch, per-request system overrides, named model registries.
-⚛️ **Reactive** — Every piece of state is a SolidJS signal. Fine-grained reactivity out of the box.
-
 ## Install
 
 ```bash
@@ -43,6 +35,15 @@ function Chat() {
 | `@aibind/solid/agent`    | `useAgent`                                                              |
 | `@aibind/solid/markdown` | `useStreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
 | `@aibind/solid/history`  | `ReactiveChatHistory`, `ReactiveMessageTree`                            |
+| `@aibind/solid/project`  | `Project`                                                               |
+
+## Documentation
+
+Full documentation: **[aibind.dev](https://aibind.dev)**
+
+- [Streaming](https://aibind.dev/concepts/streaming)
+- [Structured Output](https://aibind.dev/concepts/structured-output)
+- [Chat History & Branching](https://aibind.dev/concepts/chat-history)
 
 ## Requirements
 

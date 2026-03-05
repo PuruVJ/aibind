@@ -1,37 +1,6 @@
 /**
- * SSE (Server-Sent Events) formatting and parsing utilities.
+ * SSE (Server-Sent Events) formatting and parsing.
  */
-
-/**
- * Format a single SSE message.
- * Handles multi-line data by splitting on newlines (each gets its own `data:` line).
- */
-export function formatSSE(
-  id: string | number,
-  data: string,
-  event?: string,
-): string {
-  let msg = "";
-  if (event) msg += `event: ${event}\n`;
-  msg += `id: ${id}\n`;
-  // SSE spec: multi-line data needs multiple `data:` lines
-  const lines = data.split("\n");
-  for (const line of lines) {
-    msg += `data: ${line}\n`;
-  }
-  msg += "\n";
-  return msg;
-}
-
-/**
- * Format an SSE event with no id (for terminal events like done/stopped/error).
- */
-export function formatSSEEvent(event: string, data = ""): string {
-  let msg = `event: ${event}\n`;
-  msg += `data: ${data}\n`;
-  msg += "\n";
-  return msg;
-}
 
 /** Parsed SSE message. */
 export interface SSEMessage {
@@ -41,76 +10,114 @@ export interface SSEMessage {
 }
 
 /**
- * Parse an SSE stream from an HTTP Response.
- * Yields one `SSEMessage` per event block (separated by blank lines).
+ * SSE formatting and parsing utilities.
+ *
+ * @example
+ * ```ts
+ * // Server-side: format SSE messages
+ * const msg = SSE.format(1, "Hello world");
+ * const evt = SSE.formatEvent("done");
+ *
+ * // Client-side: consume SSE response
+ * for await (const msg of SSE.consume(response)) {
+ *   console.log(msg.event, msg.data);
+ * }
+ * ```
  */
-export async function* consumeSSEStream(
-  response: Response,
-): AsyncGenerator<SSEMessage, void, undefined> {
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
+export class SSE {
+  /**
+   * Format a single SSE message.
+   * Handles multi-line data by splitting on newlines (each gets its own `data:` line).
+   */
+  static format(id: string | number, data: string, event?: string): string {
+    let msg = "";
+    if (event) msg += `event: ${event}\n`;
+    msg += `id: ${id}\n`;
+    const lines = data.split("\n");
+    for (const line of lines) {
+      msg += `data: ${line}\n`;
+    }
+    msg += "\n";
+    return msg;
+  }
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+  /**
+   * Format an SSE event with no id (for terminal events like done/stopped/error).
+   */
+  static formatEvent(event: string, data = ""): string {
+    let msg = `event: ${event}\n`;
+    msg += `data: ${data}\n`;
+    msg += "\n";
+    return msg;
+  }
 
-      // Process complete events (double newline separated)
-      let boundary: number;
-      while ((boundary = buffer.indexOf("\n\n")) !== -1) {
-        const block = buffer.slice(0, boundary);
-        buffer = buffer.slice(boundary + 2);
+  /**
+   * Parse an SSE stream from an HTTP Response.
+   * Yields one {@link SSEMessage} per event block (separated by blank lines).
+   */
+  static async *consume(
+    response: Response,
+  ): AsyncGenerator<SSEMessage, void, undefined> {
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-        const msg = parseSSEBlock(block);
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary: number;
+        while ((boundary = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+
+          const msg = SSE.#parseBlock(block);
+          if (msg) yield msg;
+        }
+      }
+
+      // Flush remaining
+      const final = decoder.decode();
+      if (final) buffer += final;
+      if (buffer.trim()) {
+        const msg = SSE.#parseBlock(buffer);
         if (msg) yield msg;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  // ─── Private Helpers ────────────────────────────────────────
+
+  /**
+   * SSE spec: strip exactly one leading space after the colon.
+   * "data: hello" → "hello", "data:  world" → " world"
+   */
+  static #stripValue(line: string): string {
+    const afterColon = line.slice(line.indexOf(":") + 1);
+    return afterColon.startsWith(" ") ? afterColon.slice(1) : afterColon;
+  }
+
+  static #parseBlock(block: string): SSEMessage | null {
+    let id = "";
+    let event = "";
+    const dataLines: string[] = [];
+
+    for (const line of block.split("\n")) {
+      if (line.startsWith("id:")) {
+        id = SSE.#stripValue(line);
+      } else if (line.startsWith("event:")) {
+        event = SSE.#stripValue(line);
+      } else if (line.startsWith("data:")) {
+        dataLines.push(SSE.#stripValue(line));
       }
     }
 
-    // Flush remaining
-    const final = decoder.decode();
-    if (final) buffer += final;
-    if (buffer.trim()) {
-      const msg = parseSSEBlock(buffer);
-      if (msg) yield msg;
-    }
-  } finally {
-    reader.releaseLock();
+    if (!id && !event && dataLines.length === 0) return null;
+
+    return { id, data: dataLines.join("\n"), event };
   }
-}
-
-/**
- * SSE spec: strip exactly one leading space after the colon.
- * "data: hello" → "hello", "data:  world" → " world"
- */
-function stripSSEValue(line: string): string {
-  const afterColon = line.slice(line.indexOf(":") + 1);
-  return afterColon.startsWith(" ") ? afterColon.slice(1) : afterColon;
-}
-
-function parseSSEBlock(block: string): SSEMessage | null {
-  let id = "";
-  let event = "";
-  const dataLines: string[] = [];
-
-  for (const line of block.split("\n")) {
-    if (line.startsWith("id:")) {
-      id = stripSSEValue(line);
-    } else if (line.startsWith("event:")) {
-      event = stripSSEValue(line);
-    } else if (line.startsWith("data:")) {
-      dataLines.push(stripSSEValue(line));
-    }
-    // Ignore comments (lines starting with :) and unknown fields
-  }
-
-  // Skip empty blocks
-  if (!id && !event && dataLines.length === 0) return null;
-
-  return {
-    id,
-    data: dataLines.join("\n"),
-    event,
-  };
 }

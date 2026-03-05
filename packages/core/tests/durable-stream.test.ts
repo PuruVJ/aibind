@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  createDurableStream,
-  createResumeResponse,
-} from "../src/durable-stream";
+import { DurableStream } from "../src/durable-stream";
 import { MemoryStreamStore } from "../src/memory-store";
-import { consumeSSEStream } from "../src/sse";
+import { SSE } from "../src/sse";
 
 /** Helper: create an async iterable from an array of strings. */
 async function* fromArray(chunks: string[]): AsyncGenerator<string> {
@@ -28,46 +25,48 @@ async function* slowSource(
 /** Collect all SSE messages from a Response. */
 async function collectSSE(response: Response) {
   const msgs = [];
-  for await (const msg of consumeSSEStream(response)) {
+  for await (const msg of SSE.consume(response)) {
     msgs.push(msg);
   }
   return msgs;
 }
 
-describe("createDurableStream", () => {
+describe("DurableStream.create", () => {
   let store: MemoryStreamStore;
 
   beforeEach(() => {
     store = new MemoryStreamStore();
   });
 
-  it("returns streamId, response, and controller", async () => {
-    const result = await createDurableStream({
+  it("returns id, response, and stop()", async () => {
+    const stream = await DurableStream.create({
       store,
       source: fromArray(["hi"]),
     });
-    expect(result.streamId).toBeTruthy();
-    expect(result.response).toBeInstanceOf(Response);
-    expect(result.controller).toBeInstanceOf(AbortController);
+    expect(stream.id).toBeTruthy();
+    expect(stream.response).toBeInstanceOf(Response);
+    expect(stream.stop).toBeTypeOf("function");
   });
 
   it("response has SSE headers", async () => {
-    const { response } = await createDurableStream({
+    const stream = await DurableStream.create({
       store,
       source: fromArray(["hi"]),
     });
-    expect(response.headers.get("Content-Type")).toBe("text/event-stream");
-    expect(response.headers.get("Cache-Control")).toBe("no-cache");
-    expect(response.headers.get("X-Stream-Id")).toBeTruthy();
+    expect(stream.response.headers.get("Content-Type")).toBe(
+      "text/event-stream",
+    );
+    expect(stream.response.headers.get("Cache-Control")).toBe("no-cache");
+    expect(stream.response.headers.get("X-Stream-Id")).toBeTruthy();
   });
 
   it("streams chunks as SSE events", async () => {
-    const { response } = await createDurableStream({
+    const stream = await DurableStream.create({
       store,
       source: fromArray(["Hello", " world", "!"]),
     });
 
-    const msgs = await collectSSE(response);
+    const msgs = await collectSSE(stream.response);
 
     // First event is stream-id
     expect(msgs[0]!.event).toBe("stream-id");
@@ -82,7 +81,7 @@ describe("createDurableStream", () => {
   });
 
   it("marks store as complete after source ends", async () => {
-    const { streamId } = await createDurableStream({
+    const stream = await DurableStream.create({
       store,
       source: fromArray(["a", "b"]),
     });
@@ -90,36 +89,36 @@ describe("createDurableStream", () => {
     // Wait for pipe to finish
     await new Promise((r) => setTimeout(r, 50));
 
-    const status = await store.getStatus(streamId);
+    const status = await store.getStatus(stream.id);
     expect(status!.state).toBe("done");
     expect(status!.totalChunks).toBe(2);
   });
 
-  it("stop via controller marks store as stopped", async () => {
-    const { streamId, controller } = await createDurableStream({
+  it("stop() marks store as stopped", async () => {
+    const stream = await DurableStream.create({
       store,
       source: slowSource(["a", "b", "c", "d", "e"]),
     });
 
     // Let first chunk through, then stop
     await new Promise((r) => setTimeout(r, 10));
-    controller.abort();
+    stream.stop();
     await new Promise((r) => setTimeout(r, 50));
 
-    const status = await store.getStatus(streamId);
+    const status = await store.getStatus(stream.id);
     expect(status!.state).toBe("stopped");
   });
 
   it("SSE response includes stopped event when aborted", async () => {
-    const { response, controller } = await createDurableStream({
+    const stream = await DurableStream.create({
       store,
       source: slowSource(Array.from({ length: 20 }, (_, i) => `chunk${i}`)),
     });
 
     // Stop after a short delay
-    setTimeout(() => controller.abort(), 15);
+    setTimeout(() => stream.stop(), 15);
 
-    const msgs = await collectSSE(response);
+    const msgs = await collectSSE(stream.response);
     const events = msgs.filter((m) => m.event);
     const eventNames = events.map((e) => e.event);
 
@@ -134,24 +133,24 @@ describe("createDurableStream", () => {
       throw new Error("LLM crashed");
     }
 
-    const { streamId, response } = await createDurableStream({
+    const stream = await DurableStream.create({
       store,
       source: failingSource(),
     });
 
-    const msgs = await collectSSE(response);
+    const msgs = await collectSSE(stream.response);
     const errorEvent = msgs.find((m) => m.event === "error");
     expect(errorEvent).toBeDefined();
     expect(errorEvent!.data).toBe("LLM crashed");
 
     // Wait for pipe
     await new Promise((r) => setTimeout(r, 50));
-    const status = await store.getStatus(streamId);
+    const status = await store.getStatus(stream.id);
     expect(status!.state).toBe("error");
   });
 });
 
-describe("createResumeResponse", () => {
+describe("DurableStream.resume", () => {
   let store: MemoryStreamStore;
 
   beforeEach(() => {
@@ -159,21 +158,19 @@ describe("createResumeResponse", () => {
   });
 
   it("resumes from a given sequence", async () => {
-    // Manually populate store
     await store.create("s1");
     await store.append("s1", "a");
     await store.append("s1", "b");
     await store.append("s1", "c");
     await store.complete("s1");
 
-    const response = createResumeResponse({
+    const response = DurableStream.resume({
       store,
       streamId: "s1",
       afterSeq: 1,
     });
 
     const msgs = await collectSSE(response);
-    // No stream-id event on resume
     const chunks = msgs.filter((m) => !m.event);
     expect(chunks.map((c) => c.data)).toEqual(["b", "c"]);
     expect(msgs[msgs.length - 1]!.event).toBe("done");
@@ -184,7 +181,7 @@ describe("createResumeResponse", () => {
     await store.append("s1", "a");
     await store.complete("s1");
 
-    const response = createResumeResponse({
+    const response = DurableStream.resume({
       store,
       streamId: "s1",
       afterSeq: 5,
@@ -202,14 +199,13 @@ describe("createResumeResponse", () => {
     await store.append("s1", "y");
     await store.complete("s1");
 
-    const response = createResumeResponse({
+    const response = DurableStream.resume({
       store,
       streamId: "s1",
       afterSeq: 0,
     });
 
     const msgs = await collectSSE(response);
-    // No stream-id event (resume never sends it)
     expect(msgs.find((m) => m.event === "stream-id")).toBeUndefined();
 
     const chunks = msgs.filter((m) => !m.event);
@@ -221,7 +217,7 @@ describe("createResumeResponse", () => {
     await store.append("s1", "partial");
     await store.stop("s1");
 
-    const response = createResumeResponse({
+    const response = DurableStream.resume({
       store,
       streamId: "s1",
       afterSeq: 0,
@@ -238,7 +234,7 @@ describe("createResumeResponse", () => {
     await store.append("s1", "partial");
     await store.fail("s1", "timeout");
 
-    const response = createResumeResponse({
+    const response = DurableStream.resume({
       store,
       streamId: "s1",
       afterSeq: 0,
@@ -253,7 +249,7 @@ describe("createResumeResponse", () => {
     await store.create("s1");
     await store.complete("s1");
 
-    const response = createResumeResponse({
+    const response = DurableStream.resume({
       store,
       streamId: "s1",
       afterSeq: 0,

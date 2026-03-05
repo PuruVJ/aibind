@@ -2,16 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("svelte", () => ({ onDestroy: vi.fn() }));
 
-// Mock these to simulate missing packages for the vendor-specific import tests
-vi.mock("@valibot/to-json-schema", () => {
-  throw new Error("Cannot find module @valibot/to-json-schema");
-});
-vi.mock("zod/v4", () => {
-  throw new Error("Cannot find module zod/v4");
-});
-
 import { StructuredStream } from "../../src/lib/index.svelte.js";
 import { createMockResponse, flushPromises } from "../helpers.js";
+
+/** Flush multiple rounds of microtasks for async module resolution. */
+async function flushDeep(rounds = 10) {
+  for (let i = 0; i < rounds; i++) {
+    await flushPromises();
+  }
+}
 
 const ENDPOINT = "/api/structured";
 
@@ -115,7 +114,7 @@ describe("StructuredStream", () => {
       endpoint: ENDPOINT,
     });
     stream.send("prompt");
-    await flushPromises();
+    await flushDeep();
 
     expect(stream.error).toBeInstanceOf(Error);
     expect(stream.error!.message).toContain("valibot");
@@ -137,9 +136,13 @@ describe("StructuredStream", () => {
       endpoint: ENDPOINT,
     });
     stream.send("prompt");
-    await flushPromises();
 
-    expect(stream.error).toBeInstanceOf(Error);
+    await vi.waitFor(
+      () => {
+        expect(stream.error).toBeInstanceOf(Error);
+      },
+      { timeout: 2000 },
+    );
     expect(stream.error!.message).toContain("zod");
   });
 

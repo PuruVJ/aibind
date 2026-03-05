@@ -2,15 +2,6 @@
 
 AI SDK bindings for SolidStart. Reactive SolidJS hooks, server handlers, and agents — all wired up with sensible defaults.
 
-## Features
-
-🤏 **Tiny** — Ships only what you use. Tree-shakes per entry point.
-🐇 **Simple** — Three hooks: `useStream`, `useStructuredStream`, `useAgent`. Call and go.
-🧙‍♀️ **Elegant** — Returns SolidJS signals. Reactive by nature.
-🗃️ **Highly customizable** — Custom endpoints, custom fetch, per-request system overrides, named model registries.
-⚛️ **Reactive** — Every piece of state is a SolidJS signal. Fine-grained reactivity out of the box.
-🔌 **Batteries included** — Server handler and default endpoints out of the box.
-
 ## Install
 
 ```bash
@@ -18,21 +9,6 @@ npm install @aibind/solidstart ai solid-js
 ```
 
 Peer dependencies: `solid-js ^1.8`, `ai ^6.0`.
-
-### Schema Libraries
-
-`useStructuredStream` works with any [Standard Schema](https://github.com/standard-schema/standard-schema)-compatible library. Install one:
-
-```bash
-# Zod (v4 recommended — has built-in JSON Schema support)
-npm install zod
-
-# Valibot (requires JSON Schema converter)
-npm install valibot @valibot/to-json-schema
-
-# ArkType (built-in JSON Schema via .toJsonSchema())
-npm install arktype
-```
 
 ## Quick Start
 
@@ -83,266 +59,24 @@ function Chat() {
 
 ## Entry Points
 
-### `@aibind/solidstart` — Client Hooks
+| Import Path                   | What You Get                                       |
+| ----------------------------- | -------------------------------------------------- |
+| `@aibind/solidstart`          | `useStream`, `useStructuredStream`, `defineModels` |
+| `@aibind/solidstart/server`   | `createStreamHandler`, `ServerAgent`               |
+| `@aibind/solidstart/agent`    | `useAgent`                                         |
+| `@aibind/solidstart/history`  | `ReactiveChatHistory`, `ReactiveMessageTree`       |
+| `@aibind/solidstart/markdown` | `useStreamMarkdown`                                |
+| `@aibind/solidstart/project`  | `Project`                                          |
 
-```ts
-import {
-  useStream,
-  useStructuredStream,
-  defineModels,
-} from "@aibind/solidstart";
-```
+## Documentation
 
-#### `defineModels(models)`
+Full documentation, API reference, and guides: **[aibind.dev](https://aibind.dev)**
 
-Define named AI models for type-safe model selection across client and server.
-
-```ts
-// src/models.ts
-import { defineModels } from "@aibind/solidstart";
-import { anthropic } from "@ai-sdk/anthropic";
-
-export const models = defineModels({
-  default: anthropic("claude-sonnet-4-20250514"),
-  fast: anthropic("claude-haiku-20250514"),
-});
-
-export type Models = typeof models.$infer; // 'default' | 'fast'
-```
-
-#### `useStream(options?)`
-
-Reactive streaming text. Endpoint defaults to `/api/__aibind__/stream`.
-
-```ts
-const { text, loading, error, done, send, abort, retry } = useStream({
-  model: "fast", // optional model key
-  system: "You are a poet.",
-  endpoint: "/api/custom/stream", // override default
-  fetch: customFetch, // optional custom fetch
-  onFinish: (text) => console.log(text),
-  onError: (err) => console.error(err),
-});
-
-send("Write a haiku");
-send("Now a limerick", { system: "Override system prompt" });
-text(); // reactive accumulated text (signal accessor)
-loading(); // true while streaming
-error(); // Error | null
-done(); // true when complete
-abort(); // cancel in-flight request
-retry(); // re-send last prompt
-```
-
-#### `useStructuredStream(options)`
-
-Streams JSON and parses partial objects as they arrive. Validates the final result with any Standard Schema-compatible library. Endpoint defaults to `/api/__aibind__/structured`.
-
-```ts
-import { useStructuredStream } from "@aibind/solidstart";
-import { z } from "zod";
-
-const { data, partial, raw, loading, error, send } = useStructuredStream({
-  schema: z.object({
-    sentiment: z.enum(["positive", "negative", "neutral"]),
-    score: z.number(),
-    topics: z.array(z.string()),
-  }),
-  system: "Analyze sentiment. Return JSON matching the schema.",
-});
-
-send("I love this product!");
-partial(); // Partial<T> — updates as JSON streams in
-data(); // T | null — fully validated after completion
-raw(); // raw JSON string
-```
-
----
-
-### `@aibind/solidstart/server` — Server Handler
-
-```ts
-import { createStreamHandler, ServerAgent } from "@aibind/solidstart/server";
-```
-
-#### `createStreamHandler(config)`
-
-Generic Web Request/Response handler for streaming endpoints.
-
-```ts
-const handler = createStreamHandler({
-  model: anthropic("claude-sonnet-4-20250514"),
-  prefix: "/api/__aibind__", // default
-});
-
-// Use in a SolidStart catch-all route:
-export async function POST({ request }: { request: Request }) {
-  return handler(request);
-}
-```
-
-Handles two routes:
-
-- `POST {prefix}/stream` — text streaming
-- `POST {prefix}/structured` — JSON streaming
-
-#### `ServerAgent`
-
-Server-side agent with tools, system prompt, and multi-step tool loops.
-
-```ts
-import { ServerAgent } from "@aibind/solidstart/server";
-import { tool, stepCountIs } from "ai";
-import { z } from "zod";
-
-const agent = new ServerAgent({
-  model: anthropic("claude-sonnet-4-20250514"),
-  system: "You are a helpful assistant with access to tools.",
-  tools: {
-    get_weather: tool({
-      description: "Get weather for a city",
-      inputSchema: z.object({ city: z.string() }),
-      execute: async ({ city }) => ({
-        city,
-        temperature: "72°F",
-        condition: "sunny",
-      }),
-    }),
-  },
-  stopWhen: stepCountIs(5),
-});
-```
-
----
-
-### `@aibind/solidstart/agent` — Client Agent
-
-```ts
-import { useAgent } from "@aibind/solidstart/agent";
-```
-
-#### `useAgent(options?)`
-
-Reactive agent hook. Endpoint defaults to `/api/__aibind__/agent`.
-
-```tsx
-import { useAgent } from "@aibind/solidstart/agent";
-
-function AgentChat() {
-  const { messages, status, send, stop } = useAgent();
-
-  let prompt = "";
-
-  return (
-    <>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(prompt);
-          prompt = "";
-        }}
-      >
-        <input value={prompt} onInput={(e) => (prompt = e.target.value)} />
-        <button disabled={status() === "running"}>Send</button>
-      </form>
-
-      <For each={messages()}>
-        {(message) => <div class={message.role}>{message.content}</div>}
-      </For>
-
-      <Show when={status() === "running"}>
-        <button onClick={() => stop()}>Stop</button>
-      </Show>
-    </>
-  );
-}
-```
-
-**Reactive signals:**
-
-- `messages()` — array of `{ id, role, content, type }` messages
-- `status()` — `'idle' | 'running' | 'awaiting-approval' | 'error'`
-- `error()` — `Error | null`
-- `pendingApproval()` — `{ id, toolName, args } | null`
-
-**Methods:**
-
-- `send(prompt)` — send a message, streams response incrementally
-- `stop()` — abort the current request
-- `approve(id)` / `deny(id)` — respond to tool approval requests
-
----
-
-### `@aibind/solidstart/markdown` — Streaming Markdown
-
-```ts
-import { useStreamMarkdown } from "@aibind/solidstart/markdown";
-```
-
-Reactive hook that parses streaming markdown with recovery for unterminated syntax. Uses `@aibind/markdown` under the hood.
-
-```tsx
-import { useStream } from "@aibind/solidstart";
-import { useStreamMarkdown } from "@aibind/solidstart/markdown";
-
-function Chat() {
-  const { text, loading } = useStream({
-    system: "You are a helpful assistant.",
-  });
-  const html = useStreamMarkdown(
-    () => text(),
-    () => loading(),
-  );
-
-  return <div innerHTML={html()} />;
-}
-```
-
-**Parameters:**
-
-- `getText` — accessor returning the markdown string
-- `getStreaming` — accessor returning whether the stream is active (enables recovery)
-
-### `@aibind/solidstart/history` — Branching Conversation History
-
-```ts
-import {
-  ReactiveChatHistory,
-  ReactiveMessageTree,
-  ChatHistory,
-  MessageTree,
-} from "@aibind/solidstart/history";
-```
-
-Tree-structured conversation history with branching support. Edit messages, regenerate responses, and navigate alternatives (ChatGPT-style).
-
-```tsx
-import { ReactiveChatHistory } from "@aibind/solidstart/history";
-
-function Chat() {
-  const chat = new ReactiveChatHistory<{ role: string; content: string }>();
-  chat.append({ role: "user", content: "Hello" });
-  chat.append({ role: "assistant", content: "Hi!" });
-
-  return (
-    <For each={chat.messages()}>
-      {(msg) => (
-        <div>
-          {msg.role}: {msg.content}
-        </div>
-      )}
-    </For>
-  );
-}
-```
-
-See [`@aibind/core` README](https://www.npmjs.com/package/@aibind/core) for full API documentation.
-
-## Requirements
-
-- SolidJS 1.8+
-- AI SDK 6.0+
-- Node.js 20+
+- [SolidStart Setup Guide](https://aibind.dev/frameworks/solidstart)
+- [Streaming](https://aibind.dev/concepts/streaming)
+- [Structured Output](https://aibind.dev/concepts/structured-output)
+- [Chat History & Branching](https://aibind.dev/concepts/chat-history)
+- [Agents](https://aibind.dev/concepts/agents)
 
 ## License
 

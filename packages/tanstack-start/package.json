@@ -1,0 +1,80 @@
+{
+  "name": "@aibind/tanstack-start",
+  "version": "0.4.0",
+  "description": "AI SDK bindings for TanStack Start — hooks with defaults, server handlers, and agents",
+  "license": "MIT",
+  "keywords": [
+    "tanstack",
+    "tanstack-start",
+    "react",
+    "ai",
+    "ai-sdk",
+    "llm",
+    "streaming",
+    "openai",
+    "anthropic",
+    "agents",
+    "hooks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puruvj/aibind"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent.d.ts",
+      "import": "./dist/agent.js"
+    },
+    "./markdown": {
+      "types": "./dist/markdown.d.ts",
+      "import": "./dist/markdown.js"
+    },
+    "./history": {
+      "types": "./dist/history.d.ts",
+      "import": "./dist/history.js"
+    },
+    "./project": {
+      "types": "./dist/project.d.ts",
+      "import": "./dist/project.js"
+    }
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aibind/react": "workspace:*",
+    "@aibind/core": "workspace:*",
+    "@aibind/markdown": "workspace:*"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@types/react": "^19.0.0",
+    "ai": "^6.0.108",
+    "react": "^19.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

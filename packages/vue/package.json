@@ -1,6 +1,6 @@
 {
   "name": "@aibind/vue",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "AI SDK bindings for Vue 3 — reactive composables for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
@@ -36,6 +36,10 @@
     "./history": {
       "types": "./dist/history/index.d.ts",
       "import": "./dist/history/index.js"
+    },
+    "./project": {
+      "types": "./dist/project/index.d.ts",
+      "import": "./dist/project/index.js"
     }
   },
   "module": "./dist/index.js",

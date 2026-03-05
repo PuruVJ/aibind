@@ -1,7 +1,21 @@
 node_modules/
 dist/
+
+# Framework build outputs
 .svelte-kit/
+.nuxt/
+.next/
+.vinxi/
+.output/
+
+# Docs
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+
+# Env
 .env
 .env.*
 !.env.example
+
+# Build artifacts
 *.tgz

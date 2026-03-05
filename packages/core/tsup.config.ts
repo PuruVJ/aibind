@@ -6,4 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   outDir: "dist",
+  external: ["@valibot/to-json-schema", "zod/v4"],
 });

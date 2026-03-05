@@ -1,5 +1,5 @@
 import {
-  MessageTree,
+  MessageTree as CoreMessageTree,
   type TreeConfig,
   type TreeNode,
   type TreePath,
@@ -16,9 +16,9 @@ import {
  * @example
  * ```svelte
  * <script>
- *   import { ReactiveMessageTree } from '@aibind/svelte/history';
+ *   import { MessageTree } from '@aibind/svelte/history';
  *
- *   const tree = new ReactiveMessageTree();
+ *   const tree = new MessageTree();
  *   const r1 = tree.addRoot({ role: 'system', content: 'You are helpful.' });
  *   const m1 = tree.addChild(r1, { role: 'user', content: 'Hello' });
  *   const m2 = tree.addChild(m1, { role: 'assistant', content: 'Hi there!' });
@@ -36,9 +36,9 @@ import {
  * {/each}
  * ```
  */
-export class ReactiveMessageTree<M> {
+export class MessageTree<M> {
   /** The underlying non-reactive MessageTree. */
-  readonly inner: MessageTree<M>;
+  readonly inner: CoreMessageTree<M>;
 
   /** Reactivity trigger — bumped on every mutation. */
   #version = $state(0);
@@ -76,7 +76,7 @@ export class ReactiveMessageTree<M> {
   });
 
   constructor(config?: TreeConfig) {
-    this.inner = new MessageTree<M>(config);
+    this.inner = new CoreMessageTree<M>(config);
   }
 
   // ─── Mutations (trigger reactivity) ─────────────────────────
@@ -185,14 +185,14 @@ export class ReactiveMessageTree<M> {
     return this.inner.serialize();
   }
 
-  /** Restore a ReactiveMessageTree from serialized data. */
+  /** Restore a MessageTree from serialized data. */
   static deserialize<M>(
     data: SerializedTree<M>,
     config?: TreeConfig,
-  ): ReactiveMessageTree<M> {
-    const instance = new ReactiveMessageTree<M>(config);
-    const restored = MessageTree.deserialize<M>(data, config);
-    (instance as { inner: MessageTree<M> }).inner = restored;
+  ): MessageTree<M> {
+    const instance = new MessageTree<M>(config);
+    const restored = CoreMessageTree.deserialize<M>(data, config);
+    (instance as { inner: CoreMessageTree<M> }).inner = restored;
     return instance;
   }
 }

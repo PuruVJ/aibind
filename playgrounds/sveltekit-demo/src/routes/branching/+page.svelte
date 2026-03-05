@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Stream } from '@aibind/sveltekit';
-	import { ReactiveChatHistory } from '@aibind/sveltekit/history';
+	import { ChatHistory } from '@aibind/sveltekit/history';
 
 	interface ChatMessage {
 		role: 'user' | 'assistant';
 		content: string;
 	}
 
-	const chat = new ReactiveChatHistory<ChatMessage>();
+	const chat = new ChatHistory<ChatMessage>();
 	const stream = new Stream({
 		system: 'You are a helpful assistant. Keep responses concise (2-3 sentences max).',
 		model: 'gpt',

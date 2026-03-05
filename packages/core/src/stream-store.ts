@@ -9,7 +9,7 @@ export interface StreamChunk {
 /**
  * Current status of a durable stream.
  */
-export interface StreamStatus {
+export interface DurableStreamStatus {
   state: "active" | "done" | "stopped" | "error";
   error?: string;
   totalChunks: number;
@@ -40,7 +40,7 @@ export interface StreamStore {
   ): AsyncGenerator<StreamChunk, void, undefined>;
 
   /** Get the current status of a stream, or null if it doesn't exist. */
-  getStatus(id: string): Promise<StreamStatus | null>;
+  getStatus(id: string): Promise<DurableStreamStatus | null>;
 
   /** Signal the generation to stop (user-initiated). */
   stop(id: string): Promise<void>;

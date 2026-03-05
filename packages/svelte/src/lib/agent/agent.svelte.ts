@@ -1,15 +1,13 @@
 import { onDestroy } from "svelte";
-import type { AgentStatus, AgentMessage } from "../types.js";
-import { consumeTextStream } from "@aibind/core";
+import {
+  AgentController,
+  type AgentCallbacks,
+  type AgentStatus,
+  type AgentMessage,
+  type AgentOptions,
+} from "@aibind/core";
 
-export interface AgentOptions {
-  /** API endpoint for the agent. Required — no default. */
-  endpoint: string;
-  /** Custom fetch implementation. Defaults to globalThis.fetch. */
-  fetch?: typeof globalThis.fetch;
-  onMessage?: (message: AgentMessage) => void;
-  onError?: (error: Error) => void;
-}
+export type { AgentOptions } from "@aibind/core";
 
 /**
  * Client-side reactive agent state.
@@ -23,100 +21,44 @@ export class Agent {
   pendingApproval: { id: string; toolName: string; args: unknown } | null =
     $state(null);
 
-  #controller: AbortController | null = null;
-  #config: AgentOptions;
-
-  get #fetch() {
-    return this.#config.fetch ?? globalThis.fetch;
-  }
+  #ctrl: AgentController;
 
   constructor(options: AgentOptions) {
-    if (!options.endpoint) {
-      throw new Error(
-        "@aibind/svelte: Agent requires an `endpoint` option. If using @aibind/sveltekit, endpoints are configured automatically.",
-      );
-    }
-    this.#config = options;
+    this.#ctrl = new AgentController(options, {
+      onMessages: (m) => {
+        this.messages = m;
+      },
+      onStatus: (s) => {
+        this.status = s;
+      },
+      onError: (e) => {
+        this.error = e;
+      },
+      onPendingApproval: (pa) => {
+        this.pendingApproval = pa;
+      },
+    } satisfies AgentCallbacks);
     onDestroy(() => this.stop());
   }
 
-  async send(prompt: string) {
-    this.#controller?.abort();
-    this.status = "running";
-    this.error = null;
-
-    const userMsg: AgentMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: prompt,
-      type: "text",
-    };
-    this.messages.push(userMsg);
-
-    const controller = new AbortController();
-    this.#controller = controller;
-
-    try {
-      const endpoint = this.#config.endpoint;
-      const response = await this.#fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: this.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok)
-        throw new Error(`Agent request failed: ${response.status}`);
-
-      const assistantMsg: AgentMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "",
-        type: "text",
-      };
-      this.messages.push(assistantMsg);
-
-      for await (const chunk of consumeTextStream(response)) {
-        if (controller.signal.aborted) break;
-        assistantMsg.content += chunk;
-      }
-
-      this.status = "idle";
-      this.#config.onMessage?.(assistantMsg);
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") {
-        this.status = "idle";
-        return;
-      }
-
-      this.error = e instanceof Error ? e : new Error(String(e));
-      this.status = "error";
-      this.#config.onError?.(this.error);
-    } finally {
-      this.#controller = null;
-    }
+  send(prompt: string): Promise<void> {
+    return this.#ctrl.send(prompt);
   }
 
-  approve(id: string) {
-    if (!this.pendingApproval || this.pendingApproval.id !== id) return;
-    this.pendingApproval = null;
-    this.status = "running";
+  approve(id: string): void {
+    // Sync local state to controller (e.g. when set directly on the class)
+    this.#ctrl.setPendingApproval(this.pendingApproval);
+    this.#ctrl.setStatus(this.status);
+    this.#ctrl.approve(id);
   }
 
-  deny(id: string, _reason?: string) {
-    if (!this.pendingApproval || this.pendingApproval.id !== id) return;
-    this.pendingApproval = null;
-    this.status = "idle";
+  deny(id: string, reason?: string): void {
+    this.#ctrl.setPendingApproval(this.pendingApproval);
+    this.#ctrl.setStatus(this.status);
+    this.#ctrl.deny(id, reason);
   }
 
-  stop() {
-    this.#controller?.abort();
-    this.#controller = null;
-    this.status = "idle";
+  stop(): void {
+    this.#ctrl.stop();
   }
 }

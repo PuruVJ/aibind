@@ -44,4 +44,11 @@ export default defineConfig([
     outDir: "dist",
     external: ["vue"],
   },
+  {
+    entry: { project: "src/project.ts" },
+    format: ["esm"],
+    dts: true,
+    outDir: "dist",
+    external: ["vue"],
+  },
 ]);

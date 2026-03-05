@@ -1,2 +1,2 @@
-export { ReactiveChatHistory } from "./reactive-chat-history";
-export { ReactiveMessageTree } from "./reactive-message-tree";
+export { ChatHistory } from "./chat-history";
+export { MessageTree } from "./message-tree";

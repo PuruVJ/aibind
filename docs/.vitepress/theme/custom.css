@@ -1,0 +1,96 @@
+:root {
+  --vp-c-brand-1: #92400e;
+  --vp-c-brand-2: #b45309;
+  --vp-c-brand-3: #d97706;
+  --vp-c-brand-soft: rgba(180, 83, 9, 0.14);
+
+  /* Buttons */
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #fff;
+  --vp-button-brand-bg: #d97706;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #fff;
+  --vp-button-brand-hover-bg: #b45309;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #fff;
+  --vp-button-brand-active-bg: #92400e;
+
+  /* Hero */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(251, 191, 36, 0.2) 100%);
+  --vp-home-hero-image-filter: blur(44px);
+
+  /* Warm background tint */
+  --vp-c-bg: #fffcf5;
+  --vp-c-bg-alt: #fef8ee;
+  --vp-c-bg-soft: #fef3e0;
+  --vp-c-bg-elv: #fffcf5;
+}
+
+.dark {
+  --vp-c-brand-1: #fbbf24;
+  --vp-c-brand-2: #f59e0b;
+  --vp-c-brand-3: #d97706;
+  --vp-c-brand-soft: rgba(251, 191, 36, 0.14);
+
+  --vp-button-brand-bg: #d97706;
+  --vp-button-brand-hover-bg: #b45309;
+  --vp-button-brand-active-bg: #92400e;
+
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(217, 119, 6, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+
+  /* Dark mode — warm dark tones */
+  --vp-c-bg: #1a1612;
+  --vp-c-bg-alt: #1e1a15;
+  --vp-c-bg-soft: #252019;
+  --vp-c-bg-elv: #1e1a15;
+}
+
+/* Distinguished sidebar */
+.VPSidebar {
+  background-color: #faf5eb !important;
+  border-right: 1px solid #f0e6d3 !important;
+}
+
+.dark .VPSidebar {
+  background-color: #151210 !important;
+  border-right: 1px solid #2a2420 !important;
+}
+
+/* Sidebar curtain (top block with site title) */
+.VPSidebar .curtain {
+  background-color: #faf5eb !important;
+}
+
+.dark .VPSidebar .curtain {
+  background-color: #151210 !important;
+}
+
+/* Code blocks — warm tinted backgrounds */
+:root .vp-code {
+  --vp-code-block-bg: #fdf6ec;
+}
+
+:root .vp-code span {
+  --shiki-light-bg: transparent !important;
+}
+
+.dark .vp-code {
+  --vp-code-block-bg: #1c1814;
+}
+
+.dark .vp-code span {
+  --shiki-dark-bg: transparent !important;
+}
+
+/* Inline code */
+:root {
+  --vp-code-bg: #fdf0dc;
+  --vp-code-color: #92400e;
+}
+
+.dark {
+  --vp-code-bg: #2a2118;
+  --vp-code-color: #fbbf24;
+}

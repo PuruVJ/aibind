@@ -2,14 +2,6 @@
 
 Low-level Vue 3 composables for AI streaming. **If you're using Nuxt, use [`@aibind/nuxt`](https://www.npmjs.com/package/@aibind/nuxt) instead** — it wraps this package with sensible defaults and server handlers.
 
-## Features
-
-🤏 **Tiny** — Ships only what you use. Tree-shakes per entry point.
-🐇 **Simple** — Three composables: `useStream`, `useStructuredStream`, `useAgent`. Call in `setup()` and go.
-🧙‍♀️ **Elegant** — Returns plain `Ref<T>` values. Use in templates or destructure freely.
-🗃️ **Highly customizable** — Custom endpoints, custom fetch, per-request system overrides, named model registries.
-⚛️ **Reactive** — Every piece of state is a Vue `ref`. Reactivity works exactly as you'd expect.
-
 ## Install
 
 ```bash
@@ -41,6 +33,15 @@ const { text, loading, send } = useStream({
 | `@aibind/vue/agent`    | `useAgent`                                                           |
 | `@aibind/vue/markdown` | `StreamMarkdown`, `StreamParser`, `HtmlRenderer`, `MarkdownRecovery` |
 | `@aibind/vue/history`  | `ReactiveChatHistory`, `ReactiveMessageTree`                         |
+| `@aibind/vue/project`  | `Project`                                                            |
+
+## Documentation
+
+Full documentation: **[aibind.dev](https://aibind.dev)**
+
+- [Streaming](https://aibind.dev/concepts/streaming)
+- [Structured Output](https://aibind.dev/concepts/structured-output)
+- [Chat History & Branching](https://aibind.dev/concepts/chat-history)
 
 ## Requirements
 

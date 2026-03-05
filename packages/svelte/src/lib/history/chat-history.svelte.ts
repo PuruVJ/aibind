@@ -1,4 +1,8 @@
-import { ChatHistory, type TreeConfig, type TreeNode } from "@aibind/core";
+import {
+  ChatHistory as CoreChatHistory,
+  type TreeConfig,
+  type TreeNode,
+} from "@aibind/core";
 
 /**
  * Svelte 5 reactive wrapper around ChatHistory.
@@ -10,9 +14,9 @@ import { ChatHistory, type TreeConfig, type TreeNode } from "@aibind/core";
  * @example
  * ```svelte
  * <script>
- *   import { ReactiveChatHistory } from '@aibind/svelte/history';
+ *   import { ChatHistory } from '@aibind/svelte/history';
  *
- *   const chat = new ReactiveChatHistory();
+ *   const chat = new ChatHistory();
  *   const m1 = chat.append({ role: 'user', content: 'Hello' });
  *   // chat.messages is reactive — UI updates automatically
  * </script>
@@ -27,9 +31,9 @@ import { ChatHistory, type TreeConfig, type TreeNode } from "@aibind/core";
  * {/each}
  * ```
  */
-export class ReactiveChatHistory<M> {
+export class ChatHistory<M> {
   /** The underlying non-reactive ChatHistory. */
-  readonly inner: ChatHistory<M>;
+  readonly inner: CoreChatHistory<M>;
 
   /** Reactivity trigger — bumped on every mutation. */
   #version = $state(0);
@@ -59,7 +63,7 @@ export class ReactiveChatHistory<M> {
   });
 
   constructor(config?: TreeConfig) {
-    this.inner = new ChatHistory<M>(config);
+    this.inner = new CoreChatHistory<M>(config);
   }
 
   // ─── Mutations (trigger reactivity) ─────────────────────────
@@ -122,13 +126,10 @@ export class ReactiveChatHistory<M> {
   }
 
   /** Restore from JSON string. */
-  static fromJSON<M>(
-    json: string,
-    config?: TreeConfig,
-  ): ReactiveChatHistory<M> {
-    const instance = new ReactiveChatHistory<M>(config);
-    const restored = ChatHistory.fromJSON<M>(json, config);
-    (instance as { inner: ChatHistory<M> }).inner = restored;
+  static fromJSON<M>(json: string, config?: TreeConfig): ChatHistory<M> {
+    const instance = new ChatHistory<M>(config);
+    const restored = CoreChatHistory.fromJSON<M>(json, config);
+    (instance as { inner: CoreChatHistory<M> }).inner = restored;
     return instance;
   }
 }

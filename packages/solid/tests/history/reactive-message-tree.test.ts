@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createRoot } from "solid-js";
-import { ReactiveMessageTree } from "../../src/history/reactive-message-tree";
+import { MessageTree } from "../../src/history/message-tree";
 
 interface Msg {
   role: "user" | "assistant" | "system";
@@ -15,10 +15,10 @@ function freshConfig() {
   return testConfig;
 }
 
-describe("ReactiveMessageTree (Solid)", () => {
+describe("MessageTree (Solid)", () => {
   it("starts empty with correct defaults", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>();
+      const tree = new MessageTree<Msg>();
       expect(tree.size()).toBe(0);
       expect(tree.isEmpty()).toBe(true);
       expect(tree.activeLeafId()).toBeNull();
@@ -30,7 +30,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("append creates root on empty tree and updates reactives", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const id = tree.append({ role: "user", content: "hello" });
 
       expect(tree.size()).toBe(1);
@@ -46,7 +46,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("append chains messages and updates activePath", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       tree.append({ role: "user", content: "hello" });
       tree.append({ role: "assistant", content: "hi!" });
       tree.append({ role: "user", content: "how are you?" });
@@ -63,7 +63,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("addRoot adds multiple roots", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const r1 = tree.addRoot({ role: "user", content: "first" });
       const r2 = tree.addRoot({ role: "user", content: "second" });
 
@@ -76,7 +76,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("branch creates sibling and updates activePath", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append({ role: "user", content: "hello" });
       const m2 = tree.append({ role: "assistant", content: "response A" });
       const m2b = tree.branch(m1, { role: "assistant", content: "response B" });
@@ -93,7 +93,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("setActiveLeaf updates activeLeafId and activePath", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append({ role: "user", content: "hello" });
       const m2 = tree.append({ role: "assistant", content: "hi" });
 
@@ -110,7 +110,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("nextSibling and prevSibling navigate between siblings", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append({ role: "user", content: "hello" });
       const c1 = tree.addChild(m1, { role: "assistant", content: "a" });
       const c2 = tree.addChild(m1, { role: "assistant", content: "b" });
@@ -131,7 +131,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("nextSibling returns null at boundary", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append({ role: "user", content: "hello" });
       const c1 = tree.addChild(m1, { role: "assistant", content: "only" });
 
@@ -143,7 +143,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("remove updates size and activePath", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append({ role: "user", content: "hello" });
       const m2 = tree.append({ role: "assistant", content: "hi" });
 
@@ -158,7 +158,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("query methods delegate correctly", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append({ role: "user", content: "hello" });
       const m2 = tree.append({ role: "assistant", content: "hi" });
 
@@ -194,7 +194,7 @@ describe("ReactiveMessageTree (Solid)", () => {
 
   it("serialize and deserialize round-trip", () => {
     createRoot((dispose) => {
-      const tree = new ReactiveMessageTree<Msg>(freshConfig());
+      const tree = new MessageTree<Msg>(freshConfig());
       const m1 = tree.append(
         { role: "user", content: "hello" },
         { model: "gpt-4" },
@@ -206,7 +206,7 @@ describe("ReactiveMessageTree (Solid)", () => {
       expect(data.version).toBe(1);
       expect(Object.keys(data.nodes)).toHaveLength(3);
 
-      const restored = ReactiveMessageTree.deserialize<Msg>(data);
+      const restored = MessageTree.deserialize<Msg>(data);
       expect(restored.size()).toBe(3);
       expect(restored.activePath().messages).toEqual(
         tree.activePath().messages,

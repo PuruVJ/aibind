@@ -1,5 +1,5 @@
 import { ref, computed, type ComputedRef } from "vue";
-import { ChatHistory, type TreeConfig } from "@aibind/core";
+import { ChatHistory as CoreChatHistory, type TreeConfig } from "@aibind/core";
 
 /**
  * Vue 3 reactive wrapper around `ChatHistory` from `@aibind/core`.
@@ -11,10 +11,10 @@ import { ChatHistory, type TreeConfig } from "@aibind/core";
  * @example
  * ```vue
  * <script setup lang="ts">
- * import { ReactiveChatHistory } from '@aibind/vue/history';
+ * import { ChatHistory } from '@aibind/vue/history';
  *
  * interface Msg { role: string; content: string }
- * const chat = new ReactiveChatHistory<Msg>();
+ * const chat = new ChatHistory<Msg>();
  *
  * function send(text: string) {
  *   chat.append({ role: 'user', content: text });
@@ -34,9 +34,9 @@ import { ChatHistory, type TreeConfig } from "@aibind/core";
  *
  * @typeParam M - The message type stored in the history.
  */
-export class ReactiveChatHistory<M> {
+export class ChatHistory<M> {
   /** The underlying non-reactive `ChatHistory` instance. */
-  readonly inner: ChatHistory<M>;
+  readonly inner: CoreChatHistory<M>;
 
   /**
    * Internal version counter. Bumped on every mutation so that
@@ -57,7 +57,7 @@ export class ReactiveChatHistory<M> {
   readonly size: ComputedRef<number>;
 
   constructor(config?: TreeConfig) {
-    this.inner = new ChatHistory<M>(config);
+    this.inner = new CoreChatHistory<M>(config);
 
     this.messages = computed(() => {
       this._version.value;
@@ -170,19 +170,16 @@ export class ReactiveChatHistory<M> {
   }
 
   /**
-   * Restore a `ReactiveChatHistory` from a JSON string.
+   * Restore a `ChatHistory` from a JSON string.
    * The returned instance has fully reactive computed properties.
    *
    * @param json - JSON string previously produced by `toJSON()`.
    * @param config - Optional tree configuration (e.g. custom ID generator).
    */
-  static fromJSON<M>(
-    json: string,
-    config?: TreeConfig,
-  ): ReactiveChatHistory<M> {
-    const instance = new ReactiveChatHistory<M>(config);
-    const restored = ChatHistory.fromJSON<M>(json, config);
-    (instance as { inner: ChatHistory<M> }).inner = restored;
+  static fromJSON<M>(json: string, config?: TreeConfig): ChatHistory<M> {
+    const instance = new ChatHistory<M>(config);
+    const restored = CoreChatHistory.fromJSON<M>(json, config);
+    (instance as { inner: CoreChatHistory<M> }).inner = restored;
     return instance;
   }
 }

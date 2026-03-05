@@ -1,6 +1,6 @@
 import { createSignal, createMemo, type Accessor } from "solid-js";
 import {
-  MessageTree,
+  MessageTree as CoreMessageTree,
   type TreeConfig,
   type TreeNode,
   type TreePath,
@@ -19,10 +19,10 @@ import {
  *
  * @example
  * ```tsx
- * import { ReactiveMessageTree } from '@aibind/solid/history';
+ * import { MessageTree } from '@aibind/solid/history';
  *
  * function TreeView() {
- *   const tree = new ReactiveMessageTree<{ role: string; content: string }>();
+ *   const tree = new MessageTree<{ role: string; content: string }>();
  *
  *   const r1 = tree.addRoot({ role: 'system', content: 'You are helpful.' });
  *   const m1 = tree.append({ role: 'user', content: 'Hello' });
@@ -43,9 +43,9 @@ import {
  * }
  * ```
  */
-export class ReactiveMessageTree<M> {
+export class MessageTree<M> {
   /** The underlying non-reactive MessageTree. */
-  readonly inner: MessageTree<M>;
+  readonly inner: CoreMessageTree<M>;
 
   private _getVersion: Accessor<number>;
   private _setVersion: (v: number | ((prev: number) => number)) => void;
@@ -68,7 +68,7 @@ export class ReactiveMessageTree<M> {
   readonly activePath: Accessor<TreePath<M>>;
 
   constructor(config?: TreeConfig) {
-    this.inner = new MessageTree<M>(config);
+    this.inner = new CoreMessageTree<M>(config);
 
     const [getVersion, setVersion] = createSignal(0);
     this._getVersion = getVersion;
@@ -236,14 +236,14 @@ export class ReactiveMessageTree<M> {
     return this.inner.serialize();
   }
 
-  /** Restore a ReactiveMessageTree from serialized data. */
+  /** Restore a MessageTree from serialized data. */
   static deserialize<M>(
     data: SerializedTree<M>,
     config?: TreeConfig,
-  ): ReactiveMessageTree<M> {
-    const instance = new ReactiveMessageTree<M>(config);
-    const restored = MessageTree.deserialize<M>(data, config);
-    (instance as { inner: MessageTree<M> }).inner = restored;
+  ): MessageTree<M> {
+    const instance = new MessageTree<M>(config);
+    const restored = CoreMessageTree.deserialize<M>(data, config);
+    (instance as { inner: CoreMessageTree<M> }).inner = restored;
     // Bump version so memos re-evaluate with the restored inner tree
     instance._setVersion((v) => v + 1);
     return instance;

@@ -1,5 +1,5 @@
 import { createSignal, createMemo, type Accessor } from "solid-js";
-import { ChatHistory, type TreeConfig } from "@aibind/core";
+import { ChatHistory as CoreChatHistory, type TreeConfig } from "@aibind/core";
 
 /**
  * SolidJS reactive wrapper around {@link ChatHistory}.
@@ -13,10 +13,10 @@ import { ChatHistory, type TreeConfig } from "@aibind/core";
  *
  * @example
  * ```tsx
- * import { ReactiveChatHistory } from '@aibind/solid/history';
+ * import { ChatHistory } from '@aibind/solid/history';
  *
  * function Chat() {
- *   const chat = new ReactiveChatHistory<{ role: string; content: string }>();
+ *   const chat = new ChatHistory<{ role: string; content: string }>();
  *
  *   const m1 = chat.append({ role: 'user', content: 'Hello' });
  *   // chat.messages() is reactive — UI updates automatically
@@ -45,9 +45,9 @@ import { ChatHistory, type TreeConfig } from "@aibind/core";
  * }
  * ```
  */
-export class ReactiveChatHistory<M> {
+export class ChatHistory<M> {
   /** The underlying non-reactive ChatHistory. */
-  readonly inner: ChatHistory<M>;
+  readonly inner: CoreChatHistory<M>;
 
   private _getVersion: Accessor<number>;
   private _setVersion: (v: number | ((prev: number) => number)) => void;
@@ -67,7 +67,7 @@ export class ReactiveChatHistory<M> {
   readonly size: Accessor<number>;
 
   constructor(config?: TreeConfig) {
-    this.inner = new ChatHistory<M>(config);
+    this.inner = new CoreChatHistory<M>(config);
 
     const [getVersion, setVersion] = createSignal(0);
     this._getVersion = getVersion;
@@ -179,13 +179,10 @@ export class ReactiveChatHistory<M> {
   }
 
   /** Restore from a JSON string. Returns a new reactive instance. */
-  static fromJSON<M>(
-    json: string,
-    config?: TreeConfig,
-  ): ReactiveChatHistory<M> {
-    const instance = new ReactiveChatHistory<M>(config);
-    const restored = ChatHistory.fromJSON<M>(json, config);
-    (instance as { inner: ChatHistory<M> }).inner = restored;
+  static fromJSON<M>(json: string, config?: TreeConfig): ChatHistory<M> {
+    const instance = new ChatHistory<M>(config);
+    const restored = CoreChatHistory.fromJSON<M>(json, config);
+    (instance as { inner: CoreChatHistory<M> }).inner = restored;
     // Bump version so memos re-evaluate with the restored inner tree
     instance._setVersion((v) => v + 1);
     return instance;

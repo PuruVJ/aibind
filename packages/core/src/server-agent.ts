@@ -1,7 +1,8 @@
 import { generateText, streamText, stepCountIs } from "ai";
+import type { LanguageModel } from "./types";
 
 export interface AgentConfig {
-  model?: import("ai").LanguageModel | string;
+  model?: LanguageModel;
   system: string;
   tools?: Record<string, import("ai").Tool>;
   /** When to stop the tool loop. Use AI SDK helpers like `stepCountIs(5)`. */

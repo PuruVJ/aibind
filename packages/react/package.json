@@ -1,0 +1,73 @@
+{
+  "name": "@aibind/react",
+  "version": "0.4.0",
+  "description": "AI SDK bindings for React — hooks for streaming, structured output, and agents",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "ai",
+    "ai-sdk",
+    "llm",
+    "streaming",
+    "openai",
+    "anthropic",
+    "agents",
+    "hooks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puruvj/aibind"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "import": "./dist/agent/index.js"
+    },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "import": "./dist/markdown/index.js"
+    },
+    "./history": {
+      "types": "./dist/history/index.d.ts",
+      "import": "./dist/history/index.js"
+    },
+    "./project": {
+      "types": "./dist/project/index.d.ts",
+      "import": "./dist/project/index.js"
+    }
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aibind/core": "workspace:*",
+    "@aibind/markdown": "workspace:*"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@types/react": "^19.0.0",
+    "ai": "^6.0.108",
+    "react": "^19.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

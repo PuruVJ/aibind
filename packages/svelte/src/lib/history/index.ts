@@ -1,2 +1,2 @@
-export { ReactiveChatHistory } from "./chat-history.svelte.js";
-export { ReactiveMessageTree } from "./message-tree.svelte.js";
+export { ChatHistory } from "./chat-history.svelte.js";
+export { MessageTree } from "./message-tree.svelte.js";

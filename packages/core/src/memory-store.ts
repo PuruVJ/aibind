@@ -1,8 +1,12 @@
-import type { StreamChunk, StreamStatus, StreamStore } from "./stream-store";
+import type {
+  StreamChunk,
+  DurableStreamStatus,
+  StreamStore,
+} from "./stream-store";
 
 interface StreamEntry {
   chunks: StreamChunk[];
-  status: StreamStatus;
+  status: DurableStreamStatus;
   /** Resolvers waiting for the next chunk (subscriber pattern). */
   waiters: Array<() => void>;
   /** TTL cleanup timer. */
@@ -77,7 +81,7 @@ export class MemoryStreamStore implements StreamStore {
     }
   }
 
-  async getStatus(id: string): Promise<StreamStatus | null> {
+  async getStatus(id: string): Promise<DurableStreamStatus | null> {
     const entry = this.#streams.get(id);
     return entry ? { ...entry.status } : null;
   }

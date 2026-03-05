@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ReactiveMessageTree } from "../../src/history/reactive-message-tree";
+import { MessageTree } from "../../src/history/message-tree";
 
 interface Msg {
   role: "user" | "assistant";
@@ -14,9 +14,9 @@ function freshConfig() {
   return testConfig;
 }
 
-describe("ReactiveMessageTree (Vue)", () => {
+describe("MessageTree (Vue)", () => {
   it("starts empty with correct reactive defaults", () => {
-    const tree = new ReactiveMessageTree<Msg>();
+    const tree = new MessageTree<Msg>();
     expect(tree.size.value).toBe(0);
     expect(tree.isEmpty.value).toBe(true);
     expect(tree.activeLeafId.value).toBeNull();
@@ -25,7 +25,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("append updates activePath.value", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     tree.append({ role: "user", content: "Hello" });
     expect(tree.activePath.value.messages).toHaveLength(1);
     expect(tree.activePath.value.messages[0].content).toBe("Hello");
@@ -36,7 +36,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("append updates size.value and isEmpty.value", () => {
-    const tree = new ReactiveMessageTree<Msg>();
+    const tree = new MessageTree<Msg>();
     expect(tree.isEmpty.value).toBe(true);
     expect(tree.size.value).toBe(0);
 
@@ -46,7 +46,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("append updates activeLeafId.value", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     expect(tree.activeLeafId.value).toBe(m1);
     const m2 = tree.append({ role: "assistant", content: "hi" });
@@ -54,7 +54,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("addRoot updates rootIds.value and sets active leaf", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const r1 = tree.addRoot({ role: "user", content: "first" });
     expect(tree.rootIds.value).toEqual([r1]);
     expect(tree.activeLeafId.value).toBe(r1);
@@ -65,7 +65,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("branch creates sibling and updates activePath", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     tree.append({ role: "assistant", content: "response A" });
     const m2b = tree.branch(m1, { role: "assistant", content: "response B" });
@@ -78,7 +78,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("addChild does not update active leaf", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     tree.addChild(m1, { role: "assistant", content: "child" });
     // active leaf stays at m1 (addChild does not change it)
@@ -87,7 +87,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("nextSibling and prevSibling update activePath.value", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     const c1 = tree.addChild(m1, { role: "assistant", content: "a" });
     const c2 = tree.addChild(m1, { role: "assistant", content: "b" });
@@ -105,7 +105,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("setActiveLeaf updates activeLeafId.value", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     const m2 = tree.append({ role: "assistant", content: "hi" });
     expect(tree.activeLeafId.value).toBe(m2);
@@ -115,7 +115,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("remove updates size.value and activePath.value", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     const m2 = tree.append({ role: "assistant", content: "hi" });
 
@@ -127,13 +127,13 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("serialize and deserialize round-trip", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     tree.append({ role: "assistant", content: "hi" });
     tree.branch(m1, { role: "assistant", content: "hey" });
 
     const data = tree.serialize();
-    const restored = ReactiveMessageTree.deserialize<Msg>(data);
+    const restored = MessageTree.deserialize<Msg>(data);
 
     expect(restored.size.value).toBe(3);
     expect(restored.activePath.value.messages).toEqual(
@@ -143,12 +143,12 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("deserialized instance is reactive", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     tree.append({ role: "user", content: "hello" });
     tree.append({ role: "assistant", content: "hi" });
 
     const data = tree.serialize();
-    const restored = ReactiveMessageTree.deserialize<Msg>(data);
+    const restored = MessageTree.deserialize<Msg>(data);
 
     // Mutate the restored tree and verify reactivity
     restored.append({ role: "user", content: "follow-up" });
@@ -158,7 +158,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("query methods delegate correctly: get, has, getSiblings, depth, getLeaves", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     const c1 = tree.addChild(m1, { role: "assistant", content: "a" });
     const c2 = tree.addChild(m1, { role: "assistant", content: "b" });
@@ -188,7 +188,7 @@ describe("ReactiveMessageTree (Vue)", () => {
   });
 
   it("getPathTo delegates correctly", () => {
-    const tree = new ReactiveMessageTree<Msg>(freshConfig());
+    const tree = new MessageTree<Msg>(freshConfig());
     const m1 = tree.append({ role: "user", content: "hello" });
     const m2 = tree.append({ role: "assistant", content: "hi" });
     tree.append({ role: "user", content: "next" });
