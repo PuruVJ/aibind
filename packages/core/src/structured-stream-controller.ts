@@ -111,7 +111,7 @@ export class StructuredStreamController<T> extends StreamController {
     if (std?.vendor === "valibot") {
       try {
         // @ts-ignore -- optional dependency, resolved at runtime
-        const { toJsonSchema } = await import("@valibot/to-json-schema");
+        const { toJsonSchema } = await import(/* @vite-ignore */ "@valibot/to-json-schema");
         this._resolvedJsonSchema = toJsonSchema(schema as never) as Record<
           string,
           unknown
@@ -127,7 +127,7 @@ export class StructuredStreamController<T> extends StreamController {
     if (std?.vendor === "zod") {
       try {
         // @ts-ignore -- optional dependency, resolved at runtime
-        const { toJSONSchema } = await import("zod/v4");
+        const { toJSONSchema } = await import(/* @vite-ignore */ "zod/v4");
         this._resolvedJsonSchema = toJSONSchema(schema as never) as Record<
           string,
           unknown

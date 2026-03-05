@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAgent } from "@aibind/nuxt/composables/agent";
+import { useAgent } from "@aibind/nuxt/agent";
 
 const { messages, status, error, send, stop } = useAgent({
   endpoint: "/api/agent",

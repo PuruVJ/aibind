@@ -174,7 +174,11 @@
       "Bash(xargs basename -a)",
       "Bash(node -e \"import\\(''zod/v4''\\).then\\(m => console.log\\(''zod/v4 available, has toJSONSchema:'', typeof m.toJSONSchema\\)\\).catch\\(e => console.log\\(''zod/v4 not available:'', e.message\\)\\)\")",
       "Bash(node -e \"import\\(''@valibot/to-json-schema''\\).then\\(\\(\\) => console.log\\(''valibot available''\\)\\).catch\\(e => console.log\\(''valibot not available:'', e.message\\)\\)\")",
-      "Bash(node -e \"import\\(''zod/v4''\\).then\\(m => console.log\\(''available''\\)\\).catch\\(e => console.log\\(''not available:'', e.code\\)\\)\")"
+      "Bash(node -e \"import\\(''zod/v4''\\).then\\(m => console.log\\(''available''\\)\\).catch\\(e => console.log\\(''not available:'', e.code\\)\\)\")",
+      "Bash(pnpm install --no-frozen-lockfile)",
+      "Bash(pnpm --filter sveltekit-demo build)",
+      "Bash(pnpm --filter solidstart-demo build)",
+      "Bash(pnpm --filter nextjs-demo build)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

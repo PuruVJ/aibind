@@ -1,3 +1,5 @@
+"use client";
+
 import {
   useStream as baseUseStream,
   useStructuredStream as baseUseStructuredStream,
@@ -6,7 +8,6 @@ import {
   type UseStreamReturn,
 } from "@aibind/react";
 
-export { defineModels } from "@aibind/react";
 export type {
   DeepPartial,
   LanguageModel,
