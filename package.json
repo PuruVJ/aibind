@@ -6,8 +6,8 @@
     "dev": "pnpm -r --filter sveltekit-demo dev",
     "dev:nuxt": "pnpm -r --filter nuxt-demo dev",
     "dev:solid": "pnpm -r --filter solidstart-demo dev",
-    "build": "pnpm -r --filter '@aibind/*' build",
-    "test": "pnpm -r --filter '@aibind/*' test",
+    "build": "turbo run build",
+    "test": "turbo run test",
     "package": "pnpm -r --filter @aibind/svelte package",
     "changeset": "changeset",
     "version": "changeset version",
@@ -21,6 +21,7 @@
     "@changesets/cli": "^2.30.0",
     "prettier": "^3.8.1",
     "terser": "^5.46.0",
+    "turbo": "^2.5.0",
     "typescript": "^5.7.0"
   },
   "engines": {

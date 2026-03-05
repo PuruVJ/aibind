@@ -17,5 +17,8 @@ docs/.vitepress/dist/
 .env.*
 !.env.example
 
+# Turbo
+.turbo/
+
 # Build artifacts
 *.tgz
