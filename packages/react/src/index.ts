@@ -24,6 +24,7 @@ import {
   type ConversationMessage,
   type TurnUsage,
   type UsageTrackerOptions,
+  type DiffChunk,
 } from "@aibind/core";
 
 export { defineModels } from "@aibind/core";

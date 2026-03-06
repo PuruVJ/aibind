@@ -30,7 +30,7 @@ export class CompletionController {
   constructor(
     options: BaseCompletionOptions,
     callbacks: CompletionCallbacks,
-  ): void {
+  ) {
     this._opts = options;
     this._cb = callbacks;
   }
