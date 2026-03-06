@@ -9,25 +9,139 @@
 
 ## Basic Usage
 
-```ts
-import { MessageTree } from "@aibind/sveltekit/history";
+### SvelteKit
+
+```svelte
+<script lang="ts">
+  import { MessageTree } from '@aibind/sveltekit/history';
+
+  type Msg = { role: string; content: string };
+  const tree = new MessageTree<Msg>();
+
+  const r1 = tree.append({ role: 'user', content: 'Hello' });
+  const r2 = tree.append({ role: 'assistant', content: 'Hi!' });
+  const alt = tree.branch(r1, { role: 'assistant', content: 'Hey there!' });
+</script>
+
+{#each tree.activePath.messages as msg}
+  <div><strong>{msg.role}:</strong> {msg.content}</div>
+{/each}
+
+<button onclick={() => tree.nextSibling(alt)}>Next branch</button>
+<button onclick={() => tree.prevSibling(r2)}>Prev branch</button>
+```
+
+### Next.js / React
+
+```tsx
+"use client";
+
+import { MessageTree } from "@aibind/nextjs/history";
 
 type Msg = { role: string; content: string };
 const tree = new MessageTree<Msg>();
 
-// Build a conversation
 const r1 = tree.append({ role: "user", content: "Hello" });
 const r2 = tree.append({ role: "assistant", content: "Hi!" });
-
-// Branch from r1 with a different response
 const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
 
-// Navigate between siblings
-tree.nextSibling(alt); // switch to r2's branch
-tree.prevSibling(r2); // switch back to alt's branch
+function TreeView() {
+  const { activePath } = tree.useSnapshot();
 
-// Get the active conversation path
-const { messages, nodeIds } = tree.getActivePath();
+  return (
+    <div>
+      {activePath.messages.map((msg, i) => (
+        <div key={activePath.nodeIds[i]}>
+          <strong>{msg.role}:</strong> {msg.content}
+        </div>
+      ))}
+      <button onClick={() => tree.nextSibling(alt)}>Next branch</button>
+      <button onClick={() => tree.prevSibling(r2)}>Prev branch</button>
+    </div>
+  );
+}
+```
+
+### Nuxt / Vue
+
+```vue
+<script setup lang="ts">
+import { MessageTree } from "@aibind/nuxt/history";
+
+type Msg = { role: string; content: string };
+const tree = new MessageTree<Msg>();
+
+const r1 = tree.append({ role: "user", content: "Hello" });
+const r2 = tree.append({ role: "assistant", content: "Hi!" });
+const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
+</script>
+
+<template>
+  <div v-for="(msg, i) in tree.activePath.value.messages" :key="tree.activePath.value.nodeIds[i]">
+    <strong>{{ msg.role }}:</strong> {{ msg.content }}
+  </div>
+  <button @click="tree.nextSibling(alt)">Next branch</button>
+  <button @click="tree.prevSibling(r2)">Prev branch</button>
+</template>
+```
+
+### SolidStart
+
+```tsx
+import { MessageTree } from "@aibind/solidstart/history";
+import { For } from "solid-js";
+
+type Msg = { role: string; content: string };
+const tree = new MessageTree<Msg>();
+
+const r1 = tree.append({ role: "user", content: "Hello" });
+const r2 = tree.append({ role: "assistant", content: "Hi!" });
+const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
+
+function TreeView() {
+  return (
+    <div>
+      <For each={tree.activePath().messages}>
+        {(msg, i) => (
+          <div>
+            <strong>{msg.role}:</strong> {msg.content}
+          </div>
+        )}
+      </For>
+      <button onClick={() => tree.nextSibling(alt)}>Next branch</button>
+      <button onClick={() => tree.prevSibling(r2)}>Prev branch</button>
+    </div>
+  );
+}
+```
+
+### TanStack Start
+
+```tsx
+import { MessageTree } from "@aibind/tanstack-start/history";
+
+type Msg = { role: string; content: string };
+const tree = new MessageTree<Msg>();
+
+const r1 = tree.append({ role: "user", content: "Hello" });
+const r2 = tree.append({ role: "assistant", content: "Hi!" });
+const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
+
+function TreeView() {
+  const { activePath } = tree.useSnapshot();
+
+  return (
+    <div>
+      {activePath.messages.map((msg, i) => (
+        <div key={activePath.nodeIds[i]}>
+          <strong>{msg.role}:</strong> {msg.content}
+        </div>
+      ))}
+      <button onClick={() => tree.nextSibling(alt)}>Next branch</button>
+      <button onClick={() => tree.prevSibling(r2)}>Prev branch</button>
+    </div>
+  );
+}
 ```
 
 ## Properties (Reactive)
