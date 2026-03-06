@@ -1,5 +1,6 @@
 // Shared types
 export { defineModels } from "./types";
+export { routeByLength } from "./routing";
 export type {
   LanguageModel,
   SendOptions,

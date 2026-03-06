@@ -169,6 +169,74 @@ send("Deep analysis", { model: "reason" }); // uses "reason" for this one
 send("Another question"); // back to "fast"
 ```
 
+## Model Routing
+
+Instead of manually picking a model per send, define a `routeModel` function once — it's called automatically before every request:
+
+```ts
+import { Stream } from "@aibind/sveltekit";
+import type { ModelKey } from "$lib/models.server";
+
+const stream = new Stream<ModelKey>({
+  routeModel: (prompt) => {
+    if (prompt.length < 200) return "fast";
+    if (/\b(why|analyze|explain|compare)\b/i.test(prompt)) return "reason";
+    return "smart";
+  },
+});
+
+stream.send("Hi");                           // → "fast"
+stream.send("Explain quantum entanglement"); // → "reason"
+stream.send("Write a cover letter");         // → "smart"
+```
+
+Works identically across all frameworks — `routeModel` is part of `StreamOptions<M>`.
+
+Explicit per-send override still takes priority — the router is skipped entirely:
+
+```ts
+stream.send("Quick one", { model: "fast" }); // router not called
+```
+
+**Priority (highest → lowest):**
+1. Explicit `model` in `send()` options
+2. `routeModel(prompt)` return value
+3. Constructor `model` default
+
+### `routeByLength` utility
+
+For the most common routing strategy — short prompts to cheap models, long to powerful — import the built-in utility:
+
+```ts
+import { routeByLength } from "@aibind/core";
+import type { ModelKey } from "$lib/models.server";
+
+const stream = new Stream<ModelKey>({
+  routeModel: routeByLength(
+    [
+      { maxLength: 200, model: "fast" },
+      { maxLength: 800, model: "smart" },
+    ],
+    "reason", // fallback for prompts longer than 800 chars
+  ),
+});
+```
+
+Rules are evaluated in ascending `maxLength` order. The first rule where `prompt.length <= maxLength` wins; `fallback` is used if none match.
+
+### Async routing
+
+`routeModel` can be async — useful for routing based on user context:
+
+```ts
+const stream = new Stream<ModelKey>({
+  routeModel: async (prompt) => {
+    const tier = await getUserTier(userId);
+    return tier === "premium" ? "smart" : "fast";
+  },
+});
+```
+
 ## Type Safety
 
 The generic `M` parameter flows through from `defineModels` to the hook/class, so TypeScript catches invalid model names:

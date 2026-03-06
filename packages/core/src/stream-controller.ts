@@ -39,6 +39,12 @@ export interface StreamControllerOptions {
    * stream instance lifecycle.
    */
   sessionId?: string;
+  /**
+   * Automatically select a model for each request based on the prompt.
+   * Called before every send unless an explicit `model` is passed in send options.
+   * Priority: explicit send override > routeModel > constructor model default.
+   */
+  routeModel?: (prompt: string) => string | Promise<string>;
 }
 
 // --- StreamController ---
@@ -213,7 +219,21 @@ export class StreamController {
   ): Promise<void> {
     try {
       const system = options?.system ?? this._opts.system;
-      const model = options?.model ?? this._opts.model;
+      let model: string | undefined;
+      if (options?.model) {
+        model = options.model;
+      } else if (this._opts.routeModel) {
+        try {
+          model = await this._opts.routeModel(prompt);
+        } catch {
+          // Router failed — fall back to the configured default
+          model = this._opts.model;
+        }
+        // Bail out if abort() was called while the async router was running
+        if (controller.signal.aborted) return;
+      } else {
+        model = this._opts.model;
+      }
       const body = await this._buildBody(prompt, system, model);
 
       const response = await this._fetch(this._opts.endpoint, {

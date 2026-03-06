@@ -51,6 +51,7 @@ export interface StreamOptions<
   M extends string = string,
 > extends BaseStreamOptions {
   model?: M;
+  routeModel?: (prompt: string) => M | Promise<M>;
 }
 
 /**

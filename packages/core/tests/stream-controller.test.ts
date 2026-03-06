@@ -882,6 +882,155 @@ describe("StreamController", () => {
     });
   });
 
+  // --- routeModel ---
+
+  describe("routeModel", () => {
+    it("calls routeModel and uses its return value as model", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const routeModel = vi.fn().mockReturnValue("smart");
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, routeModel },
+        cb,
+      );
+      ctrl.send("hello");
+      await flushPromises();
+
+      expect(routeModel).toHaveBeenCalledWith("hello");
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.model).toBe("smart");
+    });
+
+    it("per-send explicit model skips routeModel entirely", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const routeModel = vi.fn().mockReturnValue("smart");
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, routeModel },
+        cb,
+      );
+      ctrl.send("hello", { model: "fast" });
+      await flushPromises();
+
+      expect(routeModel).not.toHaveBeenCalled();
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.model).toBe("fast");
+    });
+
+    it("uses constructor model default when no routeModel and no per-send override", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, model: "reason" },
+        cb,
+      );
+      ctrl.send("hello");
+      await flushPromises();
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.model).toBe("reason");
+    });
+
+    it("awaits async routeModel and uses its resolved value", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const routeModel = vi.fn().mockResolvedValue("reason");
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, routeModel },
+        cb,
+      );
+      ctrl.send("analyze this deeply");
+      await flushPromises();
+
+      expect(routeModel).toHaveBeenCalledWith("analyze this deeply");
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.model).toBe("reason");
+    });
+
+    it("falls back to constructor model when routeModel throws", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const routeModel = vi.fn().mockRejectedValue(new Error("routing failed"));
+      const ctrl = new StreamController(
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          model: "fast",
+          routeModel,
+        },
+        cb,
+      );
+      ctrl.send("hello");
+      await flushPromises();
+
+      // Fetch still called — stream continued with fallback model
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.model).toBe("fast");
+    });
+
+    it("falls back to undefined model when routeModel throws and no default set", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const routeModel = vi.fn().mockRejectedValue(new Error("routing failed"));
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, routeModel },
+        cb,
+      );
+      ctrl.send("hello");
+      await flushPromises();
+
+      // Stream still proceeds without crashing
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.model).toBeUndefined();
+    });
+
+    it("does not fetch when abort() is called during async routeModel", async () => {
+      let resolveRouter: ((value: string) => void) | null = null;
+      const routeModel = vi.fn(
+        () =>
+          new Promise<string>((r) => {
+            resolveRouter = r;
+          }),
+      );
+
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, routeModel },
+        cb,
+      );
+      ctrl.send("hello");
+
+      // Router is pending — abort before it resolves
+      ctrl.abort();
+
+      // Now resolve the router
+      resolveRouter!("smart");
+      await flushPromises();
+
+      // Fetch must NOT have been called
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("is called with the exact prompt string on each send", async () => {
+      fetchMock.mockResolvedValue(createTextResponse(["ok"]));
+
+      const routeModel = vi.fn().mockReturnValue("fast");
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, routeModel },
+        cb,
+      );
+
+      ctrl.send("first");
+      await flushPromises();
+      ctrl.send("second");
+      await flushPromises();
+
+      expect(routeModel).toHaveBeenNthCalledWith(1, "first");
+      expect(routeModel).toHaveBeenNthCalledWith(2, "second");
+    });
+  });
+
   // --- edge cases ---
 
   describe("edge cases", () => {

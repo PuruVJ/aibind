@@ -28,6 +28,12 @@ export interface BaseStreamOptions {
    * When set, the server maintains multi-turn context via ConversationStore.
    */
   sessionId?: string;
+  /**
+   * Automatically select a model for each request based on the prompt.
+   * Called before every send unless an explicit `model` is passed in send options.
+   * Priority: explicit send override > routeModel > constructor model default.
+   */
+  routeModel?: (prompt: string) => string | Promise<string>;
 }
 
 /**
