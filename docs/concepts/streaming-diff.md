@@ -45,7 +45,10 @@ Import and pass `defaultDiff` (built-in word-level diff, zero dependencies) or y
 import { useStream, defaultDiff } from "@aibind/nextjs";
 
 export default function Chat() {
-  const { text, diff, send, retry } = useStream({ model: "smart", diff: defaultDiff });
+  const { text, diff, send, retry } = useStream({
+    model: "smart",
+    diff: defaultDiff,
+  });
 
   return (
     <>
@@ -60,7 +63,7 @@ export default function Chat() {
               <ins key={i}>{chunk.text}</ins>
             ) : (
               <del key={i}>{chunk.text}</del>
-            )
+            ),
           )}
         </p>
       ) : (
@@ -75,7 +78,10 @@ export default function Chat() {
 <script setup lang="ts">
 import { useStream, defaultDiff } from "@aibind/nuxt";
 
-const { text, diff, send, retry } = useStream({ model: "smart", diff: defaultDiff });
+const { text, diff, send, retry } = useStream({
+  model: "smart",
+  diff: defaultDiff,
+});
 </script>
 
 <template>
@@ -97,7 +103,10 @@ import { useStream, defaultDiff } from "@aibind/solidstart";
 import { For, Show } from "solid-js";
 
 export default function Chat() {
-  const { text, diff, send, retry } = useStream({ model: "smart", diff: defaultDiff });
+  const { text, diff, send, retry } = useStream({
+    model: "smart",
+    diff: defaultDiff,
+  });
 
   return (
     <>
@@ -190,8 +199,8 @@ For very long outputs or semantic-quality diffs, use `diff` with `diffSentences`
 
 ### Option
 
-| Option | Type | Description |
-|--------|------|-------------|
+| Option | Type     | Description                                                                                                                |
+| ------ | -------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `diff` | `DiffFn` | Function called after every completed stream to compute the diff. Pass `defaultDiff` or your own adapter. Omit to disable. |
 
 ### `DiffChunk`
@@ -211,6 +220,6 @@ type DiffFn = (prev: string, next: string) => DiffChunk[];
 
 ### Reactive state
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property                 | Type                  | Description                                                                                            |
+| ------------------------ | --------------------- | ------------------------------------------------------------------------------------------------------ |
 | `stream.diff` / `diff()` | `DiffChunk[] \| null` | `null` on first send or while streaming. Populated once stream is done and a previous response exists. |

@@ -185,9 +185,9 @@ const stream = new Stream<ModelKey>({
   },
 });
 
-stream.send("Hi");                           // → "fast"
+stream.send("Hi"); // → "fast"
 stream.send("Explain quantum entanglement"); // → "reason"
-stream.send("Write a cover letter");         // → "smart"
+stream.send("Write a cover letter"); // → "smart"
 ```
 
 Works identically across all frameworks — `routeModel` is part of `StreamOptions<M>`.
@@ -199,6 +199,7 @@ stream.send("Quick one", { model: "fast" }); // router not called
 ```
 
 **Priority (highest → lowest):**
+
 1. Explicit `model` in `send()` options
 2. `routeModel(prompt)` return value
 3. Constructor `model` default

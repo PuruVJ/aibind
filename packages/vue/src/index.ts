@@ -5,11 +5,15 @@ import {
   StreamController,
   StructuredStreamController,
   CompletionController,
+  RaceController,
   UsageTracker,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
   type StructuredStreamControllerOptions,
+  type RaceCallbacks,
+  type RaceControllerOptions,
+  type RaceStrategy,
   type StreamStatus,
   type StreamUsage,
   type SendOptions,
@@ -39,6 +43,7 @@ export type {
   UsageTrackerOptions,
   DiffChunk,
   DiffFn,
+  RaceStrategy,
 } from "@aibind/core";
 
 // --- useUsageTracker ---
@@ -56,7 +61,9 @@ export interface UseUsageTrackerReturn {
 /**
  * Vue composable for accumulating token usage and cost across stream turns.
  */
-export function useUsageTracker(options: UsageTrackerOptions = {}): UseUsageTrackerReturn {
+export function useUsageTracker(
+  options: UsageTrackerOptions = {},
+): UseUsageTrackerReturn {
   const inputTokens = ref(0);
   const outputTokens = ref(0);
   const cost = ref(0);
@@ -75,7 +82,15 @@ export function useUsageTracker(options: UsageTrackerOptions = {}): UseUsageTrac
     },
   });
 
-  return { inputTokens, outputTokens, cost, turns, history, tracker, reset: () => tracker.reset() };
+  return {
+    inputTokens,
+    outputTokens,
+    cost,
+    turns,
+    history,
+    tracker,
+    reset: () => tracker.reset(),
+  };
 }
 
 // --- useCompletion ---
@@ -95,7 +110,9 @@ export interface UseCompletionReturn {
 /**
  * Vue composable for inline completions with debouncing and ghost-text state.
  */
-export function useCompletion(options: CompletionOptions = {}): UseCompletionReturn {
+export function useCompletion(
+  options: CompletionOptions = {},
+): UseCompletionReturn {
   const suggestion = ref("");
   const loading = ref(false);
   const error: Ref<Error | null> = ref(null);
@@ -144,7 +161,9 @@ export interface UseStreamReturn<M extends string = string> {
   retry: () => void;
   stop: () => Promise<void>;
   resume: () => Promise<void>;
-  compact: (chat: ChatHistory<ConversationMessage>) => Promise<{ tokensSaved: number }>;
+  compact: (
+    chat: ChatHistory<ConversationMessage>,
+  ) => Promise<{ tokensSaved: number }>;
 }
 
 export interface StreamOptions<
@@ -308,5 +327,71 @@ export function useStructuredStream<M extends string, T>(
       ctrl.send(prompt, sendOpts),
     abort: () => ctrl.abort(),
     retry: () => ctrl.retry(),
+  };
+}
+
+// --- useRace ---
+
+export interface RaceOptions<M extends string = string> {
+  models: M[];
+  endpoint: string;
+  system?: string;
+  strategy?: RaceStrategy;
+  fetch?: typeof globalThis.fetch;
+  onFinish?: (text: string, winner: M) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface UseRaceReturn<M extends string = string> {
+  text: Ref<string>;
+  loading: Ref<boolean>;
+  error: Ref<Error | null>;
+  done: Ref<boolean>;
+  winner: Ref<M | null>;
+  send: (prompt: string, options?: { system?: string }) => void;
+  abort: () => void;
+}
+
+/**
+ * Vue composable for multi-model racing.
+ * Sends the same prompt to all models simultaneously; the winner updates refs.
+ */
+export function useRace<M extends string = string>(
+  opts: RaceOptions<M>,
+): UseRaceReturn<M> {
+  const text = ref("");
+  const loading = ref(false);
+  const error: Ref<Error | null> = ref(null);
+  const done = ref(false);
+  const winner: Ref<M | null> = ref(null);
+
+  const ctrl = new RaceController(opts as RaceControllerOptions, {
+    onText: (t) => {
+      text.value = t;
+    },
+    onLoading: (l) => {
+      loading.value = l;
+    },
+    onDone: (d) => {
+      done.value = d;
+    },
+    onError: (e) => {
+      error.value = e;
+    },
+    onWinner: (w) => {
+      winner.value = w as M | null;
+    },
+  } satisfies RaceCallbacks);
+
+  onUnmounted(() => ctrl.abort());
+
+  return {
+    text,
+    loading,
+    error,
+    done,
+    winner,
+    send: (prompt, options) => ctrl.send(prompt, options),
+    abort: () => ctrl.abort(),
   };
 }

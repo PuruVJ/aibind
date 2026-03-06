@@ -156,12 +156,12 @@ function AgentChat() {
 
 ## Agent State
 
-| Property          | Type                             | Description                                         |
-| ----------------- | -------------------------------- | --------------------------------------------------- |
-| `messages`        | `AgentMessage[]`                 | Conversation messages                               |
+| Property          | Type                             | Description                                             |
+| ----------------- | -------------------------------- | ------------------------------------------------------- |
+| `messages`        | `AgentMessage[]`                 | Conversation messages                                   |
 | `status`          | `AgentStatus`                    | `'idle' \| 'running' \| 'awaiting-approval' \| 'error'` |
-| `error`           | `Error \| null`                  | Any error                                           |
-| `pendingApproval` | `{ id, toolName, args } \| null` | Tool needing user approval                          |
+| `error`           | `Error \| null`                  | Any error                                               |
+| `pendingApproval` | `{ id, toolName, args } \| null` | Tool needing user approval                              |
 
 ## Methods
 

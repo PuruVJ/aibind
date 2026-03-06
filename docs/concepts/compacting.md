@@ -72,7 +72,10 @@ import { useState } from "react";
 const chat = new ChatHistory<ConversationMessage>();
 
 export default function Chat() {
-  const { text, send, compact } = useStream({ model: "fast", sessionId: crypto.randomUUID() });
+  const { text, send, compact } = useStream({
+    model: "fast",
+    sessionId: crypto.randomUUID(),
+  });
   const [tokensSaved, setTokensSaved] = useState(0);
 
   async function handleCompact() {
@@ -101,7 +104,10 @@ import type { ConversationMessage } from "@aibind/core";
 import { ref } from "vue";
 
 const chat = new ChatHistory<ConversationMessage>();
-const { text, send, compact } = useStream({ model: "fast", sessionId: crypto.randomUUID() });
+const { text, send, compact } = useStream({
+  model: "fast",
+  sessionId: crypto.randomUUID(),
+});
 const tokensSaved = ref(0);
 
 async function handleCompact() {
@@ -129,7 +135,10 @@ import { createSignal } from "solid-js";
 const chat = new ChatHistory<ConversationMessage>();
 
 function Chat() {
-  const { text, send, compact } = useStream({ model: "fast", sessionId: crypto.randomUUID() });
+  const { text, send, compact } = useStream({
+    model: "fast",
+    sessionId: crypto.randomUUID(),
+  });
   const [tokensSaved, setTokensSaved] = createSignal(0);
 
   async function handleCompact() {
@@ -143,7 +152,9 @@ function Chat() {
       <button onClick={handleCompact} disabled={chat.messages.length < 10}>
         Compact history
       </button>
-      {tokensSaved() > 0 && <p>{tokensSaved().toLocaleString()} tokens freed</p>}
+      {tokensSaved() > 0 && (
+        <p>{tokensSaved().toLocaleString()} tokens freed</p>
+      )}
       <p>{text()}</p>
     </div>
   );
@@ -159,7 +170,10 @@ import { useState } from "react";
 const chat = new ChatHistory<ConversationMessage>();
 
 function Chat() {
-  const { text, send, compact } = useStream({ model: "fast", sessionId: crypto.randomUUID() });
+  const { text, send, compact } = useStream({
+    model: "fast",
+    sessionId: crypto.randomUUID(),
+  });
   const [tokensSaved, setTokensSaved] = useState(0);
 
   async function handleCompact() {

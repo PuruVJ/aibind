@@ -5,11 +5,15 @@ import {
   StreamController,
   StructuredStreamController,
   CompletionController,
+  RaceController,
   UsageTracker,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
   type StructuredStreamControllerOptions,
+  type RaceCallbacks,
+  type RaceControllerOptions,
+  type RaceStrategy,
   type StreamStatus,
   type StreamUsage,
   type SendOptions,
@@ -39,6 +43,7 @@ export type {
   UsageTrackerOptions,
   DiffChunk,
   DiffFn,
+  RaceStrategy,
 } from "@aibind/core";
 
 // --- useUsageTracker ---
@@ -56,7 +61,9 @@ export interface UseUsageTrackerReturn {
 /**
  * SolidJS hook for accumulating token usage and cost across stream turns.
  */
-export function useUsageTracker(options: UsageTrackerOptions = {}): UseUsageTrackerReturn {
+export function useUsageTracker(
+  options: UsageTrackerOptions = {},
+): UseUsageTrackerReturn {
   const [inputTokens, setInputTokens] = createSignal(0);
   const [outputTokens, setOutputTokens] = createSignal(0);
   const [cost, setCost] = createSignal(0);
@@ -103,7 +110,9 @@ export interface UseCompletionReturn {
 /**
  * SolidJS hook for inline completions with debouncing and ghost-text state.
  */
-export function useCompletion(options: CompletionOptions = {}): UseCompletionReturn {
+export function useCompletion(
+  options: CompletionOptions = {},
+): UseCompletionReturn {
   const [suggestion, setSuggestion] = createSignal("");
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<Error | null>(null);
@@ -146,7 +155,9 @@ export interface UseStreamReturn<M extends string = string> {
   retry: () => void;
   stop: () => Promise<void>;
   resume: () => Promise<void>;
-  compact: (chat: ChatHistory<ConversationMessage>) => Promise<{ tokensSaved: number }>;
+  compact: (
+    chat: ChatHistory<ConversationMessage>,
+  ) => Promise<{ tokensSaved: number }>;
 }
 
 export interface StreamOptions<
@@ -282,5 +293,61 @@ export function useStructuredStream<M extends string, T>(
       ctrl.send(prompt, sendOpts),
     abort: () => ctrl.abort(),
     retry: () => ctrl.retry(),
+  };
+}
+
+// --- useRace ---
+
+export interface RaceOptions<M extends string = string> {
+  models: M[];
+  endpoint: string;
+  system?: string;
+  strategy?: RaceStrategy;
+  fetch?: typeof globalThis.fetch;
+  onFinish?: (text: string, winner: M) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface UseRaceReturn<M extends string = string> {
+  text: Accessor<string>;
+  loading: Accessor<boolean>;
+  error: Accessor<Error | null>;
+  done: Accessor<boolean>;
+  winner: Accessor<M | null>;
+  send: (prompt: string, options?: { system?: string }) => void;
+  abort: () => void;
+}
+
+/**
+ * SolidJS hook for multi-model racing.
+ * Sends the same prompt to all models simultaneously; the winner updates signals.
+ */
+export function useRace<M extends string = string>(
+  opts: RaceOptions<M>,
+): UseRaceReturn<M> {
+  const [text, setText] = createSignal("");
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal<Error | null>(null);
+  const [done, setDone] = createSignal(false);
+  const [winner, setWinner] = createSignal<M | null>(null);
+
+  const ctrl = new RaceController(opts as RaceControllerOptions, {
+    onText: (t) => setText(t),
+    onLoading: (l) => setLoading(l),
+    onDone: (d) => setDone(d),
+    onError: (e) => setError(e),
+    onWinner: (w) => setWinner(() => w as M | null),
+  } satisfies RaceCallbacks);
+
+  onCleanup(() => ctrl.abort());
+
+  return {
+    text,
+    loading,
+    error,
+    done,
+    winner,
+    send: (prompt, options) => ctrl.send(prompt, options),
+    abort: () => ctrl.abort(),
   };
 }

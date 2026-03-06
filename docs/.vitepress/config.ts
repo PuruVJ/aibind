@@ -35,19 +35,28 @@ export default defineConfig({
       {
         text: "Concepts",
         items: [
+          // Core
           { text: "Streaming", link: "/concepts/streaming" },
           { text: "Structured Output", link: "/concepts/structured-output" },
-          { text: "Agents", link: "/concepts/agents" },
+          { text: "Markdown Rendering", link: "/concepts/markdown" },
+          // Conversations
+          { text: "Conversation Store", link: "/concepts/conversation-store" },
           { text: "Chat History", link: "/concepts/chat-history" },
           { text: "Message Trees", link: "/concepts/message-trees" },
-          { text: "Projects", link: "/concepts/projects" },
-          { text: "Markdown Rendering", link: "/concepts/markdown" },
-          { text: "Durable Streams", link: "/concepts/durable-streams" },
-          { text: "Conversation Store", link: "/concepts/conversation-store" },
           { text: "Compacting", link: "/concepts/compacting" },
+          { text: "Projects", link: "/concepts/projects" },
+          // Models
           { text: "Model Switching", link: "/concepts/model-switching" },
+          { text: "Model Racing", link: "/concepts/model-racing" },
+          // Intelligence
+          { text: "Agents", link: "/concepts/agents" },
           { text: "Inline Completions", link: "/concepts/completions" },
+          // Resilience & polish
+          { text: "Durable Streams", link: "/concepts/durable-streams" },
           { text: "Streaming Diff", link: "/concepts/streaming-diff" },
+          // Production
+          { text: "Token Tracking", link: "/concepts/token-tracking" },
+          { text: "Prompt Caching", link: "/concepts/prompt-caching" },
         ],
       },
       {
@@ -65,11 +74,25 @@ export default defineConfig({
         text: "Patterns",
         items: [
           { text: "Chat UI", link: "/patterns/chat-ui" },
+          { text: "Branching Chat", link: "/patterns/branching-chat" },
+          { text: "Writing Assistant", link: "/patterns/writing-assistant" },
+          { text: "Cost-Aware Chat", link: "/patterns/cost-aware-chat" },
+          { text: "Resumable Chat", link: "/patterns/resumable-chat" },
+          { text: "Model Race UI", link: "/patterns/model-race-ui" },
           {
             text: "Structured Analysis",
             link: "/patterns/structured-analysis",
           },
           { text: "Tool-calling Agent", link: "/patterns/tool-agent" },
+        ],
+      },
+      {
+        text: "Integrations",
+        items: [
+          { text: "Redis", link: "/integrations/redis" },
+          { text: "SQLite / Turso", link: "/integrations/sqlite" },
+          { text: "PostgreSQL", link: "/integrations/postgres" },
+          { text: "Cloudflare (D1 + KV)", link: "/integrations/cloudflare" },
         ],
       },
     ],

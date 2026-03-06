@@ -12,13 +12,13 @@ What aibind adds is a **higher-level client experience** — reactive bindings, 
 
 AI SDK focuses on React with `@ai-sdk/react`. aibind brings the same developer experience to every major framework, with native reactivity for each:
 
-| Framework | What you get                                                        |
-| --------- | ------------------------------------------------------------------- |
-| React     | `useStream`, `useStructuredStream`, `useCompletion` hooks           |
-| Vue       | `useStream`, `useStructuredStream`, `useCompletion` composables     |
-| Svelte 5  | `Stream`, `StructuredStream`, `Completion` reactive classes         |
-| SolidJS   | `useStream`, `useStructuredStream`, `useCompletion` signal hooks    |
-| TanStack  | Same React hooks, TanStack Start server adapter                     |
+| Framework | What you get                                                     |
+| --------- | ---------------------------------------------------------------- |
+| React     | `useStream`, `useStructuredStream`, `useCompletion` hooks        |
+| Vue       | `useStream`, `useStructuredStream`, `useCompletion` composables  |
+| Svelte 5  | `Stream`, `StructuredStream`, `Completion` reactive classes      |
+| SolidJS   | `useStream`, `useStructuredStream`, `useCompletion` signal hooks |
+| TanStack  | Same React hooks, TanStack Start server adapter                  |
 
 Every framework gets identical capabilities — streaming, structured output, inline completions, agents, chat history, markdown rendering.
 

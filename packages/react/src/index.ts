@@ -4,11 +4,15 @@ import {
   StreamController,
   StructuredStreamController,
   CompletionController,
+  RaceController,
   UsageTracker,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
   type StructuredStreamControllerOptions,
+  type RaceCallbacks,
+  type RaceControllerOptions,
+  type RaceStrategy,
   type StreamStatus,
   type StreamUsage,
   type SendOptions,
@@ -37,6 +41,7 @@ export type {
   UsageTrackerOptions,
   DiffChunk,
   DiffFn,
+  RaceStrategy,
 } from "@aibind/core";
 export { defaultDiff } from "@aibind/core";
 
@@ -63,7 +68,9 @@ export interface UseUsageTrackerReturn {
  * const { send } = useStream({ model: "fast", tracker });
  * ```
  */
-export function useUsageTracker(options: UsageTrackerOptions = {}): UseUsageTrackerReturn {
+export function useUsageTracker(
+  options: UsageTrackerOptions = {},
+): UseUsageTrackerReturn {
   const [inputTokens, setInputTokens] = useState(0);
   const [outputTokens, setOutputTokens] = useState(0);
   const [cost, setCost] = useState(0);
@@ -114,7 +121,9 @@ export interface UseCompletionReturn {
 /**
  * React hook for inline completions with debouncing and ghost-text state.
  */
-export function useCompletion(options: CompletionOptions = {}): UseCompletionReturn {
+export function useCompletion(
+  options: CompletionOptions = {},
+): UseCompletionReturn {
   const [suggestion, setSuggestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -161,7 +170,9 @@ export interface UseStreamReturn<M extends string = string> {
   retry: () => void;
   stop: () => Promise<void>;
   resume: () => Promise<void>;
-  compact: (chat: ChatHistory<ConversationMessage>) => Promise<{ tokensSaved: number }>;
+  compact: (
+    chat: ChatHistory<ConversationMessage>,
+  ) => Promise<{ tokensSaved: number }>;
 }
 
 export interface StreamOptions<
@@ -315,5 +326,65 @@ export function useStructuredStream<M extends string, T>(
       ctrlRef.current!.send(prompt, sendOpts),
     abort: () => ctrlRef.current!.abort(),
     retry: () => ctrlRef.current!.retry(),
+  };
+}
+
+// --- useRace ---
+
+export interface RaceOptions<M extends string = string> {
+  models: M[];
+  endpoint: string;
+  system?: string;
+  strategy?: RaceStrategy;
+  fetch?: typeof globalThis.fetch;
+  onFinish?: (text: string, winner: M) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface UseRaceReturn<M extends string = string> {
+  text: string;
+  loading: boolean;
+  error: Error | null;
+  done: boolean;
+  winner: M | null;
+  send: (prompt: string, options?: { system?: string }) => void;
+  abort: () => void;
+}
+
+/**
+ * React hook for multi-model racing.
+ * Sends the same prompt to all models simultaneously; the winner updates state.
+ */
+export function useRace<M extends string = string>(
+  opts: RaceOptions<M>,
+): UseRaceReturn<M> {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [done, setDone] = useState(false);
+  const [winner, setWinner] = useState<M | null>(null);
+
+  const ctrlRef = useRef<RaceController | null>(null);
+
+  if (!ctrlRef.current) {
+    ctrlRef.current = new RaceController(opts as RaceControllerOptions, {
+      onText: setText,
+      onLoading: setLoading,
+      onDone: setDone,
+      onError: setError,
+      onWinner: (w) => setWinner(w as M | null),
+    } satisfies RaceCallbacks);
+  }
+
+  useEffect(() => () => ctrlRef.current?.abort(), []);
+
+  return {
+    text,
+    loading,
+    error,
+    done,
+    winner,
+    send: (prompt, options) => ctrlRef.current!.send(prompt, options),
+    abort: () => ctrlRef.current!.abort(),
   };
 }

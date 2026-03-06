@@ -363,7 +363,10 @@ describe("CompletionController", () => {
 
     it("uses default endpoint /__aibind__/complete", async () => {
       fetchMock.mockResolvedValue(okResponse("!"));
-      const ctrl = new CompletionController({ fetch: fetchMock, debounce: 0 }, cb);
+      const ctrl = new CompletionController(
+        { fetch: fetchMock, debounce: 0 },
+        cb,
+      );
       ctrl.update("hey");
       await vi.advanceTimersByTimeAsync(0);
 

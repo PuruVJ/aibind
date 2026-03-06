@@ -57,6 +57,14 @@ export type {
 // Completion controller (framework-agnostic)
 export { CompletionController } from "./completion-controller";
 
+// Race controller (multi-model racing)
+export { RaceController } from "./race-controller";
+export type {
+  RaceCallbacks,
+  RaceControllerOptions,
+  RaceStrategy,
+} from "./race-controller";
+
 // Stream controllers (framework-agnostic)
 export { StreamController } from "./stream-controller";
 export type {

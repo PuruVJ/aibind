@@ -46,9 +46,8 @@ export function defaultDiff(prev: string, next: string): DiffChunk[] {
   const n = b.length;
 
   // Build LCS table
-  const dp: number[][] = Array.from(
-    { length: m + 1 },
-    () => new Array(n + 1).fill(0),
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    new Array(n + 1).fill(0),
   );
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {

@@ -36,7 +36,7 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 
 - [x] **Multi-Model Switching with Unified State** — `Stream<ModelKey>` supports persistent model switching (`stream.model = "smart"`), per-send overrides, and `routeModel` for automatic routing. `routeByLength` utility ships as the canonical built-in strategy.
 
-- [ ] **Multi-Model Racing / Fan-out** — Send the same prompt to N models simultaneously; use the first to complete or pick by score. Eliminates the latency vs quality tradeoff: race a cheap fast model against a powerful one, display whichever finishes first. No library does this client-side without custom fetch orchestration.
+- [x] **Multi-Model Racing / Fan-out** — `Race<M>` / `useRace` sends the same prompt to N models simultaneously. Two strategies: `"complete"` (first to finish wins) and `"first-token"` (first to produce any text streams live). Losers cancelled automatically. `RaceController` in `@aibind/core`; reactive wrappers for Svelte, React, Vue, Solid.
 
 - [x] **Streaming Diff on Regenerate** — `stream.diff` is populated after every completed send/retry with `DiffChunk[]` comparing the previous response. Pluggable: pass `defaultDiff` (built-in zero-dep LCS word diff) or any adapter for `diff`, `fast-diff`, `diff-match-patch`. One function signature `(prev, next) => DiffChunk[]` — one-liner to wire any library.
 

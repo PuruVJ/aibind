@@ -50,7 +50,9 @@ The server uses `generateText` with a built-in continuation prompt. Pass `system
   />
   <!-- Ghost text overlay (style to match your input) -->
   {#if completion.suggestion}
-    <span class="ghost">{input}<span class="suggestion">{completion.suggestion}</span></span>
+    <span class="ghost"
+      >{input}<span class="suggestion">{completion.suggestion}</span></span
+    >
   {/if}
 </div>
 
@@ -75,7 +77,9 @@ import { useRef } from "react";
 
 export default function Writer() {
   const [input, setInput] = useState("");
-  const { suggestion, update, accept, clear } = useCompletion({ model: "fast" });
+  const { suggestion, update, accept, clear } = useCompletion({
+    model: "fast",
+  });
 
   return (
     <div style={{ position: "relative" }}>
@@ -95,7 +99,8 @@ export default function Writer() {
       />
       {suggestion && (
         <span className="ghost">
-          {input}<span className="suggestion">{suggestion}</span>
+          {input}
+          <span className="suggestion">{suggestion}</span>
         </span>
       )}
     </div>
@@ -141,7 +146,9 @@ import { createSignal } from "solid-js";
 
 function Writer() {
   const [input, setInput] = createSignal("");
-  const { suggestion, update, accept, clear } = useCompletion({ model: "fast" });
+  const { suggestion, update, accept, clear } = useCompletion({
+    model: "fast",
+  });
 
   return (
     <div style={{ position: "relative" }}>
@@ -161,7 +168,8 @@ function Writer() {
       />
       {suggestion() && (
         <span class="ghost">
-          {input()}<span class="suggestion">{suggestion()}</span>
+          {input()}
+          <span class="suggestion">{suggestion()}</span>
         </span>
       )}
     </div>
@@ -175,33 +183,33 @@ function Writer() {
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `endpoint` | `string` | `/__aibind__/complete` | Server endpoint |
-| `model` | `string` | — | Model key to use |
-| `system` | `string` | built-in continuation prompt | Override server system prompt |
-| `debounce` | `number` | `300` | Delay in ms before firing |
-| `minLength` | `number` | `3` | Min input chars to trigger |
-| `fetch` | `typeof fetch` | `globalThis.fetch` | Custom fetch |
-| `onFinish` | `(suggestion: string) => void` | — | Called when suggestion arrives |
-| `onError` | `(error: Error) => void` | — | Called on request error |
+| Option      | Type                           | Default                      | Description                    |
+| ----------- | ------------------------------ | ---------------------------- | ------------------------------ |
+| `endpoint`  | `string`                       | `/__aibind__/complete`       | Server endpoint                |
+| `model`     | `string`                       | —                            | Model key to use               |
+| `system`    | `string`                       | built-in continuation prompt | Override server system prompt  |
+| `debounce`  | `number`                       | `300`                        | Delay in ms before firing      |
+| `minLength` | `number`                       | `3`                          | Min input chars to trigger     |
+| `fetch`     | `typeof fetch`                 | `globalThis.fetch`           | Custom fetch                   |
+| `onFinish`  | `(suggestion: string) => void` | —                            | Called when suggestion arrives |
+| `onError`   | `(error: Error) => void`       | —                            | Called on request error        |
 
 ### Reactive State
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `suggestion` | `string` | Current ghost text (continuation only, not input) |
-| `loading` | `boolean` | Request in-flight |
-| `error` | `Error \| null` | Last error |
+| Property     | Type            | Description                                       |
+| ------------ | --------------- | ------------------------------------------------- |
+| `suggestion` | `string`        | Current ghost text (continuation only, not input) |
+| `loading`    | `boolean`       | Request in-flight                                 |
+| `error`      | `Error \| null` | Last error                                        |
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `update(input)` | `void` | Call on every input change. Debounced. |
-| `accept()` | `string` | Returns `lastInput + suggestion`, clears state |
-| `clear()` | `void` | Dismiss suggestion without accepting |
-| `abort()` | `void` | Cancel debounce and in-flight request |
+| Method          | Returns  | Description                                    |
+| --------------- | -------- | ---------------------------------------------- |
+| `update(input)` | `void`   | Call on every input change. Debounced.         |
+| `accept()`      | `string` | Returns `lastInput + suggestion`, clears state |
+| `clear()`       | `void`   | Dismiss suggestion without accepting           |
+| `abort()`       | `void`   | Cancel debounce and in-flight request          |
 
 ## Custom System Prompt
 
@@ -210,7 +218,8 @@ Override the built-in continuation prompt for your domain:
 ```ts
 const completion = new Completion({
   model: "fast",
-  system: "Complete the following search query naturally. Output only the completion.",
+  system:
+    "Complete the following search query naturally. Output only the completion.",
 });
 ```
 

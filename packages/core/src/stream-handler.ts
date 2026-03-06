@@ -234,7 +234,9 @@ export class StreamHandler {
         : undefined;
 
     const shouldCachePrompt =
-      this.#config.cacheSystemPrompt && !!system && this.#isAnthropicModel(model);
+      this.#config.cacheSystemPrompt &&
+      !!system &&
+      this.#isAnthropicModel(model);
 
     const result = streamText({
       model,

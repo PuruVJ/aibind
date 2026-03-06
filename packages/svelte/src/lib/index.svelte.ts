@@ -1,46 +1,49 @@
 import {
-  StreamController,
-  StructuredStreamController,
   CompletionController,
   UsageTracker as CoreUsageTracker,
+  RaceController,
+  StreamController,
+  StructuredStreamController,
+  type BaseCompletionOptions,
+  type BaseStreamOptions,
+  type ChatHistory,
+  type CompletionCallbacks,
+  type ConversationMessage,
+  type DeepPartial,
+  type DiffChunk,
+  type RaceCallbacks,
+  type RaceControllerOptions,
+  type RaceStrategy,
+  type SendOptions,
   type StreamCallbacks,
   type StreamControllerOptions,
-  type StructuredStreamCallbacks,
-  type StructuredStreamControllerOptions,
   type StreamStatus,
   type StreamUsage,
-  type SendOptions,
-  type DeepPartial,
-  type BaseStreamOptions,
-  type BaseCompletionOptions,
-  type CompletionCallbacks,
-  type ChatHistory,
-  type ConversationMessage,
+  type StructuredStreamCallbacks,
+  type StructuredStreamControllerOptions,
   type TurnUsage,
   type UsageTrackerOptions,
-  type DiffChunk,
-  type DiffFn,
 } from "@aibind/core";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { onDestroy } from "svelte";
 
-export { defineModels } from "@aibind/core";
+export { defaultDiff, defineModels } from "@aibind/core";
 export type {
+  BaseCompletionOptions,
+  BaseStreamOptions,
   DeepPartial,
+  DiffChunk,
+  DiffFn,
   LanguageModel,
+  ModelPricing,
+  RaceStrategy,
   SendOptions,
   StreamStatus,
   StreamUsage,
-  BaseStreamOptions,
-  BaseCompletionOptions,
-  UsageRecorder,
-  ModelPricing,
   TurnUsage,
+  UsageRecorder,
   UsageTrackerOptions,
-  DiffChunk,
-  DiffFn,
 } from "@aibind/core";
-export { defaultDiff } from "@aibind/core";
 
 // --- UsageTracker ---
 
@@ -354,5 +357,62 @@ export class StructuredStream<M extends string, T> {
 
   async resume(): Promise<void> {
     return this.#ctrl.resume();
+  }
+}
+
+// --- Race ---
+
+export interface RaceOptions<M extends string = string> {
+  models: M[];
+  endpoint: string;
+  system?: string;
+  strategy?: RaceStrategy;
+  fetch?: typeof globalThis.fetch;
+  onFinish?: (text: string, winner: M) => void;
+  onError?: (error: Error) => void;
+}
+
+/**
+ * Reactive multi-model race.
+ * Sends the same prompt to all models simultaneously; the winner updates reactive state.
+ * Strategy "complete" (default): first to finish wins.
+ * Strategy "first-token": first to produce any text wins and streams live.
+ */
+export class Race<M extends string = string> {
+  text = $state("");
+  loading = $state(false);
+  error: Error | null = $state(null);
+  done = $state(false);
+  winner: M | null = $state(null);
+
+  #ctrl: RaceController;
+
+  constructor(opts: RaceOptions<M>) {
+    this.#ctrl = new RaceController(opts as RaceControllerOptions, {
+      onText: (t) => {
+        this.text = t;
+      },
+      onLoading: (l) => {
+        this.loading = l;
+      },
+      onDone: (d) => {
+        this.done = d;
+      },
+      onError: (e) => {
+        this.error = e;
+      },
+      onWinner: (w) => {
+        this.winner = w as M | null;
+      },
+    } satisfies RaceCallbacks);
+    onDestroy(() => this.#ctrl.abort());
+  }
+
+  send(prompt: string, options?: { system?: string }): void {
+    this.#ctrl.send(prompt, options);
+  }
+
+  abort(): void {
+    this.#ctrl.abort();
   }
 }

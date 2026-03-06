@@ -53,7 +53,10 @@ describe("routeByLength", () => {
   });
 
   it("works with a single rule", () => {
-    const singleRule = routeByLength([{ maxLength: 100, model: "fast" }], "smart");
+    const singleRule = routeByLength(
+      [{ maxLength: 100, model: "fast" }],
+      "smart",
+    );
     expect(singleRule("short")).toBe("fast");
     expect(singleRule("a".repeat(101))).toBe("smart");
   });

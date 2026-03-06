@@ -62,6 +62,31 @@ features:
     details: SvelteKit runes, React hooks, Vue refs, Solid signals — each package uses the idioms your framework expects. No adapters, no wrappers.
     link: /frameworks/sveltekit
     linkText: Pick your framework
+  - icon: ✍️
+    title: Flash-free markdown
+    details: Streaming markdown without the flicker. Recovers unterminated bold, code blocks, and links in real time. 1M ops/s parser, zero dependencies.
+    link: /concepts/markdown
+    linkText: Learn more
+  - icon: 🏎️
+    title: Fastest model wins
+    details: Send to multiple models at once. First to respond streams live, the rest are cancelled. Eliminate the latency vs. quality tradeoff in one line.
+    link: /concepts/model-racing
+    linkText: Learn more
+  - icon: 🪙
+    title: Know exactly what you're spending
+    details: Token counts and USD cost tracked automatically across every turn and model. Per-turn history included. Reactive — updates as each response lands.
+    link: /concepts/token-tracking
+    linkText: Learn more
+  - icon: 🔍
+    title: See every word that changed
+    details: Word-level diff between the last and current response, populated after every regenerate. Plug in any diff library or use the built-in zero-dep LCS diff.
+    link: /concepts/streaming-diff
+    linkText: Learn more
+  - icon: 💸
+    title: ~90% off repeated prompts
+    details: One flag on the server handler adds Anthropic prompt caching transparently. Same system prompt, fraction of the cost — auto-detected per request, zero client changes.
+    link: /concepts/prompt-caching
+    linkText: Learn more
 ---
 
 <div class="home-content">
@@ -137,8 +162,7 @@ export const handle = createStreamHandler({ models });
 // ↑ Routes /stream, /structured, /compact — done.
 ```
 
-
-##Multi-turn conversations, zero client state
+## Multi-turn conversations, zero client state
 
 ```ts
 // Server: one line enables memory
@@ -164,8 +188,7 @@ const handler = createStreamHandler({
 <!-- Server has the full history. Client sends only the new message. -->
 ```
 
-
-##Stream typed JSON with live partial updates
+## Stream typed JSON with live partial updates
 
 ```ts
 import { z } from "zod";
@@ -194,8 +217,7 @@ const ProductSchema = z.object({
 {/if}
 ```
 
-
-##Compact history like Claude Code
+## Compact history like Claude Code
 
 ```svelte
 <script lang="ts">
@@ -216,8 +238,7 @@ const ProductSchema = z.object({
 </button>
 ```
 
-
-##Ghost-text completions as you type
+## Ghost-text completions as you type
 
 Chat is the wrong shape for writing assistants, search boxes, and code inputs. `Completion` is built for that:
 
@@ -240,14 +261,15 @@ Chat is the wrong shape for writing assistants, search boxes, and code inputs. `
   }}
 />
 <!-- Ghost text: input value + dimmed continuation -->
-<span class="ghost">{input}<span class="dim">{completion.suggestion}</span></span>
+<span class="ghost"
+  >{input}<span class="dim">{completion.suggestion}</span></span
+>
 ```
 
 Debounced. Cancels automatically on each keystroke. Tab to accept, Escape to dismiss.
 No timer management, no AbortController, no state juggling.
 
-
-##See exactly what changed on regenerate
+## See exactly what changed on regenerate
 
 Pass `diff: defaultDiff` once and every regenerate emits a word-level diff — no extra code per send:
 
@@ -275,8 +297,92 @@ Pass `diff: defaultDiff` once and every regenerate emits a word-level diff — n
 
 Bring your own diff library — `diff`, `fast-diff`, `diff-match-patch` — with a one-liner adapter. The built-in `defaultDiff` is a zero-dependency LCS word diff.
 
+## Render markdown without the flash
 
-##Custom routing. Your rules.
+`<StreamMarkdown>` recovers unterminated syntax mid-stream — no bold flicker, no broken code blocks, no split links:
+
+```svelte
+<script lang="ts">
+  import { Stream } from "@aibind/sveltekit";
+  import { StreamMarkdown } from "@aibind/svelte/markdown";
+
+  const stream = new Stream({ model: "smart" });
+</script>
+
+<button onclick={() => stream.send("Explain async/await")}>Ask</button>
+<StreamMarkdown text={stream.text} streaming={stream.loading} />
+```
+
+Zero dependencies. 1M ops/s parser. Works with any framework via the raw `StreamParser` + `HtmlRenderer` from `@aibind/markdown`.
+
+## Track tokens and cost across turns
+
+```svelte
+<script lang="ts">
+  import { Stream, UsageTracker } from "@aibind/sveltekit";
+
+  const tracker = new UsageTracker({
+    pricing: {
+      fast: { inputPerMillion: 0.15, outputPerMillion: 0.6 },
+      smart: { inputPerMillion: 3.0, outputPerMillion: 15.0 },
+    },
+  });
+  const stream = new Stream({ model: "fast", tracker });
+</script>
+
+<p>
+  {tracker.inputTokens + tracker.outputTokens} tokens — ${tracker.cost.toFixed(
+    4,
+  )}
+</p>
+```
+
+Accumulates across every send. Reactive. Pass the same tracker to multiple streams.
+
+## Route models automatically by prompt
+
+```svelte
+<script lang="ts">
+  import { Stream } from "@aibind/sveltekit";
+  import { routeByLength } from "@aibind/core";
+
+  const stream = new Stream({
+    routeModel: routeByLength(
+      [
+        { maxLength: 200, model: "fast" },
+        { maxLength: 800, model: "smart" },
+      ],
+      "reason",
+    ),
+  });
+</script>
+
+<!-- Short prompt → fast, long analysis → reason. Zero per-send logic. -->
+<button onclick={() => stream.send(prompt)}>Send</button>
+```
+
+Async routers work too — check user tier, A/B flags, anything. Explicit `model` on `send()` always overrides.
+
+## Race models. Use the fastest.
+
+```svelte
+<script lang="ts">
+  import { Race } from "@aibind/sveltekit";
+
+  const race = new Race({
+    models: ["fast", "smart"],
+    strategy: "first-token", // stream whoever responds first
+  });
+</script>
+
+<button onclick={() => race.send("Summarize this doc")}>Race</button>
+{#if race.winner}<small>won by {race.winner}</small>{/if}
+<p>{race.text}</p>
+```
+
+Both models start simultaneously. `"first-token"` streams the winner live; `"complete"` waits for whoever finishes first. Losers are cancelled automatically.
+
+## Custom routing. Your rules.
 
 ```ts
 // Need auth, rate limiting, or a custom framework? Use StreamHandler directly.

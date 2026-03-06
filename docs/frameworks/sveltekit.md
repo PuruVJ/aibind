@@ -167,11 +167,11 @@ Call from a component — fully type-safe, no `fetch` needed:
 <p>Label: {label}</p>
 ```
 
-| Method | Description |
-| --- | --- |
-| `ai.query(inputSchema, promptFn)` | Text response — input → prompt → `string` |
+| Method                                          | Description                                        |
+| ----------------------------------------------- | -------------------------------------------------- |
+| `ai.query(inputSchema, promptFn)`               | Text response — input → prompt → `string`          |
 | `ai.structuredQuery({ input, output, prompt })` | Typed response — input → prompt → validated output |
-| `ai.command(inputSchema, handler)` | Mutation with full `{ model, event }` context |
+| `ai.command(inputSchema, handler)`              | Mutation with full `{ model, event }` context      |
 
 ## Available Exports
 
