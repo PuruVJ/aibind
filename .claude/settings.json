@@ -205,7 +205,13 @@
       "Bash(pnpm add -D puppeteer --filter .)",
       "Bash(npm install puppeteer)",
       "Bash(node screenshot.js)",
-      "Bash(open /Users/puruvijay/Projects/svai/scripts/cover@2x.png)"
+      "Bash(open /Users/puruvijay/Projects/svai/scripts/cover@2x.png)",
+      "Bash(node logo-screenshot.js)",
+      "Bash(fc-list)",
+      "Read(//Library/Fonts/**)",
+      "Read(//Users/puruvijay/Library/Fonts/**)",
+      "Bash(node /Users/puruvijay/Projects/svai/scripts/generate-logo.js)",
+      "Bash(node /tmp/aibind-screenshot/generate-logo.cjs)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

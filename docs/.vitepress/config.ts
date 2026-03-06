@@ -6,7 +6,7 @@ export default defineConfig({
   base: "/",
 
   head: [
-    ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
+    ["link", { rel: "icon", type: "image/png", href: "/logo.png" }],
     ["meta", { property: "og:image", content: "https://aibind.dev/og.png" }],
     ["meta", { property: "og:image:width", content: "1200" }],
     ["meta", { property: "og:image:height", content: "630" }],
@@ -22,6 +22,8 @@ export default defineConfig({
   },
 
   themeConfig: {
+    logo: "/logo.svg",
+
     nav: [
       { text: "Guide", link: "/guide/getting-started" },
       { text: "Concepts", link: "/concepts/streaming" },

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://aibind.dev/logo.png" width="96" height="96" alt="aibind" />
+</p>
+
 # aibind
 
 Universal AI SDK bindings for every major JavaScript framework. Reactive streaming, structured output, agents, branching chat history, markdown rendering — built on the [Vercel AI SDK](https://sdk.vercel.ai/).
