@@ -47,6 +47,7 @@ export default defineConfig({
           { text: "Compacting", link: "/concepts/compacting" },
           { text: "Model Switching", link: "/concepts/model-switching" },
           { text: "Inline Completions", link: "/concepts/completions" },
+          { text: "Streaming Diff", link: "/concepts/streaming-diff" },
         ],
       },
       {

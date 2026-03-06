@@ -4,6 +4,7 @@ import {
   StreamController,
   StructuredStreamController,
   CompletionController,
+  UsageTracker,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -17,6 +18,8 @@ import {
   type CompletionCallbacks,
   type ChatHistory,
   type ConversationMessage,
+  type TurnUsage,
+  type UsageTrackerOptions,
 } from "@aibind/core";
 
 export { defineModels } from "@aibind/core";
@@ -28,7 +31,71 @@ export type {
   StreamUsage,
   BaseStreamOptions,
   BaseCompletionOptions,
+  UsageRecorder,
+  ModelPricing,
+  TurnUsage,
+  UsageTrackerOptions,
+  DiffChunk,
+  DiffFn,
 } from "@aibind/core";
+export { defaultDiff } from "@aibind/core";
+
+// --- useUsageTracker ---
+
+export interface UseUsageTrackerReturn {
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+  turns: number;
+  history: TurnUsage[];
+  tracker: UsageTracker;
+  reset: () => void;
+}
+
+/**
+ * React hook for accumulating token usage and cost across stream turns.
+ *
+ * @example
+ * ```tsx
+ * const { tracker, inputTokens, cost } = useUsageTracker({
+ *   pricing: { fast: { inputPerMillion: 0.15, outputPerMillion: 0.60 } },
+ * });
+ * const { send } = useStream({ model: "fast", tracker });
+ * ```
+ */
+export function useUsageTracker(options: UsageTrackerOptions = {}): UseUsageTrackerReturn {
+  const [inputTokens, setInputTokens] = useState(0);
+  const [outputTokens, setOutputTokens] = useState(0);
+  const [cost, setCost] = useState(0);
+  const [turns, setTurns] = useState(0);
+  const [history, setHistory] = useState<TurnUsage[]>([]);
+
+  const trackerRef = useRef<UsageTracker | null>(null);
+  if (!trackerRef.current) {
+    trackerRef.current = new UsageTracker({
+      ...options,
+      onUpdate: () => {
+        const t = trackerRef.current!;
+        setInputTokens(t.inputTokens);
+        setOutputTokens(t.outputTokens);
+        setCost(t.cost);
+        setTurns(t.turns);
+        setHistory([...t.history]);
+        options.onUpdate?.();
+      },
+    });
+  }
+
+  return {
+    inputTokens,
+    outputTokens,
+    cost,
+    turns,
+    history,
+    tracker: trackerRef.current,
+    reset: () => trackerRef.current!.reset(),
+  };
+}
 
 // --- useCompletion ---
 
@@ -88,6 +155,7 @@ export interface UseStreamReturn<M extends string = string> {
   model: M | undefined;
   setModel: (model: M) => void;
   usage: StreamUsage | null;
+  diff: DiffChunk[] | null;
   send: (prompt: string, sendOpts?: { system?: string; model?: M }) => void;
   abort: () => void;
   retry: () => void;
@@ -125,6 +193,7 @@ export function useStream<M extends string = string>(
     options.model as M | undefined,
   );
   const [usage, setUsage] = useState<StreamUsage | null>(null);
+  const [diff, setDiff] = useState<DiffChunk[] | null>(null);
 
   const ctrlRef = useRef<StreamController | null>(null);
 
@@ -138,6 +207,7 @@ export function useStream<M extends string = string>(
       onStreamId: setStreamId,
       onCanResume: setCanResume,
       onUsage: setUsage,
+      onDiff: setDiff,
     } satisfies StreamCallbacks);
   }
 
@@ -153,6 +223,7 @@ export function useStream<M extends string = string>(
     canResume,
     model,
     usage,
+    diff,
     setModel: (value: M) => {
       _setModel(value);
       ctrlRef.current!.setModel(value);

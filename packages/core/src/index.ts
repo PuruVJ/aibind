@@ -14,7 +14,13 @@ export type {
   DeepPartial,
   CompletionCallbacks,
   BaseCompletionOptions,
+  UsageRecorder,
+  DiffChunk,
+  DiffFn,
 } from "./types";
+
+// Diff utilities
+export { defaultDiff } from "./diff";
 
 export { ServerAgent } from "./server-agent";
 export type { AgentConfig, RunOptions } from "./server-agent";
@@ -39,6 +45,14 @@ export { SSE } from "./sse";
 export type { SSEMessage } from "./sse";
 export { DurableStream } from "./durable-stream";
 export type { DurableStreamOptions, ResumeOptions } from "./durable-stream";
+
+// Usage tracking
+export { UsageTracker } from "./usage-tracker";
+export type {
+  ModelPricing,
+  TurnUsage,
+  UsageTrackerOptions,
+} from "./usage-tracker";
 
 // Completion controller (framework-agnostic)
 export { CompletionController } from "./completion-controller";

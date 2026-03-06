@@ -65,6 +65,13 @@ export interface StreamHandlerConfig {
    * Uses ChatHistory<ConversationMessage> — same tree structure as the client.
    */
   conversation?: ConversationConfig;
+  /**
+   * Automatically add Anthropic prompt caching to the system prompt.
+   * When `true`, a `cache_control: { type: "ephemeral" }` breakpoint is added
+   * for requests served by an Anthropic model — reducing input token costs by ~90%.
+   * Requires `@ai-sdk/anthropic` as the model provider (not OpenRouter).
+   */
+  cacheSystemPrompt?: boolean;
 }
 
 // --- Typed request body interfaces ---
@@ -155,6 +162,11 @@ export class StreamHandler {
     this.#activeStreams = new Map();
   }
 
+  #isAnthropicModel(model: import("ai").LanguageModel): boolean {
+    const provider = (model as Record<string, unknown>).provider;
+    return typeof provider === "string" && provider.startsWith("anthropic");
+  }
+
   #resolveModel(requested?: string): import("ai").LanguageModel {
     const { models, model } = this.#config;
     if (models) {
@@ -221,6 +233,9 @@ export class StreamHandler {
           }
         : undefined;
 
+    const shouldCachePrompt =
+      this.#config.cacheSystemPrompt && !!system && this.#isAnthropicModel(model);
+
     const result = streamText({
       model,
       ...(history.length > 0
@@ -229,6 +244,11 @@ export class StreamHandler {
       system,
       ...(output && { output }),
       ...(onFinish && { onFinish }),
+      ...(shouldCachePrompt && {
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      }),
     });
 
     if (!this.#store) {

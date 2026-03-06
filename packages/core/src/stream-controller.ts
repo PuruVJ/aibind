@@ -8,7 +8,14 @@
 
 import { consumeTextStream } from "./stream-utils";
 import { SSE } from "./sse";
-import type { StreamStatus, StreamUsage, SendOptions } from "./types";
+import type {
+  StreamStatus,
+  StreamUsage,
+  SendOptions,
+  UsageRecorder,
+  DiffChunk,
+  DiffFn,
+} from "./types";
 import type { ChatHistory } from "./chat-history";
 import type { ConversationMessage } from "./conversation-store";
 
@@ -23,6 +30,7 @@ export interface StreamCallbacks {
   onStreamId(id: string | null): void;
   onCanResume(canResume: boolean): void;
   onUsage?(usage: StreamUsage): void;
+  onDiff?(chunks: DiffChunk[] | null): void;
 }
 
 export interface StreamControllerOptions {
@@ -45,13 +53,27 @@ export interface StreamControllerOptions {
    * Priority: explicit send override > routeModel > constructor model default.
    */
   routeModel?: (prompt: string) => string | Promise<string>;
+  /**
+   * Accumulate token usage and cost across turns.
+   * Updated after every completed stream with the model that was used.
+   */
+  tracker?: UsageRecorder;
+  /**
+   * Compute a diff against the previous response after each regenerate/send.
+   * - `undefined` (default): built-in word-level LCS diff, zero dependencies
+   * - `DiffFn`: plug in any diff library
+   * - `false`: disable diffing entirely
+   */
+  diff?: DiffFn;
 }
 
 // --- StreamController ---
 
 export class StreamController {
   protected _text = "";
+  private _prevText = "";
   private _controller: AbortController | null = null;
+  private _currentModel: string | undefined = undefined;
   private _lastPrompt = "";
   private _lastOptions: SendOptions | undefined;
   private _lastSeq = 0;
@@ -110,10 +132,16 @@ export class StreamController {
     this._cb.onText("");
   }
 
+  private _computeAndEmitDiff(): void {
+    if (!this._cb.onDiff || !this._opts.diff || !this._prevText) return;
+    this._cb.onDiff(this._opts.diff(this._prevText, this._text));
+  }
+
   // --- Public API ---
 
   send(prompt: string, options?: SendOptions): void {
     this._controller?.abort();
+    this._prevText = this._text; // capture before reset for diff
     this._lastPrompt = prompt;
     this._lastOptions = options;
     this._resetState();
@@ -127,6 +155,7 @@ export class StreamController {
     this._cb.onLoading(true);
     this._cb.onError(null);
     this._cb.onDone(false);
+    this._cb.onDiff?.(null);
     this._cb.onStatus("streaming");
     this._cb.onStreamId(null);
     this._cb.onCanResume(false);
@@ -234,6 +263,7 @@ export class StreamController {
       } else {
         model = this._opts.model;
       }
+      this._currentModel = model;
       const body = await this._buildBody(prompt, system, model);
 
       const response = await this._fetch(this._opts.endpoint, {
@@ -264,6 +294,7 @@ export class StreamController {
         this._status = "done";
         this._cb.onDone(true);
         this._cb.onStatus("done");
+        this._computeAndEmitDiff();
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
@@ -326,11 +357,14 @@ export class StreamController {
           this._status = "done";
           this._cb.onStatus("done");
         }
+        this._computeAndEmitDiff();
         return;
       }
       if (msg.event === "usage") {
         try {
-          this._cb.onUsage?.(JSON.parse(msg.data) as StreamUsage);
+          const usage = JSON.parse(msg.data) as StreamUsage;
+          this._opts.tracker?.record(usage, this._currentModel);
+          this._cb.onUsage?.(usage);
         } catch {
           // Malformed usage payload — ignore
         }

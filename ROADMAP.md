@@ -20,7 +20,7 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 
 - [ ] **Tool Calling UI Components** — AI SDK 6 introduced the protocol for tool calls, but actual rendering (progress indicators, typed result cards, chain visualizations, error handling) is left to developers. No reusable components exist outside React (assistant-ui). Need: `<ToolExecution>`, `<ToolResult>`, `<ToolChain>`, `<ToolApproval>`, `<ToolError>` primitives.
 
-- [ ] **Client-Side Token/Cost Tracking** — Every production AI app needs this, everyone builds it ad-hoc. No library exposes token usage as reactive state. Need: reactive token/cost tracker that extracts usage from AI SDK responses, maintains running totals, handles multi-model pricing, persists to IndexedDB.
+- [x] **Client-Side Token/Cost Tracking** — `UsageTracker` class accumulates `inputTokens`, `outputTokens`, `cost`, `turns`, and per-turn `history` across stream turns. Pass `tracker` in `StreamOptions`; `StreamController` calls `tracker.record(usage, model)` automatically on every SSE usage event. Reactive wrappers for all frameworks. Accepts `pricing` map for multi-model cost calculation.
 
 ## Medium Priority
 
@@ -38,13 +38,13 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 
 - [ ] **Multi-Model Racing / Fan-out** — Send the same prompt to N models simultaneously; use the first to complete or pick by score. Eliminates the latency vs quality tradeoff: race a cheap fast model against a powerful one, display whichever finishes first. No library does this client-side without custom fetch orchestration.
 
-- [ ] **Streaming Diff on Regenerate** — When a user regenerates a response, show what changed vs the previous one (git-diff style highlights). `stream.diff` exposes `Array<{ type: "add" | "remove" | "keep", text }>` alongside `stream.text`. ChatGPT and Claude have nothing like this. Superpower for any edit/improve workflow.
+- [x] **Streaming Diff on Regenerate** — `stream.diff` is populated after every completed send/retry with `DiffChunk[]` comparing the previous response. Pluggable: pass `defaultDiff` (built-in zero-dep LCS word diff) or any adapter for `diff`, `fast-diff`, `diff-match-patch`. One function signature `(prev, next) => DiffChunk[]` — one-liner to wire any library.
 
 - [x] **Inline Completions (`Completion` class)** — Debounced, as-you-type completions with ghost text: a totally different interaction model from chat. `completion.update(input)` debounces, cancels in-flight, surfaces `completion.suggestion`. `completion.accept()` appends the suggestion. Covers writing assistants, search boxes, code inputs — shapes AI SDK can't address.
 
 - [ ] **Prompt Variants / A/B Testing** — Define multiple system prompt variants, assign users deterministically, track which performs better via callbacks. Every serious AI product runs prompt experiments; nobody has a library-level answer. `defineVariants` + `onVariantResult` callback covers the full loop without a separate experiment platform.
 
-- [ ] **Automatic Prompt Cache Hints** — Anthropic charges 10% for cached input tokens vs 100% for fresh. The only thing needed is a `cache_control` breakpoint on the system prompt, but wiring it correctly requires knowing the provider. `cacheSystemPrompt: true` on `createStreamHandler` adds it transparently for Anthropic models — zero user effort, meaningful cost savings.
+- [x] **Automatic Prompt Cache Hints** — `cacheSystemPrompt: true` on `createStreamHandler` detects Anthropic models via `model.provider` and adds `experimental_providerMetadata: { anthropic: { cacheControl: { type: "ephemeral" } } }` transparently. Zero user effort, ~90% cost reduction on repeated system prompts. Requires direct `@ai-sdk/anthropic` (not OpenRouter).
 
 - [ ] **Local-First / Hybrid AI (Browser + Cloud)** — WebGPU + WASM enables running small LLMs in-browser. No library provides seamless "hybrid" mode: local model for simple tasks, cloud for complex, offline fallback.
 
@@ -69,6 +69,9 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 - [x] Tree-structured conversation history — `MessageTree<M>` + `ChatHistory<M>` + reactive adapters for all frameworks
 - [x] Abort + Resume Streams — Durable streams (`StreamStore`, `MemoryStreamStore`, `createDurableStream`), SSE utilities, `Stream.stop()`/`resume()`, auto-reconnect, `resumable: true` handler option
 - [x] Model routing — `routeModel` hook + `routeByLength` utility; priority chain: explicit send override > router > constructor default; async router support with abort guard
+- [x] Inline completions — `Completion` class / `useCompletion` hook; debounced ghost-text, `accept()` / `clear()` / `abort()`; server endpoint included in `createStreamHandler`
+- [x] Token/cost tracking — `UsageTracker` with reactive wrappers for all frameworks; `pricing` map for multi-model cost; auto-wired via `tracker` option in `StreamOptions`
+- [x] Automatic prompt caching — `cacheSystemPrompt: true` in `createStreamHandler`; detects Anthropic provider, adds `cache_control` breakpoint transparently
 
 ---
 

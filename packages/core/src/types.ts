@@ -34,6 +34,20 @@ export interface BaseStreamOptions {
    * Priority: explicit send override > routeModel > constructor model default.
    */
   routeModel?: (prompt: string) => string | Promise<string>;
+  /**
+   * Accumulate token usage and cost across turns.
+   * Pass a UsageTracker instance — it will be updated after every completed stream.
+   */
+  tracker?: UsageRecorder;
+  /**
+   * Compute a diff against the previous response after each regenerate/send.
+   * `stream.diff` is `null` on the first send, populated on every subsequent one.
+   *
+   * Pass `defaultDiff` from `@aibind/core` for the built-in word-level LCS diff,
+   * or provide your own function to use any diff library.
+   * Omit to disable diffing (default).
+   */
+  diff?: DiffFn;
 }
 
 /**
@@ -113,6 +127,30 @@ export interface BaseCompletionOptions {
   onFinish?: (suggestion: string) => void;
   /** Called when an error occurs. */
   onError?: (error: Error) => void;
+}
+
+// --- Diff types ---
+
+/** A single chunk produced by a diff computation. */
+export interface DiffChunk {
+  type: "keep" | "add" | "remove";
+  text: string;
+}
+
+/**
+ * Diff function signature. Takes two strings and returns a list of chunks.
+ * aibind ships a built-in word-level LCS diff; pass your own to use any library.
+ */
+export type DiffFn = (prev: string, next: string) => DiffChunk[];
+
+// --- Usage tracking ---
+
+/**
+ * Minimal interface satisfied by UsageTracker.
+ * Pass any object with a `record` method as the `tracker` option in StreamOptions / useStream.
+ */
+export interface UsageRecorder {
+  record(usage: StreamUsage, model?: string): void;
 }
 
 // --- Utility types ---

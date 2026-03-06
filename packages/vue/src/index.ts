@@ -5,6 +5,7 @@ import {
   StreamController,
   StructuredStreamController,
   CompletionController,
+  UsageTracker,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -18,9 +19,12 @@ import {
   type CompletionCallbacks,
   type ChatHistory,
   type ConversationMessage,
+  type TurnUsage,
+  type UsageTrackerOptions,
+  type DiffChunk,
 } from "@aibind/core";
 
-export { defineModels } from "@aibind/core";
+export { defineModels, defaultDiff } from "@aibind/core";
 export type {
   SendOptions,
   DeepPartial,
@@ -29,7 +33,50 @@ export type {
   StreamUsage,
   BaseStreamOptions,
   BaseCompletionOptions,
+  UsageRecorder,
+  ModelPricing,
+  TurnUsage,
+  UsageTrackerOptions,
+  DiffChunk,
+  DiffFn,
 } from "@aibind/core";
+
+// --- useUsageTracker ---
+
+export interface UseUsageTrackerReturn {
+  inputTokens: Ref<number>;
+  outputTokens: Ref<number>;
+  cost: Ref<number>;
+  turns: Ref<number>;
+  history: Ref<TurnUsage[]>;
+  tracker: UsageTracker;
+  reset: () => void;
+}
+
+/**
+ * Vue composable for accumulating token usage and cost across stream turns.
+ */
+export function useUsageTracker(options: UsageTrackerOptions = {}): UseUsageTrackerReturn {
+  const inputTokens = ref(0);
+  const outputTokens = ref(0);
+  const cost = ref(0);
+  const turns = ref(0);
+  const history: Ref<TurnUsage[]> = ref([]);
+
+  const tracker = new UsageTracker({
+    ...options,
+    onUpdate: () => {
+      inputTokens.value = tracker.inputTokens;
+      outputTokens.value = tracker.outputTokens;
+      cost.value = tracker.cost;
+      turns.value = tracker.turns;
+      history.value = [...tracker.history];
+      options.onUpdate?.();
+    },
+  });
+
+  return { inputTokens, outputTokens, cost, turns, history, tracker, reset: () => tracker.reset() };
+}
 
 // --- useCompletion ---
 
@@ -90,6 +137,7 @@ export interface UseStreamReturn<M extends string = string> {
   canResume: Ref<boolean>;
   model: Ref<M | undefined>;
   usage: Ref<StreamUsage | null>;
+  diff: Ref<DiffChunk[] | null>;
   setModel: (model: M) => void;
   send: (prompt: string, sendOpts?: { system?: string; model?: M }) => void;
   abort: () => void;
@@ -122,6 +170,7 @@ export function useStream<M extends string = string>(
   const canResume = ref(false);
   const model = ref(options.model) as Ref<M | undefined>;
   const usage: Ref<StreamUsage | null> = ref(null);
+  const diff: Ref<DiffChunk[] | null> = ref(null);
 
   const ctrl = new StreamController(options as StreamControllerOptions, {
     onText: (t) => {
@@ -148,6 +197,9 @@ export function useStream<M extends string = string>(
     onUsage: (u) => {
       usage.value = u;
     },
+    onDiff: (chunks) => {
+      diff.value = chunks;
+    },
   } satisfies StreamCallbacks);
 
   onUnmounted(() => ctrl.abort());
@@ -162,6 +214,7 @@ export function useStream<M extends string = string>(
     canResume,
     model,
     usage,
+    diff,
     setModel: (value: M) => {
       model.value = value;
       ctrl.setModel(value);

@@ -2,6 +2,7 @@ import {
   StreamController,
   StructuredStreamController,
   CompletionController,
+  UsageTracker as CoreUsageTracker,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -15,6 +16,10 @@ import {
   type CompletionCallbacks,
   type ChatHistory,
   type ConversationMessage,
+  type TurnUsage,
+  type UsageTrackerOptions,
+  type DiffChunk,
+  type DiffFn,
 } from "@aibind/core";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { onDestroy } from "svelte";
@@ -28,7 +33,64 @@ export type {
   StreamUsage,
   BaseStreamOptions,
   BaseCompletionOptions,
+  UsageRecorder,
+  ModelPricing,
+  TurnUsage,
+  UsageTrackerOptions,
+  DiffChunk,
+  DiffFn,
 } from "@aibind/core";
+export { defaultDiff } from "@aibind/core";
+
+// --- UsageTracker ---
+
+/**
+ * Reactive usage tracker. Accumulates token counts and cost across turns.
+ * Pass as the `tracker` option in Stream / useStream.
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { Stream, UsageTracker } from "@aibind/sveltekit";
+ *   const tracker = new UsageTracker({ pricing: { fast: { inputPerMillion: 0.15, outputPerMillion: 0.60 } } });
+ *   const stream = new Stream({ model: "fast", tracker });
+ * </script>
+ *
+ * <p>Tokens: {tracker.inputTokens + tracker.outputTokens}</p>
+ * <p>Cost: ${tracker.cost.toFixed(4)}</p>
+ * ```
+ */
+export class UsageTracker {
+  inputTokens = $state(0);
+  outputTokens = $state(0);
+  cost = $state(0);
+  turns = $state(0);
+  history = $state<TurnUsage[]>([]);
+
+  readonly #core: CoreUsageTracker;
+
+  constructor(options: UsageTrackerOptions = {}) {
+    this.#core = new CoreUsageTracker({
+      ...options,
+      onUpdate: () => {
+        this.inputTokens = this.#core.inputTokens;
+        this.outputTokens = this.#core.outputTokens;
+        this.cost = this.#core.cost;
+        this.turns = this.#core.turns;
+        this.history = this.#core.history;
+        options.onUpdate?.();
+      },
+    });
+  }
+
+  record(usage: StreamUsage, model?: string): void {
+    this.#core.record(usage, model);
+  }
+
+  reset(): void {
+    this.#core.reset();
+  }
+}
 
 // --- Completion ---
 
@@ -128,6 +190,7 @@ export class Stream<M extends string = string> {
   streamId: string | null = $state(null);
   canResume = $state(false);
   usage: StreamUsage | null = $state(null);
+  diff: DiffChunk[] | null = $state(null);
 
   #model: M | undefined = $state(undefined);
   #ctrl: StreamController;
@@ -168,6 +231,9 @@ export class Stream<M extends string = string> {
       },
       onUsage: (u) => {
         this.usage = u;
+      },
+      onDiff: (chunks) => {
+        this.diff = chunks;
       },
     } satisfies StreamCallbacks);
     onDestroy(() => this.abort());

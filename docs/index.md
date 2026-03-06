@@ -115,8 +115,6 @@ export default function Chat() {
 
 One function call. Your framework's native reactivity. That's the whole API.
 
----
-
 ## One server handler routes everything
 
 ```ts
@@ -139,9 +137,8 @@ export const handle = createStreamHandler({ models });
 // ↑ Routes /stream, /structured, /compact — done.
 ```
 
----
 
-## Multi-turn conversations, zero client state
+##Multi-turn conversations, zero client state
 
 ```ts
 // Server: one line enables memory
@@ -167,9 +164,8 @@ const handler = createStreamHandler({
 <!-- Server has the full history. Client sends only the new message. -->
 ```
 
----
 
-## Stream typed JSON with live partial updates
+##Stream typed JSON with live partial updates
 
 ```ts
 import { z } from "zod";
@@ -198,25 +194,30 @@ const ProductSchema = z.object({
 {/if}
 ```
 
----
 
-## Compact history like Claude Code
+##Compact history like Claude Code
 
-```ts
-const { summary, tokensSaved } = await fetch("/__aibind__/compact", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ messages: chat.messages, sessionId }),
-}).then((r) => r.json());
+```svelte
+<script lang="ts">
+  import { Stream, ChatHistory } from "@aibind/sveltekit";
 
-chat.compact({ role: "system", content: summary });
-console.log(`${tokensSaved.toLocaleString()} tokens freed`);
-// → "48,293 tokens freed"
+  const chat = new ChatHistory();
+  const stream = new Stream({ model: "smart", sessionId: crypto.randomUUID() });
+</script>
+
+<button
+  onclick={async () => {
+    const { tokensSaved } = await stream.compact(chat);
+    // History replaced with AI summary on both client and server
+    console.log(`${tokensSaved.toLocaleString()} tokens freed`);
+  }}
+>
+  Compact history
+</button>
 ```
 
----
 
-## Ghost-text completions as you type
+##Ghost-text completions as you type
 
 Chat is the wrong shape for writing assistants, search boxes, and code inputs. `Completion` is built for that:
 
@@ -245,9 +246,37 @@ Chat is the wrong shape for writing assistants, search boxes, and code inputs. `
 Debounced. Cancels automatically on each keystroke. Tab to accept, Escape to dismiss.
 No timer management, no AbortController, no state juggling.
 
----
 
-## Custom routing. Your rules.
+##See exactly what changed on regenerate
+
+Pass `diff: defaultDiff` once and every regenerate emits a word-level diff — no extra code per send:
+
+```svelte
+<script lang="ts">
+  import { Stream, defaultDiff } from "@aibind/sveltekit";
+
+  const stream = new Stream({ model: "smart", diff: defaultDiff });
+</script>
+
+{#if stream.diff}
+  {#each stream.diff as chunk}
+    {#if chunk.type === "add"}
+      <ins>{chunk.text}</ins>
+    {:else if chunk.type === "remove"}
+      <del>{chunk.text}</del>
+    {:else}
+      <span>{chunk.text}</span>
+    {/if}
+  {/each}
+{:else}
+  {stream.text}
+{/if}
+```
+
+Bring your own diff library — `diff`, `fast-diff`, `diff-match-patch` — with a one-liner adapter. The built-in `defaultDiff` is a zero-dependency LCS word diff.
+
+
+##Custom routing. Your rules.
 
 ```ts
 // Need auth, rate limiting, or a custom framework? Use StreamHandler directly.
@@ -282,6 +311,7 @@ export async function POST(request: Request) {
   font-weight: 700;
   margin: 56px 0 20px;
   letter-spacing: -0.02em;
+  border-bottom: none;
 }
 
 .home-content h2:first-child {
