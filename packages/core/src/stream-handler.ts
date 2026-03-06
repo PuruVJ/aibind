@@ -18,6 +18,10 @@ import type {
 } from "./conversation-store";
 import { ChatHistory } from "./chat-history";
 
+const DEFAULT_COMPLETE_SYSTEM_PROMPT =
+  "Continue the following text naturally. " +
+  "Output only the continuation — nothing else.";
+
 const DEFAULT_COMPACT_PROMPT =
   "Summarize the following conversation into a single dense paragraph that " +
   "preserves all important context, decisions, facts, and preferences. " +
@@ -84,6 +88,12 @@ export interface CompactRequestBody {
 
 export interface StopRequestBody {
   id: string;
+}
+
+export interface CompleteRequestBody {
+  input: string;
+  system?: string;
+  model?: string;
 }
 
 /**
@@ -329,6 +339,36 @@ export class StreamHandler {
     return Response.json({ summary: text, tokensSaved });
   }
 
+  /**
+   * Generate an inline completion for a partial input string.
+   * Returns the continuation text only (not the input itself).
+   */
+  async complete(body: CompleteRequestBody): Promise<Response> {
+    const { input, system, model: requestedModel } = body;
+
+    if (typeof input !== "string" || !input.trim()) {
+      return Response.json({ error: "input is required" }, { status: 400 });
+    }
+
+    let model: import("ai").LanguageModel;
+    try {
+      model = this.#resolveModel(requestedModel);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return Response.json({ error: message }, { status: 400 });
+    }
+
+    const { text } = await generateText({
+      model,
+      system: system ?? DEFAULT_COMPLETE_SYSTEM_PROMPT,
+      prompt: input,
+    });
+
+    return new Response(text, {
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
+
   /** Stop a durable stream by ID (requires `resumable: true`). */
   async stop(body: StopRequestBody): Promise<Response> {
     const { id } = body;
@@ -394,6 +434,9 @@ export class StreamHandler {
       }
       if (pathname === `${prefix}/compact`) {
         return this.compact(await request.json());
+      }
+      if (pathname === `${prefix}/complete`) {
+        return this.complete(await request.json());
       }
       if (resumable && pathname === `${prefix}/stream/stop`) {
         return this.stop(await request.json());

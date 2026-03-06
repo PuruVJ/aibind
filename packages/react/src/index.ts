@@ -3,6 +3,7 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
   StructuredStreamController,
+  CompletionController,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -12,6 +13,8 @@ import {
   type SendOptions,
   type DeepPartial,
   type BaseStreamOptions,
+  type BaseCompletionOptions,
+  type CompletionCallbacks,
   type ChatHistory,
   type ConversationMessage,
 } from "@aibind/core";
@@ -24,7 +27,53 @@ export type {
   StreamStatus,
   StreamUsage,
   BaseStreamOptions,
+  BaseCompletionOptions,
 } from "@aibind/core";
+
+// --- useCompletion ---
+
+export interface CompletionOptions extends BaseCompletionOptions {}
+
+export interface UseCompletionReturn {
+  suggestion: string;
+  loading: boolean;
+  error: Error | null;
+  update: (input: string) => void;
+  accept: () => string;
+  clear: () => void;
+  abort: () => void;
+}
+
+/**
+ * React hook for inline completions with debouncing and ghost-text state.
+ */
+export function useCompletion(options: CompletionOptions = {}): UseCompletionReturn {
+  const [suggestion, setSuggestion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const ctrlRef = useRef<CompletionController | null>(null);
+
+  if (!ctrlRef.current) {
+    ctrlRef.current = new CompletionController(options, {
+      onSuggestion: setSuggestion,
+      onLoading: setLoading,
+      onError: setError,
+    } satisfies CompletionCallbacks);
+  }
+
+  useEffect(() => () => ctrlRef.current?.abort(), []);
+
+  return {
+    suggestion,
+    loading,
+    error,
+    update: (input) => ctrlRef.current!.update(input),
+    accept: () => ctrlRef.current!.accept(),
+    clear: () => ctrlRef.current!.clear(),
+    abort: () => ctrlRef.current!.abort(),
+  };
+}
 
 // --- useStream ---
 

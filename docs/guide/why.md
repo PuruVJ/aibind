@@ -12,15 +12,15 @@ What aibind adds is a **higher-level client experience** — reactive bindings, 
 
 AI SDK focuses on React with `@ai-sdk/react`. aibind brings the same developer experience to every major framework, with native reactivity for each:
 
-| Framework | What you get                                    |
-| --------- | ----------------------------------------------- |
-| React     | `useStream`, `useStructuredStream` hooks        |
-| Vue       | `useStream`, `useStructuredStream` composables  |
-| Svelte 5  | `Stream`, `StructuredStream` reactive classes   |
-| SolidJS   | `useStream`, `useStructuredStream` signal hooks |
-| TanStack  | Same React hooks, TanStack Start server adapter |
+| Framework | What you get                                                        |
+| --------- | ------------------------------------------------------------------- |
+| React     | `useStream`, `useStructuredStream`, `useCompletion` hooks           |
+| Vue       | `useStream`, `useStructuredStream`, `useCompletion` composables     |
+| Svelte 5  | `Stream`, `StructuredStream`, `Completion` reactive classes         |
+| SolidJS   | `useStream`, `useStructuredStream`, `useCompletion` signal hooks    |
+| TanStack  | Same React hooks, TanStack Start server adapter                     |
 
-Every framework gets identical capabilities — streaming, structured output, agents, chat history, markdown rendering.
+Every framework gets identical capabilities — streaming, structured output, inline completions, agents, chat history, markdown rendering.
 
 ### Opinionated streaming
 
@@ -125,6 +125,35 @@ aibind's fullstack packages include a server handler that routes streaming, stru
 export const handle = createStreamHandler({ models });
 ```
 
+### Inline completions
+
+Chat is the wrong interaction model for writing assistants, search boxes, and code inputs. Building debounced ghost-text completions from scratch means managing timers, `AbortController`, and request cancellation on every keystroke — across every component that needs it.
+
+`Completion` handles all of that:
+
+```svelte
+<script lang="ts">
+  import { Completion } from "@aibind/sveltekit";
+
+  const completion = new Completion({ model: "fast" });
+  let input = $state("");
+</script>
+
+<input
+  bind:value={input}
+  oninput={() => completion.update(input)}
+  onkeydown={(e) => {
+    if (e.key === "Tab" && completion.suggestion) {
+      input = completion.accept(); // "Hello wor" + "ld!" → "Hello world!"
+      e.preventDefault();
+    }
+    if (e.key === "Escape") completion.clear();
+  }}
+/>
+```
+
+`completion.update(input)` debounces, cancels any in-flight request, fires when the user pauses. `completion.accept()` returns `input + suggestion` in one call. The server endpoint is included with `createStreamHandler` — no extra setup.
+
 ### Model switching
 
 Different tasks need different models — a fast cheap model for autocomplete, a powerful model for reasoning. Switching models at runtime is built in:
@@ -167,6 +196,7 @@ Each layer is independently useful:
 - Your conversations need server-side memory across turns
 - You need to compact long conversations without writing the plumbing yourself
 - You want durable/resumable streams that survive network drops
+- You need ghost-text inline completions for a writing assistant or search input
 - You're using any framework other than React and want first-class support
 - You want streaming markdown that doesn't glitch mid-stream
 

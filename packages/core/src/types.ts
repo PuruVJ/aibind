@@ -88,6 +88,33 @@ export interface AgentOptions {
   onError?: (error: Error) => void;
 }
 
+// --- Completion types ---
+
+export interface CompletionCallbacks {
+  onSuggestion(suggestion: string): void;
+  onLoading(loading: boolean): void;
+  onError(error: Error | null): void;
+}
+
+export interface BaseCompletionOptions {
+  /** API endpoint. Defaults to '/__aibind__/complete'. */
+  endpoint?: string;
+  /** Model key for completions. */
+  model?: string;
+  /** System prompt override for the completion model. */
+  system?: string;
+  /** Debounce delay in ms. Default: 300. */
+  debounce?: number;
+  /** Minimum input length before triggering a completion request. Default: 3. */
+  minLength?: number;
+  /** Custom fetch implementation. Defaults to globalThis.fetch. */
+  fetch?: typeof globalThis.fetch;
+  /** Called when a suggestion is received. */
+  onFinish?: (suggestion: string) => void;
+  /** Called when an error occurs. */
+  onError?: (error: Error) => void;
+}
+
 // --- Utility types ---
 
 /** Deep partial — makes all nested properties optional */

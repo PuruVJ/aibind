@@ -52,6 +52,11 @@ features:
     details: Close the browser, come back later, and pick up exactly where the stream left off. Automatic reconnection included.
     link: /concepts/durable-streams
     linkText: Learn more
+  - icon: 💬
+    title: Inline completions
+    details: Ghost-text as-you-type completions with one class. Debounced, cancels on each keystroke, Tab to accept. Writing assistants and search boxes in minutes.
+    link: /concepts/completions
+    linkText: Learn more
   - icon: 🛠️
     title: Every framework, native reactivity
     details: SvelteKit runes, React hooks, Vue refs, Solid signals — each package uses the idioms your framework expects. No adapters, no wrappers.
@@ -208,6 +213,37 @@ chat.compact({ role: "system", content: summary });
 console.log(`${tokensSaved.toLocaleString()} tokens freed`);
 // → "48,293 tokens freed"
 ```
+
+---
+
+## Ghost-text completions as you type
+
+Chat is the wrong shape for writing assistants, search boxes, and code inputs. `Completion` is built for that:
+
+```svelte
+<script lang="ts">
+  import { Completion } from "@aibind/sveltekit";
+
+  const completion = new Completion({ model: "fast" });
+  let input = $state("");
+</script>
+
+<input
+  bind:value={input}
+  oninput={() => completion.update(input)}
+  onkeydown={(e) => {
+    if (e.key === "Tab" && completion.suggestion) {
+      input = completion.accept(); // input + ghost text
+      e.preventDefault();
+    }
+  }}
+/>
+<!-- Ghost text: input value + dimmed continuation -->
+<span class="ghost">{input}<span class="dim">{completion.suggestion}</span></span>
+```
+
+Debounced. Cancels automatically on each keystroke. Tab to accept, Escape to dismiss.
+No timer management, no AbortController, no state juggling.
 
 ---
 

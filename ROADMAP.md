@@ -34,7 +34,17 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 
 ## Lower Priority / Exploratory
 
-- [ ] **Multi-Model Switching with Unified State** — Users want to switch models mid-conversation. When you switch, token costs get miscounted and streaming behavior changes. No library handles model-switching as a first-class operation with cost tracking.
+- [x] **Multi-Model Switching with Unified State** — `Stream<ModelKey>` supports persistent model switching (`stream.model = "smart"`), per-send overrides, and `routeModel` for automatic routing. `routeByLength` utility ships as the canonical built-in strategy.
+
+- [ ] **Multi-Model Racing / Fan-out** — Send the same prompt to N models simultaneously; use the first to complete or pick by score. Eliminates the latency vs quality tradeoff: race a cheap fast model against a powerful one, display whichever finishes first. No library does this client-side without custom fetch orchestration.
+
+- [ ] **Streaming Diff on Regenerate** — When a user regenerates a response, show what changed vs the previous one (git-diff style highlights). `stream.diff` exposes `Array<{ type: "add" | "remove" | "keep", text }>` alongside `stream.text`. ChatGPT and Claude have nothing like this. Superpower for any edit/improve workflow.
+
+- [x] **Inline Completions (`Completion` class)** — Debounced, as-you-type completions with ghost text: a totally different interaction model from chat. `completion.update(input)` debounces, cancels in-flight, surfaces `completion.suggestion`. `completion.accept()` appends the suggestion. Covers writing assistants, search boxes, code inputs — shapes AI SDK can't address.
+
+- [ ] **Prompt Variants / A/B Testing** — Define multiple system prompt variants, assign users deterministically, track which performs better via callbacks. Every serious AI product runs prompt experiments; nobody has a library-level answer. `defineVariants` + `onVariantResult` callback covers the full loop without a separate experiment platform.
+
+- [ ] **Automatic Prompt Cache Hints** — Anthropic charges 10% for cached input tokens vs 100% for fresh. The only thing needed is a `cache_control` breakpoint on the system prompt, but wiring it correctly requires knowing the provider. `cacheSystemPrompt: true` on `createStreamHandler` adds it transparently for Anthropic models — zero user effort, meaningful cost savings.
 
 - [ ] **Local-First / Hybrid AI (Browser + Cloud)** — WebGPU + WASM enables running small LLMs in-browser. No library provides seamless "hybrid" mode: local model for simple tasks, cloud for complex, offline fallback.
 
@@ -58,6 +68,7 @@ Pain points and gaps in the AI frontend ecosystem that no library solves well. S
 - [x] `@aibind/markdown` — Streaming markdown parser with recovery (1M ops/s)
 - [x] Tree-structured conversation history — `MessageTree<M>` + `ChatHistory<M>` + reactive adapters for all frameworks
 - [x] Abort + Resume Streams — Durable streams (`StreamStore`, `MemoryStreamStore`, `createDurableStream`), SSE utilities, `Stream.stop()`/`resume()`, auto-reconnect, `resumable: true` handler option
+- [x] Model routing — `routeModel` hook + `routeByLength` utility; priority chain: explicit send override > router > constructor default; async router support with abort guard
 
 ---
 

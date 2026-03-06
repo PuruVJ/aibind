@@ -4,6 +4,7 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
   StructuredStreamController,
+  CompletionController,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -13,6 +14,8 @@ import {
   type SendOptions,
   type DeepPartial,
   type BaseStreamOptions,
+  type BaseCompletionOptions,
+  type CompletionCallbacks,
   type ChatHistory,
   type ConversationMessage,
 } from "@aibind/core";
@@ -25,7 +28,55 @@ export type {
   StreamStatus,
   StreamUsage,
   BaseStreamOptions,
+  BaseCompletionOptions,
 } from "@aibind/core";
+
+// --- useCompletion ---
+
+export interface CompletionOptions extends BaseCompletionOptions {}
+
+export interface UseCompletionReturn {
+  suggestion: Ref<string>;
+  loading: Ref<boolean>;
+  error: Ref<Error | null>;
+  update: (input: string) => void;
+  accept: () => string;
+  clear: () => void;
+  abort: () => void;
+}
+
+/**
+ * Vue composable for inline completions with debouncing and ghost-text state.
+ */
+export function useCompletion(options: CompletionOptions = {}): UseCompletionReturn {
+  const suggestion = ref("");
+  const loading = ref(false);
+  const error: Ref<Error | null> = ref(null);
+
+  const ctrl = new CompletionController(options, {
+    onSuggestion: (s) => {
+      suggestion.value = s;
+    },
+    onLoading: (l) => {
+      loading.value = l;
+    },
+    onError: (e) => {
+      error.value = e;
+    },
+  } satisfies CompletionCallbacks);
+
+  onUnmounted(() => ctrl.abort());
+
+  return {
+    suggestion,
+    loading,
+    error,
+    update: (input) => ctrl.update(input),
+    accept: () => ctrl.accept(),
+    clear: () => ctrl.clear(),
+    abort: () => ctrl.abort(),
+  };
+}
 
 // --- useStream ---
 

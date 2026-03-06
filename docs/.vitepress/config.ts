@@ -46,6 +46,7 @@ export default defineConfig({
           { text: "Conversation Store", link: "/concepts/conversation-store" },
           { text: "Compacting", link: "/concepts/compacting" },
           { text: "Model Switching", link: "/concepts/model-switching" },
+          { text: "Inline Completions", link: "/concepts/completions" },
         ],
       },
       {

@@ -12,6 +12,8 @@ export type {
   AgentMessage,
   AgentOptions,
   DeepPartial,
+  CompletionCallbacks,
+  BaseCompletionOptions,
 } from "./types";
 
 export { ServerAgent } from "./server-agent";
@@ -37,6 +39,9 @@ export { SSE } from "./sse";
 export type { SSEMessage } from "./sse";
 export { DurableStream } from "./durable-stream";
 export type { DurableStreamOptions, ResumeOptions } from "./durable-stream";
+
+// Completion controller (framework-agnostic)
+export { CompletionController } from "./completion-controller";
 
 // Stream controllers (framework-agnostic)
 export { StreamController } from "./stream-controller";
@@ -66,6 +71,7 @@ export type {
   StructuredStreamRequestBody,
   CompactRequestBody,
   StopRequestBody,
+  CompleteRequestBody,
 } from "./stream-handler";
 
 // Agent controller (framework-agnostic)

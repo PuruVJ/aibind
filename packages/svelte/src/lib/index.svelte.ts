@@ -1,6 +1,7 @@
 import {
   StreamController,
   StructuredStreamController,
+  CompletionController,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -10,6 +11,8 @@ import {
   type SendOptions,
   type DeepPartial,
   type BaseStreamOptions,
+  type BaseCompletionOptions,
+  type CompletionCallbacks,
   type ChatHistory,
   type ConversationMessage,
 } from "@aibind/core";
@@ -24,7 +27,80 @@ export type {
   StreamStatus,
   StreamUsage,
   BaseStreamOptions,
+  BaseCompletionOptions,
 } from "@aibind/core";
+
+// --- Completion ---
+
+export interface CompletionOptions extends BaseCompletionOptions {}
+
+/**
+ * Reactive inline completion.
+ * Debounces requests, cancels in-flight calls on each keystroke, and exposes
+ * the ghost-text suggestion as reactive state.
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { Completion } from "@aibind/sveltekit";
+ *   const completion = new Completion({ model: "fast" });
+ *   let input = $state("");
+ * </script>
+ *
+ * <input
+ *   bind:value={input}
+ *   oninput={() => completion.update(input)}
+ *   onkeydown={(e) => { if (e.key === "Tab") { input = completion.accept(); e.preventDefault(); }}}
+ * />
+ * <span class="ghost">{input}{completion.suggestion}</span>
+ * ```
+ */
+export class Completion {
+  suggestion = $state("");
+  loading = $state(false);
+  error: Error | null = $state(null);
+
+  #ctrl: CompletionController;
+
+  constructor(options: CompletionOptions = {}) {
+    this.#ctrl = new CompletionController(options, {
+      onSuggestion: (s) => {
+        this.suggestion = s;
+      },
+      onLoading: (l) => {
+        this.loading = l;
+      },
+      onError: (e) => {
+        this.error = e;
+      },
+    } satisfies CompletionCallbacks);
+    onDestroy(() => this.abort());
+  }
+
+  /** Call on every input change. Debounced. */
+  update(input: string): void {
+    this.#ctrl.update(input);
+  }
+
+  /**
+   * Accept the current suggestion.
+   * Returns `lastInput + suggestion` and clears ghost text.
+   * Assign the return value back to your input binding.
+   */
+  accept(): string {
+    return this.#ctrl.accept();
+  }
+
+  /** Dismiss the suggestion without accepting. */
+  clear(): void {
+    this.#ctrl.clear();
+  }
+
+  /** Cancel any pending debounce and in-flight request. */
+  abort(): void {
+    this.#ctrl.abort();
+  }
+}
 
 // --- Stream ---
 
