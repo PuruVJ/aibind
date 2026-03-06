@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+  }
+
+  body {
+    background: #110e0b;
+    font-family: -apple-system, "Inter", "Segoe UI", sans-serif;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Subtle warm grid */
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(251,191,36,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(251,191,36,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Amber glow */
+  .glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 65% 55% at 35% 50%, rgba(217,119,6,0.18) 0%, transparent 65%);
+  }
+
+  /* Vignette */
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 50%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    width: 1200px;
+    height: 630px;
+    padding: 56px 72px;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 26px;
+  }
+
+  /* ── Logo ── */
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-name {
+    font-size: 120px;
+    font-weight: 800;
+    letter-spacing: -5px;
+    line-height: 1;
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .badge {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(251,191,36,0.4);
+    background: rgba(251,191,36,0.07);
+    border: 1px solid rgba(251,191,36,0.15);
+    padding: 7px 15px;
+    border-radius: 6px;
+    margin-top: 16px;
+  }
+
+  /* ── Tagline ── */
+  .tagline {
+    font-size: 37px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: -0.5px;
+    line-height: 1.4;
+    max-width: 800px;
+  }
+
+  .tagline strong {
+    color: rgba(255,255,255,0.82);
+    font-weight: 500;
+  }
+
+  /* ── Pills ── */
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    align-content: flex-start;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border-radius: 100px;
+    background: rgba(251,191,36,0.05);
+    border: 1px solid rgba(251,191,36,0.12);
+    font-size: 17px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.52);
+    white-space: nowrap;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Bottom ── */
+  .bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+
+  .site-url {
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(251,191,36,0.25);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .site-url span { color: rgba(251,191,36,0.55); }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <div class="vignette"></div>
+
+  <div class="card">
+
+    <div class="logo-row">
+      <div class="logo-name">aibind</div>
+      <div class="badge">open source · experimental</div>
+    </div>
+
+    <div class="tagline">
+      <strong>Ship AI features in minutes.</strong> Streaming, branching history,
+      resumable streams, model routing, and agents —
+      all reactive, all in one library.
+    </div>
+
+    <div class="pills">
+      <div class="pill"><span class="dot" style="background:#fbbf24"></span>Streaming SSE</div>
+      <div class="pill"><span class="dot" style="background:#f59e0b"></span>Branching chat history</div>
+      <div class="pill"><span class="dot" style="background:#34d399"></span>Resumable streams</div>
+      <div class="pill"><span class="dot" style="background:#fb923c"></span>Structured output</div>
+      <div class="pill"><span class="dot" style="background:#f472b6"></span>Inline completions</div>
+      <div class="pill"><span class="dot" style="background:#60a5fa"></span>Model routing</div>
+      <div class="pill"><span class="dot" style="background:#a78bfa"></span>Model racing</div>
+      <div class="pill"><span class="dot" style="background:#fbbf24"></span>Token tracking</div>
+      <div class="pill"><span class="dot" style="background:#d97706"></span>Service Worker backend</div>
+      <div class="pill"><span class="dot" style="background:#94a3b8"></span>SvelteKit · Next.js · Nuxt · Solid</div>
+    </div>
+
+    <div class="bottom">
+      <div class="site-url"><span>aibind</span>.dev</div>
+    </div>
+
+  </div>
+</body>
+</html>

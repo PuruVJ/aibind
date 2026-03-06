@@ -198,7 +198,14 @@
       "Read(//Users/puruvijay/Projects/svai/**)",
       "WebSearch",
       "Bash(pnpm exec tsc --noEmit)",
-      "Bash(pnpm install --frozen-lockfile)"
+      "Bash(pnpm install --frozen-lockfile)",
+      "Bash(open /Users/puruvijay/Projects/svai/scripts/cover.html)",
+      "Bash(node -e \"require\\(''puppeteer''\\)\")",
+      "Bash(node -e \"require\\(''playwright''\\)\")",
+      "Bash(pnpm add -D puppeteer --filter .)",
+      "Bash(npm install puppeteer)",
+      "Bash(node screenshot.js)",
+      "Bash(open /Users/puruvijay/Projects/svai/scripts/cover@2x.png)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

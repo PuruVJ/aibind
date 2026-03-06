@@ -13,79 +13,84 @@ hero:
       link: /guide/why
 features:
   - icon: ⚡️
-    title: Streaming that just works
-    details: Real-time text streaming in 3 lines of code. Abort, retry, stop mid-stream, and resume later — all built in.
+    title: Streaming that actually works
+    details: text, loading, error — all reactive. Abort on unmount, retry on error, SSE under the hood. None of that is your problem.
     link: /concepts/streaming
     linkText: Learn more
   - icon: 🧠
-    title: Server memory, zero effort
-    details: Add sessionId and the server automatically maintains multi-turn context. Plug in Redis, Postgres, or any custom store.
+    title: Server-side conversation memory
+    details: Add a sessionId. The server stores the full history. Client sends only the new message. Redis, Postgres, SQLite, or in-memory.
     link: /concepts/conversation-store
     linkText: Learn more
-  - icon: 🗜️
-    title: Compact like Claude Code
-    details: Replace a long conversation history with a single AI-generated summary — the same trick that freed 167k tokens in your last session.
+  - icon: 🗜
+    title: History compaction
+    details: Summarizes a long conversation into one dense paragraph server-side. Model keeps context, you lose the dead tokens. One call.
     link: /concepts/compacting
     linkText: Learn more
   - icon: 🔀
-    title: Switch models on the fly
-    details: Change models per-send or persistently. Fully type-safe — TypeScript catches invalid model names at compile time.
+    title: Type-safe model switching
+    details: TypeScript catches invalid model names at compile time. Switch per-send or set a default. Define a router function for automatic selection.
     link: /concepts/model-switching
     linkText: Learn more
   - icon: 🌲
     title: Branching chat history
-    details: Edit any message and explore alternatives. Branch, regenerate, and navigate between versions — exactly like Claude's conversation UI.
+    details: Edit a message and it branches — the original is preserved. Navigate between alternatives. Same structure Claude and ChatGPT use.
     link: /concepts/chat-history
     linkText: Learn more
   - icon: 📦
-    title: Typed structured output
-    details: Stream JSON with live partial updates as it arrives. Schema-validated with Zod, Valibot, or any Standard Schema library.
+    title: Structured output that streams
+    details: Parses incomplete JSON as it arrives. Partial fields render before the response is done. Validated with Zod, Valibot, or any Standard Schema.
     link: /concepts/structured-output
     linkText: Learn more
   - icon: 🤖
     title: Tool-calling agents
-    details: Server-side agents that call tools, chain results, and stream responses. Built-in human approval flow for sensitive operations.
+    details: Server-side multi-step tool loops. Define tools once, model chains them. Built on AI SDK's streamText with configurable stop conditions.
     link: /concepts/agents
     linkText: Learn more
   - icon: 🔁
-    title: Durable streams
-    details: Close the browser, come back later, and pick up exactly where the stream left off. Automatic reconnection included.
+    title: Resumable streams
+    details: Chunks are buffered server-side. Tab reload, network drop, navigating away — client reconnects and picks up exactly where it left off.
     link: /concepts/durable-streams
     linkText: Learn more
   - icon: 💬
-    title: Inline completions
-    details: Ghost-text as-you-type completions with one class. Debounced, cancels on each keystroke, Tab to accept. Writing assistants and search boxes in minutes.
+    title: Inline ghost-text completions
+    details: Debounced, auto-cancels on keystroke, Tab to accept. One class. No AbortController, no timers, no state juggling.
     link: /concepts/completions
     linkText: Learn more
-  - icon: 🛠️
-    title: Every framework, native reactivity
-    details: SvelteKit runes, React hooks, Vue refs, Solid signals — each package uses the idioms your framework expects. No adapters, no wrappers.
+  - icon: 🛠
+    title: Native reactivity per framework
+    details: Svelte runes, React hooks, Vue refs, Solid signals. Each package uses what your framework expects — no generic observables.
     link: /frameworks/sveltekit
     linkText: Pick your framework
-  - icon: ✍️
-    title: Flash-free markdown
-    details: Streaming markdown without the flicker. Recovers unterminated bold, code blocks, and links in real time. 1M ops/s parser, zero dependencies.
+  - icon: ✍
+    title: Streaming markdown
+    details: Renders partial markdown without flicker. Recovers unterminated bold, broken fences, and split links in real time. 1M ops/s, zero deps.
     link: /concepts/markdown
     linkText: Learn more
-  - icon: 🏎️
-    title: Fastest model wins
-    details: Send to multiple models at once. First to respond streams live, the rest are cancelled. Eliminate the latency vs. quality tradeoff in one line.
+  - icon: 🏁
+    title: Model racing
+    details: Send to multiple models at once. First to respond streams live, the rest are cancelled. Configure first-token or first-complete strategy.
     link: /concepts/model-racing
     linkText: Learn more
   - icon: 🪙
-    title: Know exactly what you're spending
-    details: Token counts and USD cost tracked automatically across every turn and model. Per-turn history included. Reactive — updates as each response lands.
+    title: Token and cost tracking
+    details: Attach a tracker to any stream. Accumulates tokens and USD cost across every turn and model. All properties reactive.
     link: /concepts/token-tracking
     linkText: Learn more
   - icon: 🔍
-    title: See every word that changed
-    details: Word-level diff between the last and current response, populated after every regenerate. Plug in any diff library or use the built-in zero-dep LCS diff.
+    title: Word-level diff on regenerate
+    details: Pass a diff function once. Every regeneration produces typed add/remove/equal chunks. Bring your own diff library or use the built-in.
     link: /concepts/streaming-diff
     linkText: Learn more
   - icon: 💸
-    title: ~90% off repeated prompts
-    details: One flag on the server handler adds Anthropic prompt caching transparently. Same system prompt, fraction of the cost — auto-detected per request, zero client changes.
+    title: Prompt caching
+    details: One flag adds Anthropic cache_control to system prompts server-side, auto-detected per request. ~90% off repeated input tokens.
     link: /concepts/prompt-caching
+    linkText: Learn more
+  - icon: 🧱
+    title: Service Worker backend
+    details: Run the full AI stack in a SW — no server needed. LLM calls from the browser, stream chunks and history in IndexedDB. Ship to GitHub Pages.
+    link: /integrations/service-worker
     linkText: Learn more
 ---
 
@@ -206,7 +211,7 @@ const ProductSchema = z.object({
   import { StructuredStream } from "@aibind/sveltekit";
   import { ProductSchema } from "$lib/schemas";
 
-  const stream = new StructuredStream({ model: "fast", schema: ProductSchema });
+  const stream = new StructuredStream({ model: "fast", endpoint: "/__aibind__/structured", schema: ProductSchema });
 </script>
 
 <!-- Partial renders as tokens arrive — name shows before description is done -->
@@ -221,7 +226,8 @@ const ProductSchema = z.object({
 
 ```svelte
 <script lang="ts">
-  import { Stream, ChatHistory } from "@aibind/sveltekit";
+  import { Stream } from "@aibind/sveltekit";
+  import { ChatHistory } from "@aibind/core";
 
   const chat = new ChatHistory();
   const stream = new Stream({ model: "smart", sessionId: crypto.randomUUID() });
@@ -371,6 +377,7 @@ Async routers work too — check user tier, A/B flags, anything. Explicit `model
 
   const race = new Race({
     models: ["fast", "smart"],
+    endpoint: "/__aibind__/stream",
     strategy: "first-token", // stream whoever responds first
   });
 </script>

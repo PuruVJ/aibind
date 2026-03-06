@@ -5,7 +5,14 @@ export default defineConfig({
   description: "Universal AI SDK bindings for every framework",
   base: "/",
 
-  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
+  head: [
+    ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
+    ["meta", { property: "og:image", content: "https://aibind.dev/og.png" }],
+    ["meta", { property: "og:image:width", content: "1200" }],
+    ["meta", { property: "og:image:height", content: "630" }],
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
+    ["meta", { name: "twitter:image", content: "https://aibind.dev/og.png" }],
+  ],
 
   markdown: {
     theme: {
