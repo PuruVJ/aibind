@@ -11,15 +11,15 @@ Stream typed JSON with real-time partial updates. The AI generates JSON matching
 
 ## Client API
 
-### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { StructuredStream } from '@aibind/sveltekit';
-  import { z } from 'zod/v4';
+  import { StructuredStream } from "@aibind/sveltekit";
+  import { z } from "zod/v4";
 
   const schema = z.object({
-    sentiment: z.enum(['positive', 'negative', 'neutral']),
+    sentiment: z.enum(["positive", "negative", "neutral"]),
     score: z.number(),
     topics: z.array(z.string()),
     summary: z.string(),
@@ -28,20 +28,18 @@ Stream typed JSON with real-time partial updates. The AI generates JSON matching
   const analysis = new StructuredStream({ schema });
 </script>
 
-<button onclick={() => analysis.send('Analyze: I love this product!')}>
+<button onclick={() => analysis.send("Analyze: I love this product!")}>
   Analyze
 </button>
 
 {#if analysis.partial}
   <p>Sentiment: {analysis.partial.sentiment}</p>
   <p>Score: {analysis.partial.score}</p>
-  <p>Topics: {analysis.partial.topics?.join(', ')}</p>
+  <p>Topics: {analysis.partial.topics?.join(", ")}</p>
 {/if}
 ```
 
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { useStructuredStream } from "@aibind/nextjs";
@@ -59,7 +57,10 @@ function Analysis() {
 
   return (
     <div>
-      <button onClick={() => send("Analyze: I love this product!")} disabled={loading}>
+      <button
+        onClick={() => send("Analyze: I love this product!")}
+        disabled={loading}
+      >
         Analyze
       </button>
       {partial && (
@@ -74,9 +75,7 @@ function Analysis() {
 }
 ```
 
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { useStructuredStream } from "@aibind/nuxt";
 import { z } from "zod/v4";
@@ -98,14 +97,12 @@ const { partial, data, loading, send } = useStructuredStream({ schema });
   <div v-if="partial">
     <p>Sentiment: {{ partial.sentiment }}</p>
     <p>Score: {{ partial.score }}</p>
-    <p>Topics: {{ partial.topics?.join(', ') }}</p>
+    <p>Topics: {{ partial.topics?.join(", ") }}</p>
   </div>
 </template>
 ```
 
-### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { useStructuredStream } from "@aibind/solidstart";
 import { z } from "zod/v4";
 
@@ -121,7 +118,10 @@ function Analysis() {
 
   return (
     <div>
-      <button onClick={() => send("Analyze: I love this product!")} disabled={loading()}>
+      <button
+        onClick={() => send("Analyze: I love this product!")}
+        disabled={loading()}
+      >
         Analyze
       </button>
       <Show when={partial()}>
@@ -134,9 +134,7 @@ function Analysis() {
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { useStructuredStream } from "@aibind/tanstack-start";
 import { z } from "zod/v4";
 
@@ -152,7 +150,10 @@ function Analysis() {
 
   return (
     <div>
-      <button onClick={() => send("Analyze: I love this product!")} disabled={loading}>
+      <button
+        onClick={() => send("Analyze: I love this product!")}
+        disabled={loading}
+      >
         Analyze
       </button>
       {partial && (
@@ -166,6 +167,8 @@ function Analysis() {
   );
 }
 ```
+
+:::
 
 ## Returned State
 
@@ -196,9 +199,9 @@ The JSON schema is resolved once and cached. If your schema has a `toJsonSchema(
 
 ## Reactivity by Framework
 
-| Framework | Access pattern | Example |
-|-----------|---------------|---------|
-| Svelte    | Direct property | `analysis.partial` |
-| React     | Direct value | `partial` (from hook) |
-| Vue       | `.value` | `partial.value` |
-| Solid     | Function call | `partial()` |
+| Framework | Access pattern  | Example               |
+| --------- | --------------- | --------------------- |
+| Svelte    | Direct property | `analysis.partial`    |
+| React     | Direct value    | `partial` (from hook) |
+| Vue       | `.value`        | `partial.value`       |
+| Solid     | Function call   | `partial()`           |

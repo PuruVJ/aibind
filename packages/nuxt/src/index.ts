@@ -24,7 +24,7 @@ const DEFAULT_PREFIX = "/__aibind__";
 export function useStream<M extends string = string>(
   options: Partial<Pick<StreamOptions<M>, "endpoint">> &
     Omit<StreamOptions<M>, "endpoint"> = {} as any,
-): UseStreamReturn {
+): UseStreamReturn<M> {
   return baseUseStream({ endpoint: `${DEFAULT_PREFIX}/stream`, ...options });
 }
 

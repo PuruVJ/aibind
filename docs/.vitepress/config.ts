@@ -29,6 +29,7 @@ export default defineConfig({
           { text: "Why aibind?", link: "/guide/why" },
           { text: "Getting Started", link: "/guide/getting-started" },
           { text: "Installation", link: "/guide/installation" },
+          { text: "Custom Routing", link: "/guide/custom-routing" },
         ],
       },
       {
@@ -42,6 +43,9 @@ export default defineConfig({
           { text: "Projects", link: "/concepts/projects" },
           { text: "Markdown Rendering", link: "/concepts/markdown" },
           { text: "Durable Streams", link: "/concepts/durable-streams" },
+          { text: "Conversation Store", link: "/concepts/conversation-store" },
+          { text: "Compacting", link: "/concepts/compacting" },
+          { text: "Model Switching", link: "/concepts/model-switching" },
         ],
       },
       {
@@ -52,6 +56,7 @@ export default defineConfig({
           { text: "Nuxt", link: "/frameworks/nuxt" },
           { text: "SolidStart", link: "/frameworks/solidstart" },
           { text: "TanStack Start", link: "/frameworks/tanstack-start" },
+          { text: "React Router v7", link: "/frameworks/react-router" },
         ],
       },
       {

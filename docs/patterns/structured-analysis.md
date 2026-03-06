@@ -6,39 +6,47 @@ Use structured output to build type-safe analysis tools with real-time partial r
 
 ```svelte
 <script lang="ts">
-  import { StructuredStream } from '@aibind/sveltekit';
-  import { z } from 'zod/v4';
+  import { StructuredStream } from "@aibind/sveltekit";
+  import { z } from "zod/v4";
 
   const ReviewSchema = z.object({
-    sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']),
+    sentiment: z.enum(["positive", "negative", "neutral", "mixed"]),
     confidence: z.number().min(0).max(1),
-    topics: z.array(z.object({
-      name: z.string(),
-      sentiment: z.enum(['positive', 'negative', 'neutral']),
-    })),
+    topics: z.array(
+      z.object({
+        name: z.string(),
+        sentiment: z.enum(["positive", "negative", "neutral"]),
+      }),
+    ),
     summary: z.string(),
     actionItems: z.array(z.string()).optional(),
   });
 
   const review = new StructuredStream({
     schema: ReviewSchema,
-    model: 'smart',
-    system: 'Analyze the given review. Be thorough and objective.',
+    model: "smart",
+    system: "Analyze the given review. Be thorough and objective.",
   });
 
-  let input = $state('');
+  let input = $state("");
 </script>
 
 <textarea bind:value={input} placeholder="Paste a review..." rows="6" />
-<button onclick={() => review.send(`Analyze: ${input}`)} disabled={review.loading}>
-  {review.loading ? 'Analyzing...' : 'Analyze'}
+<button
+  onclick={() => review.send(`Analyze: ${input}`)}
+  disabled={review.loading}
+>
+  {review.loading ? "Analyzing..." : "Analyze"}
 </button>
 
 {#if review.partial}
   <div class="results">
     {#if review.partial.sentiment}
-      <div class="badge" class:positive={review.partial.sentiment === 'positive'}
-           class:negative={review.partial.sentiment === 'negative'}>
+      <div
+        class="badge"
+        class:positive={review.partial.sentiment === "positive"}
+        class:negative={review.partial.sentiment === "negative"}
+      >
         {review.partial.sentiment}
         {#if review.partial.confidence != null}
           ({(review.partial.confidence * 100).toFixed(0)}%)

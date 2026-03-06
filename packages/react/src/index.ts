@@ -8,8 +8,12 @@ import {
   type StructuredStreamCallbacks,
   type StructuredStreamControllerOptions,
   type StreamStatus,
+  type StreamUsage,
   type SendOptions,
   type DeepPartial,
+  type BaseStreamOptions,
+  type ChatHistory,
+  type ConversationMessage,
 } from "@aibind/core";
 
 export { defineModels } from "@aibind/core";
@@ -18,11 +22,13 @@ export type {
   DeepPartial,
   LanguageModel,
   StreamStatus,
+  StreamUsage,
+  BaseStreamOptions,
 } from "@aibind/core";
 
 // --- useStream ---
 
-export interface UseStreamReturn {
+export interface UseStreamReturn<M extends string = string> {
   text: string;
   loading: boolean;
   error: Error | null;
@@ -30,20 +36,21 @@ export interface UseStreamReturn {
   status: StreamStatus;
   streamId: string | null;
   canResume: boolean;
-  send: (prompt: string, sendOpts?: SendOptions) => void;
+  model: M | undefined;
+  setModel: (model: M) => void;
+  usage: StreamUsage | null;
+  send: (prompt: string, sendOpts?: { system?: string; model?: M }) => void;
   abort: () => void;
   retry: () => void;
   stop: () => Promise<void>;
   resume: () => Promise<void>;
+  compact: (chat: ChatHistory<ConversationMessage>) => Promise<{ tokensSaved: number }>;
 }
 
-export interface StreamOptions<M extends string = string> {
+export interface StreamOptions<
+  M extends string = string,
+> extends BaseStreamOptions {
   model?: M;
-  system?: string;
-  endpoint: string;
-  fetch?: typeof globalThis.fetch;
-  onFinish?: (text: string) => void;
-  onError?: (error: Error) => void;
 }
 
 /**
@@ -56,7 +63,7 @@ export interface StreamOptions<M extends string = string> {
  */
 export function useStream<M extends string = string>(
   options: StreamOptions<M>,
-): UseStreamReturn {
+): UseStreamReturn<M> {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -64,6 +71,10 @@ export function useStream<M extends string = string>(
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [streamId, setStreamId] = useState<string | null>(null);
   const [canResume, setCanResume] = useState(false);
+  const [model, _setModel] = useState<M | undefined>(
+    options.model as M | undefined,
+  );
+  const [usage, setUsage] = useState<StreamUsage | null>(null);
 
   const ctrlRef = useRef<StreamController | null>(null);
 
@@ -76,6 +87,7 @@ export function useStream<M extends string = string>(
       onStatus: setStatus,
       onStreamId: setStreamId,
       onCanResume: setCanResume,
+      onUsage: setUsage,
     } satisfies StreamCallbacks);
   }
 
@@ -89,12 +101,19 @@ export function useStream<M extends string = string>(
     status,
     streamId,
     canResume,
-    send: (prompt: string, sendOpts?: SendOptions) =>
+    model,
+    usage,
+    setModel: (value: M) => {
+      _setModel(value);
+      ctrlRef.current!.setModel(value);
+    },
+    send: (prompt: string, sendOpts?: { system?: string; model?: M }) =>
       ctrlRef.current!.send(prompt, sendOpts),
     abort: () => ctrlRef.current!.abort(),
     retry: () => ctrlRef.current!.retry(),
     stop: () => ctrlRef.current!.stop(),
     resume: () => ctrlRef.current!.resume(),
+    compact: (chat) => ctrlRef.current!.compact(chat),
   };
 }
 

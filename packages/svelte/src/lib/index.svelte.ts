@@ -6,8 +6,12 @@ import {
   type StructuredStreamCallbacks,
   type StructuredStreamControllerOptions,
   type StreamStatus,
+  type StreamUsage,
   type SendOptions,
   type DeepPartial,
+  type BaseStreamOptions,
+  type ChatHistory,
+  type ConversationMessage,
 } from "@aibind/core";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { onDestroy } from "svelte";
@@ -18,17 +22,16 @@ export type {
   LanguageModel,
   SendOptions,
   StreamStatus,
+  StreamUsage,
+  BaseStreamOptions,
 } from "@aibind/core";
 
 // --- Stream ---
 
-export interface StreamOptions<M extends string = string> {
+export interface StreamOptions<
+  M extends string = string,
+> extends BaseStreamOptions {
   model?: M;
-  system?: string;
-  endpoint: string;
-  fetch?: typeof globalThis.fetch;
-  onFinish?: (text: string) => void;
-  onError?: (error: Error) => void;
 }
 
 /**
@@ -47,10 +50,23 @@ export class Stream<M extends string = string> {
   status: StreamStatus = $state("idle");
   streamId: string | null = $state(null);
   canResume = $state(false);
+  usage: StreamUsage | null = $state(null);
 
+  #model: M | undefined = $state(undefined);
   #ctrl: StreamController;
 
+  get model(): M | undefined {
+    return this.#model;
+  }
+
+  /** Set the default model for all future sends. Reactive — UI updates immediately. */
+  set model(value: M) {
+    this.#model = value;
+    this.#ctrl.setModel(value);
+  }
+
   constructor(options: StreamOptions<M>) {
+    this.#model = options.model as M | undefined;
     this.#ctrl = new StreamController(options as StreamControllerOptions, {
       onText: (t) => {
         this.text = t;
@@ -73,11 +89,14 @@ export class Stream<M extends string = string> {
       onCanResume: (c) => {
         this.canResume = c;
       },
+      onUsage: (u) => {
+        this.usage = u;
+      },
     } satisfies StreamCallbacks);
     onDestroy(() => this.abort());
   }
 
-  send(prompt: string, options?: SendOptions): void {
+  send(prompt: string, options?: { system?: string; model?: M }): void {
     this.#ctrl.send(prompt, options);
   }
 
@@ -95,6 +114,12 @@ export class Stream<M extends string = string> {
 
   async resume(): Promise<void> {
     return this.#ctrl.resume();
+  }
+
+  async compact(
+    chat: ChatHistory<ConversationMessage>,
+  ): Promise<{ tokensSaved: number }> {
+    return this.#ctrl.compact(chat);
   }
 }
 

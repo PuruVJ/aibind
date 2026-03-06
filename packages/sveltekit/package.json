@@ -50,6 +50,11 @@
       "types": "./src/lib/history.ts",
       "svelte": "./src/lib/history.ts",
       "default": "./src/lib/history.ts"
+    },
+    "./project": {
+      "types": "./src/lib/project.ts",
+      "svelte": "./src/lib/project.ts",
+      "default": "./src/lib/project.ts"
     }
   },
   "publishConfig": {
@@ -78,6 +83,16 @@
         "types": "./dist/markdown.d.ts",
         "svelte": "./dist/markdown.js",
         "default": "./dist/markdown.js"
+      },
+      "./history": {
+        "types": "./dist/history.d.ts",
+        "svelte": "./dist/history.js",
+        "default": "./dist/history.js"
+      },
+      "./project": {
+        "types": "./dist/project.d.ts",
+        "svelte": "./dist/project.js",
+        "default": "./dist/project.js"
       }
     }
   },

@@ -13,4 +13,4 @@ export const models = defineModels({
   gpt: openrouter("openai/gpt-5-mini"),
 });
 
-export type Models = typeof models.$infer;
+export type Models = keyof typeof models;

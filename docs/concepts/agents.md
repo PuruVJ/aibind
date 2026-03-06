@@ -50,29 +50,27 @@ export async function POST({ request }) {
 
 ## Client Usage
 
-### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { Agent } from '@aibind/sveltekit/agent';
+  import { Agent } from "@aibind/sveltekit/agent";
 
-  const agent = new Agent({ endpoint: '/api/agent' });
+  const agent = new Agent({ endpoint: "/api/agent" });
 </script>
 
-<button onclick={() => agent.send('What is the weather in Tokyo?')}>Ask</button>
+<button onclick={() => agent.send("What is the weather in Tokyo?")}>Ask</button>
 
 {#each agent.messages as msg}
   <div><strong>{msg.role}:</strong> {msg.content}</div>
 {/each}
 
-{#if agent.status === 'running'}
+{#if agent.status === "running"}
   <button onclick={() => agent.stop()}>Stop</button>
 {/if}
 ```
 
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { useAgent } from "@aibind/nextjs/agent";
@@ -94,9 +92,7 @@ function AgentChat() {
 }
 ```
 
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { useAgent } from "@aibind/nuxt/agent";
 
@@ -112,9 +108,7 @@ const { messages, send, status, stop } = useAgent({ endpoint: "/api/agent" });
 </template>
 ```
 
-### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { useAgent } from "@aibind/solidstart/agent";
 
 function AgentChat() {
@@ -138,9 +132,7 @@ function AgentChat() {
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { useAgent } from "@aibind/tanstack-start/agent";
 
 function AgentChat() {
@@ -160,12 +152,14 @@ function AgentChat() {
 }
 ```
 
+:::
+
 ## Agent State
 
 | Property          | Type                             | Description                                         |
 | ----------------- | -------------------------------- | --------------------------------------------------- |
 | `messages`        | `AgentMessage[]`                 | Conversation messages                               |
-| `status`          | `AgentStatus`                    | `'idle' \| 'thinking' \| 'tool_calling' \| 'error'` |
+| `status`          | `AgentStatus`                    | `'idle' \| 'running' \| 'awaiting-approval' \| 'error'` |
 | `error`           | `Error \| null`                  | Any error                                           |
 | `pendingApproval` | `{ id, toolName, args } \| null` | Tool needing user approval                          |
 

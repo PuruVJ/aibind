@@ -204,7 +204,10 @@ describe("StructuredStreamController", () => {
 
   describe("schema resolution", () => {
     it("includes jsonSchema in request body when available", async () => {
-      const schema = createFakeSchema({ type: "object", properties: { name: { type: "string" } } });
+      const schema = createFakeSchema({
+        type: "object",
+        properties: { name: { type: "string" } },
+      });
       fetchMock.mockResolvedValue(createTextResponse(['{"name":"test"}']));
 
       const ctrl = new StructuredStreamController<TestSchema>(
@@ -228,7 +231,10 @@ describe("StructuredStreamController", () => {
           vendor: "arktype",
           validate: vi.fn((input: unknown) => ({ value: input })),
         },
-        toJsonSchema: () => ({ type: "object", properties: { age: { type: "number" } } }),
+        toJsonSchema: () => ({
+          type: "object",
+          properties: { age: { type: "number" } },
+        }),
       };
       fetchMock.mockResolvedValue(createTextResponse(['{"age":25}']));
 
@@ -296,7 +302,9 @@ describe("StructuredStreamController", () => {
     it("resets partial and data on new send", async () => {
       const schema = createFakeSchema();
       fetchMock
-        .mockResolvedValueOnce(createTextResponse(['{"name":"Alice","age":30}']))
+        .mockResolvedValueOnce(
+          createTextResponse(['{"name":"Alice","age":30}']),
+        )
         .mockResolvedValueOnce(createTextResponse(['{"name":"Bob","age":25}']));
 
       const ctrl = new StructuredStreamController<TestSchema>(
@@ -372,7 +380,18 @@ describe("StructuredStreamController", () => {
       const schema = createFakeSchema();
       // Simulate very granular chunks
       fetchMock.mockResolvedValue(
-        createTextResponse(['{"', 'name', '":"', 'Al', 'ice', '","', 'age', '":', '30', '}']),
+        createTextResponse([
+          '{"',
+          "name",
+          '":"',
+          "Al",
+          "ice",
+          '","',
+          "age",
+          '":',
+          "30",
+          "}",
+        ]),
       );
 
       const ctrl = new StructuredStreamController<TestSchema>(
@@ -393,7 +412,7 @@ describe("StructuredStreamController", () => {
 
     it("handles JSON array at top level", async () => {
       const schema = createFakeSchema();
-      fetchMock.mockResolvedValue(createTextResponse(['[1,2,3]']));
+      fetchMock.mockResolvedValue(createTextResponse(["[1,2,3]"]));
 
       const ctrl = new StructuredStreamController(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -493,7 +512,9 @@ describe("StructuredStreamController", () => {
           vendor: "unknown-vendor",
           validate: vi.fn((input: unknown) => ({ value: input })),
         },
-        toJsonSchema: () => { throw new Error("not supported"); },
+        toJsonSchema: () => {
+          throw new Error("not supported");
+        },
       };
       fetchMock.mockResolvedValue(createTextResponse(['{"name":"test"}']));
 

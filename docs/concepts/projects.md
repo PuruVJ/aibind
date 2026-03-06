@@ -4,11 +4,11 @@ Projects let you manage multiple conversations that share a common context — l
 
 ## Basic Usage
 
-### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { Project } from '@aibind/sveltekit/project';
+  import { Project } from "@aibind/sveltekit/project";
 
   const project = new Project({
     name: "My App",
@@ -36,9 +36,7 @@ Projects let you manage multiple conversations that share a common context — l
 {/each}
 ```
 
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { Project } from "@aibind/nextjs/project";
@@ -65,16 +63,16 @@ function ProjectView() {
         Add knowledge
       </button>
       {conversations.map((conv) => (
-        <div key={conv.id}>{conv.title} — {conv.messageCount} messages</div>
+        <div key={conv.id}>
+          {conv.title} — {conv.messageCount} messages
+        </div>
       ))}
     </div>
   );
 }
 ```
 
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { Project } from "@aibind/nuxt/project";
 
@@ -102,9 +100,7 @@ const project = new Project({
 </template>
 ```
 
-### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { Project } from "@aibind/solidstart/project";
 import { For } from "solid-js";
 
@@ -128,16 +124,18 @@ function ProjectView() {
         Add knowledge
       </button>
       <For each={project.conversationList()}>
-        {(conv) => <div>{conv.title} — {conv.messageCount} messages</div>}
+        {(conv) => (
+          <div>
+            {conv.title} — {conv.messageCount} messages
+          </div>
+        )}
       </For>
     </div>
   );
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { Project } from "@aibind/tanstack-start/project";
 
 const project = new Project({
@@ -162,12 +160,16 @@ function ProjectView() {
         Add knowledge
       </button>
       {conversations.map((conv) => (
-        <div key={conv.id}>{conv.title} — {conv.messageCount} messages</div>
+        <div key={conv.id}>
+          {conv.title} — {conv.messageCount} messages
+        </div>
       ))}
     </div>
   );
 }
 ```
+
+:::
 
 ### Common API (all frameworks)
 
@@ -232,9 +234,9 @@ const restored = Project.fromJSON(json);
 
 ## Reactivity by Framework
 
-| Framework | Access pattern | Example |
-|-----------|---------------|---------|
-| Svelte    | Direct property | `project.name`, `project.conversationList` |
-| React     | Via hook | `const { name, conversations } = project.useSnapshot()` |
-| Vue       | `.value` | `project.name.value`, `project.conversationList.value` |
-| Solid     | Function call | `project.name()`, `project.conversationList()` |
+| Framework | Access pattern  | Example                                                 |
+| --------- | --------------- | ------------------------------------------------------- |
+| Svelte    | Direct property | `project.name`, `project.conversationList`              |
+| React     | Via hook        | `const { name, conversations } = project.useSnapshot()` |
+| Vue       | `.value`        | `project.name.value`, `project.conversationList.value`  |
+| Solid     | Function call   | `project.name()`, `project.conversationList()`          |

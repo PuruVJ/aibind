@@ -26,7 +26,7 @@ export const models = defineModels({
   smart: openrouter("openai/gpt-5-mini"),
 });
 
-export type Models = typeof models.$infer;
+export type Models = keyof typeof models;
 ```
 
 ### 2. Server Handler
@@ -46,17 +46,23 @@ export const handle = createStreamHandler({
 
 ```svelte
 <script lang="ts">
-  import { Stream } from '@aibind/sveltekit';
+  import { Stream } from "@aibind/sveltekit";
 
   const stream = new Stream({
-    model: 'fast',
-    system: 'You are helpful.',
+    model: "fast",
+    system: "You are helpful.",
   });
 
-  let prompt = $state('');
+  let prompt = $state("");
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); stream.send(prompt); prompt = ''; }}>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    stream.send(prompt);
+    prompt = "";
+  }}
+>
   <input bind:value={prompt} />
   <button disabled={stream.loading}>Send</button>
 </form>
@@ -68,18 +74,19 @@ export const handle = createStreamHandler({
 
 ```svelte
 <script lang="ts">
-  import { StructuredStream } from '@aibind/sveltekit';
-  import { z } from 'zod/v4';
+  import { StructuredStream } from "@aibind/sveltekit";
+  import { z } from "zod/v4";
 
   const schema = z.object({
-    sentiment: z.enum(['positive', 'negative', 'neutral']),
+    sentiment: z.enum(["positive", "negative", "neutral"]),
     score: z.number(),
   });
 
   const analysis = new StructuredStream({ schema });
 </script>
 
-<button onclick={() => analysis.send('Analyze: Great product!')}>Analyze</button>
+<button onclick={() => analysis.send("Analyze: Great product!")}>Analyze</button
+>
 
 {#if analysis.partial}
   <p>Sentiment: {analysis.partial.sentiment}</p>
@@ -98,6 +105,74 @@ SvelteKit uses Svelte 5 runes (`$state`, `$derived`). All aibind classes expose 
 <p>{chat.messages.length}</p>
 ```
 
+## AIRemote
+
+`@aibind/sveltekit/remote` wraps SvelteKit's [server functions](https://svelte.dev/docs/kit/server-only-modules#Server-functions) (`query` and `command`) with type-safe AI bindings — no manual route setup needed.
+
+```ts
+// src/lib/ai.server.ts
+import { AIRemote } from "@aibind/sveltekit/remote";
+import { models } from "./models.server";
+import { z } from "zod/v4";
+
+const ai = new AIRemote(models.smart);
+
+// Simple text query — returns a string
+export const summarize = ai.query(
+  z.object({ text: z.string() }),
+  ({ text }) => `Summarize this in one sentence: ${text}`,
+);
+
+// Structured output query — returns typed data
+export const classify = ai.structuredQuery({
+  input: z.object({ text: z.string() }),
+  output: z.object({ label: z.string(), confidence: z.number() }),
+  prompt: ({ text }) => `Classify this text: ${text}`,
+});
+
+// Command — full access to model + request event for mutations
+export const translate = ai.command(
+  z.object({ text: z.string(), targetLang: z.string() }),
+  async ({ text, targetLang }, { model }) => {
+    const { generateText } = await import("ai");
+    const result = await generateText({
+      model,
+      prompt: `Translate to ${targetLang}: ${text}`,
+    });
+    return result.text;
+  },
+);
+```
+
+Call from a component — fully type-safe, no `fetch` needed:
+
+```svelte
+<script lang="ts">
+  import { summarize, classify } from "$lib/ai.server";
+
+  let text = $state("");
+  let summary = $state("");
+  let label = $state("");
+
+  async function run() {
+    summary = await summarize({ text });
+    const result = await classify({ text });
+    label = result.label;
+  }
+</script>
+
+<textarea bind:value={text}></textarea>
+<button onclick={run}>Analyze</button>
+<p>{summary}</p>
+<p>Label: {label}</p>
+```
+
+| Method | Description |
+| --- | --- |
+| `ai.query(inputSchema, promptFn)` | Text response — input → prompt → `string` |
+| `ai.structuredQuery({ input, output, prompt })` | Typed response — input → prompt → validated output |
+| `ai.command(inputSchema, handler)` | Mutation with full `{ model, event }` context |
+
 ## Available Exports
 
 | Import Path                  | What You Get                                 |
@@ -108,3 +183,4 @@ SvelteKit uses Svelte 5 runes (`$state`, `$derived`). All aibind classes expose 
 | `@aibind/sveltekit/history`  | `ChatHistory`, `MessageTree`                 |
 | `@aibind/sveltekit/markdown` | `StreamMarkdown`                             |
 | `@aibind/sveltekit/project`  | `Project`                                    |
+| `@aibind/sveltekit/remote`   | `AIRemote`                                   |

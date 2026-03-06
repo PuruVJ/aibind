@@ -51,8 +51,9 @@ export class StructuredStreamController<T> extends StreamController {
   protected override async _buildBody(
     prompt: string,
     system: string | undefined,
+    model: string | undefined,
   ): Promise<Record<string, unknown>> {
-    const body = await super._buildBody(prompt, system);
+    const body = await super._buildBody(prompt, system, model);
     const schema = await this._resolveSchema();
     return { ...body, ...(schema && { schema }) };
   }
@@ -111,7 +112,9 @@ export class StructuredStreamController<T> extends StreamController {
     if (std?.vendor === "valibot") {
       try {
         // @ts-ignore -- optional dependency, resolved at runtime
-        const { toJsonSchema } = await import(/* @vite-ignore */ "@valibot/to-json-schema");
+        const { toJsonSchema } = await import(
+          /* @vite-ignore */ "@valibot/to-json-schema"
+        );
         this._resolvedJsonSchema = toJsonSchema(schema as never) as Record<
           string,
           unknown

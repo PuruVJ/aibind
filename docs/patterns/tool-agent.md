@@ -59,10 +59,10 @@ export async function POST({ request }) {
 
 ```svelte
 <script lang="ts">
-  import { useAgent } from '@aibind/sveltekit/agent';
+  import { useAgent } from "@aibind/sveltekit/agent";
 
-  const agent = useAgent({ endpoint: '/api/agent' });
-  let prompt = $state('');
+  const agent = useAgent({ endpoint: "/api/agent" });
+  let prompt = $state("");
 </script>
 
 <div class="chat">
@@ -81,18 +81,24 @@ export async function POST({ request }) {
     </div>
   {/each}
 
-  {#if agent.status === 'thinking'}
+  {#if agent.status === "thinking"}
     <p class="thinking">Thinking...</p>
   {/if}
 
-  {#if agent.status === 'tool_calling'}
+  {#if agent.status === "tool_calling"}
     <p class="thinking">Calling tool...</p>
   {/if}
 </div>
 
-<form onsubmit={(e) => { e.preventDefault(); agent.send(prompt); prompt = ''; }}>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    agent.send(prompt);
+    prompt = "";
+  }}
+>
   <input bind:value={prompt} placeholder="Ask the agent..." />
-  <button disabled={agent.status !== 'idle'}>Send</button>
+  <button disabled={agent.status !== "idle"}>Send</button>
 </form>
 ```
 
@@ -126,8 +132,12 @@ For sensitive tools, you can require user approval:
   <div class="approval">
     <p>Agent wants to call <code>{agent.pendingApproval.toolName}</code></p>
     <p>Args: {JSON.stringify(agent.pendingApproval.args)}</p>
-    <button onclick={() => agent.approve(agent.pendingApproval.id)}>Approve</button>
-    <button onclick={() => agent.deny(agent.pendingApproval.id, 'Not now')}>Deny</button>
+    <button onclick={() => agent.approve(agent.pendingApproval.id)}
+      >Approve</button
+    >
+    <button onclick={() => agent.deny(agent.pendingApproval.id, "Not now")}
+      >Deny</button
+    >
   </div>
 {/if}
 ```

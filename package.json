@@ -14,12 +14,14 @@
     "release": "pnpm package && changeset publish",
     "release:jsr": "pnpm package && node scripts/publish-jsr.js",
     "sizes": "pnpm package && node scripts/measure-sizes.js",
-    "bench": "pnpm --filter @aibind/markdown bench"
+    "bench": "pnpm --filter @aibind/markdown bench",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.30.0",
     "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.1",
     "terser": "^5.46.0",
     "turbo": "^2.5.0",
     "typescript": "^5.7.0"

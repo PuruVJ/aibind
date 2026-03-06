@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("ai", () => ({
   streamText: vi.fn(() => ({
-    toTextStreamResponse: () => new Response("stream response"),
     textStream: (async function* () {
       yield "hello";
     })(),
+    usage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
   })),
   Output: {
     json: vi.fn(() => "json-output"),
@@ -50,10 +50,10 @@ describe("createStreamHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStreamText.mockReturnValue({
-      toTextStreamResponse: () => new Response("stream response"),
       textStream: (async function* () {
         yield "hello";
       })(),
+      usage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
     } as never);
   });
 
@@ -62,9 +62,7 @@ describe("createStreamHandler", () => {
   describe("routing", () => {
     it("handles POST /__aibind__/stream", async () => {
       const handler = createStreamHandler({ model: "test-model" as any });
-      const res = await handler(
-        makeRequest("/stream", { prompt: "hello" }),
-      );
+      const res = await handler(makeRequest("/stream", { prompt: "hello" }));
       expect(res.status).toBe(200);
     });
 
@@ -174,9 +172,7 @@ describe("createStreamHandler", () => {
 
     it("returns 400 when no model configured at all", async () => {
       const handler = createStreamHandler({});
-      const res = await handler(
-        makeRequest("/stream", { prompt: "hello" }),
-      );
+      const res = await handler(makeRequest("/stream", { prompt: "hello" }));
       expect(res.status).toBe(400);
       const body = await res.json();
       expect(body.error).toMatch(/model/i);
@@ -188,9 +184,7 @@ describe("createStreamHandler", () => {
   describe("structured output", () => {
     it("uses Output.json when no schema provided", async () => {
       const handler = createStreamHandler({ model: "test" as any });
-      await handler(
-        makeRequest("/structured", { prompt: "hello" }),
-      );
+      await handler(makeRequest("/structured", { prompt: "hello" }));
 
       expect(Output.json).toHaveBeenCalled();
     });
@@ -228,9 +222,7 @@ describe("createStreamHandler", () => {
   describe("resumable streams", () => {
     it("returns 404 for stop when resumable not enabled", async () => {
       const handler = createStreamHandler({ model: "test" as any });
-      const res = await handler(
-        makeRequest("/stream/stop", { id: "test-id" }),
-      );
+      const res = await handler(makeRequest("/stream/stop", { id: "test-id" }));
       expect(res.status).toBe(404);
     });
 
@@ -247,9 +239,7 @@ describe("createStreamHandler", () => {
         model: "test" as any,
         resumable: true,
       });
-      const res = await handler(
-        makeRequest("/stream/stop", { id: "test-id" }),
-      );
+      const res = await handler(makeRequest("/stream/stop", { id: "test-id" }));
       // Should return ok (even if stream not found)
       expect(res.status).toBe(200);
     });
@@ -268,9 +258,7 @@ describe("createStreamHandler", () => {
         model: "test" as any,
         resumable: true,
       });
-      const res = await handler(
-        makeGetRequest("/stream/resume"),
-      );
+      const res = await handler(makeGetRequest("/stream/resume"));
       expect(res.status).toBe(400);
     });
   });
@@ -280,25 +268,15 @@ describe("createStreamHandler", () => {
   describe("edge cases", () => {
     it("default prefix is /__aibind__", async () => {
       const handler = createStreamHandler({ model: "test" as any });
-      const res = await handler(
-        makeRequest("/stream", { prompt: "hi" }),
-      );
+      const res = await handler(makeRequest("/stream", { prompt: "hi" }));
       expect(res.status).toBe(200);
     });
 
-    it("stream calls toTextStreamResponse when not resumable", async () => {
-      const toTextStreamResponse = vi.fn(() => new Response("ok"));
-      mockStreamText.mockReturnValue({
-        toTextStreamResponse,
-        textStream: (async function* () {
-          yield "x";
-        })(),
-      } as never);
-
+    it("stream response uses SSE content-type when not resumable", async () => {
       const handler = createStreamHandler({ model: "test" as any });
-      await handler(makeRequest("/stream", { prompt: "hi" }));
+      const res = await handler(makeRequest("/stream", { prompt: "hi" }));
 
-      expect(toTextStreamResponse).toHaveBeenCalled();
+      expect(res.headers.get("Content-Type")).toBe("text/event-stream");
     });
 
     it("handler is reusable across multiple requests", async () => {
@@ -306,7 +284,9 @@ describe("createStreamHandler", () => {
 
       const res1 = await handler(makeRequest("/stream", { prompt: "one" }));
       const res2 = await handler(makeRequest("/stream", { prompt: "two" }));
-      const res3 = await handler(makeRequest("/structured", { prompt: "three" }));
+      const res3 = await handler(
+        makeRequest("/structured", { prompt: "three" }),
+      );
 
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
@@ -319,9 +299,7 @@ describe("createStreamHandler", () => {
         model: "test" as any,
         resumable: true,
       });
-      const res = await handler(
-        makeRequest("/stream/stop", { id: 123 }),
-      );
+      const res = await handler(makeRequest("/stream/stop", { id: 123 }));
       expect(res.status).toBe(400);
     });
 
@@ -405,9 +383,7 @@ describe("createStreamHandler", () => {
 
     it("prompt with only whitespace is rejected", async () => {
       const handler = createStreamHandler({ model: "test" as any });
-      const res = await handler(
-        makeRequest("/stream", { prompt: "\t \n" }),
-      );
+      const res = await handler(makeRequest("/stream", { prompt: "\t \n" }));
       expect(res.status).toBe(400);
     });
   });

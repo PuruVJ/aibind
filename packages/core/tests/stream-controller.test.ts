@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StreamController, type StreamCallbacks } from "../src/stream-controller";
+import {
+  StreamController,
+  type StreamCallbacks,
+} from "../src/stream-controller";
 import { SSE } from "../src/sse";
 
 // --- Helpers ---
@@ -85,9 +88,9 @@ describe("StreamController", () => {
 
   describe("constructor", () => {
     it("throws if endpoint is missing", () => {
-      expect(
-        () => new StreamController({ endpoint: "" }, cb),
-      ).toThrow("endpoint");
+      expect(() => new StreamController({ endpoint: "" }, cb)).toThrow(
+        "endpoint",
+      );
     });
 
     it("creates with valid endpoint", () => {
@@ -114,7 +117,11 @@ describe("StreamController", () => {
         "/api/stream",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ prompt: "hi", system: undefined, model: undefined }),
+          body: JSON.stringify({
+            prompt: "hi",
+            system: undefined,
+            model: undefined,
+          }),
         }),
       );
 
@@ -138,7 +145,12 @@ describe("StreamController", () => {
       fetchMock.mockResolvedValue(createTextResponse(["ok"]));
 
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, model: "gpt-4", system: "Be helpful" },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          model: "gpt-4",
+          system: "Be helpful",
+        },
         cb,
       );
       ctrl.send("hello");
@@ -181,7 +193,7 @@ describe("StreamController", () => {
       ctrl.send("b");
       await flushPromises();
 
-      expect(cb.calls.onText).toContain("");       // reset
+      expect(cb.calls.onText).toContain(""); // reset
       expect(cb.calls.onText).toContain("second"); // new text
     });
 
@@ -383,9 +395,7 @@ describe("StreamController", () => {
 
     it("handles SSE error event", async () => {
       fetchMock.mockResolvedValue(
-        createSSEResponse([
-          { event: "error", data: "Something went wrong" },
-        ]),
+        createSSEResponse([{ event: "error", data: "Something went wrong" }]),
       );
 
       const ctrl = new StreamController(
@@ -563,14 +573,16 @@ describe("StreamController", () => {
         SSE.format(0, "sid-1", "stream-id") + SSE.format(1, "partial");
 
       // Second response (resume): completes the stream
-      const resumeSSE =
-        SSE.format(2, " complete") + SSE.formatEvent("done");
+      const resumeSSE = SSE.format(2, " complete") + SSE.formatEvent("done");
 
       fetchMock
         .mockResolvedValueOnce(
           new Response(abruptSSE, {
             status: 200,
-            headers: { "Content-Type": "text/event-stream", "X-Stream-Id": "sid-1" },
+            headers: {
+              "Content-Type": "text/event-stream",
+              "X-Stream-Id": "sid-1",
+            },
           }),
         )
         .mockResolvedValueOnce(
@@ -602,13 +614,17 @@ describe("StreamController", () => {
 
     it("exhausts retries and sets disconnected with canResume", async () => {
       // SSE stream that drops
-      const abruptSSE = SSE.format(0, "sid-1", "stream-id") + SSE.format(1, "data");
+      const abruptSSE =
+        SSE.format(0, "sid-1", "stream-id") + SSE.format(1, "data");
 
       fetchMock
         .mockResolvedValueOnce(
           new Response(abruptSSE, {
             status: 200,
-            headers: { "Content-Type": "text/event-stream", "X-Stream-Id": "sid-1" },
+            headers: {
+              "Content-Type": "text/event-stream",
+              "X-Stream-Id": "sid-1",
+            },
           }),
         )
         // All 3 reconnect attempts fail
@@ -643,7 +659,10 @@ describe("StreamController", () => {
         .mockResolvedValueOnce(
           new Response(sseBody, {
             status: 200,
-            headers: { "Content-Type": "text/event-stream", "X-Stream-Id": "sid-1" },
+            headers: {
+              "Content-Type": "text/event-stream",
+              "X-Stream-Id": "sid-1",
+            },
           }),
         )
         .mockResolvedValueOnce(
@@ -705,19 +724,26 @@ describe("StreamController", () => {
 
   describe("abort edge cases", () => {
     it("abort during reconnecting resets to idle", async () => {
-      const abruptSSE = SSE.format(0, "sid-1", "stream-id") + SSE.format(1, "data");
+      const abruptSSE =
+        SSE.format(0, "sid-1", "stream-id") + SSE.format(1, "data");
 
       // Mock a slow reconnect
       let resolveReconnect: (() => void) | null = null;
       fetchMock.mockResolvedValueOnce(
         new Response(abruptSSE, {
           status: 200,
-          headers: { "Content-Type": "text/event-stream", "X-Stream-Id": "sid-1" },
+          headers: {
+            "Content-Type": "text/event-stream",
+            "X-Stream-Id": "sid-1",
+          },
         }),
       );
-      fetchMock.mockImplementationOnce(() => new Promise<Response>((r) => {
-        resolveReconnect = () => r(createTextResponse(["done"]));
-      }));
+      fetchMock.mockImplementationOnce(
+        () =>
+          new Promise<Response>((r) => {
+            resolveReconnect = () => r(createTextResponse(["done"]));
+          }),
+      );
 
       const ctrl = new StreamController(
         { endpoint: "/api/stream", fetch: fetchMock },
@@ -751,7 +777,10 @@ describe("StreamController", () => {
         .mockResolvedValueOnce(
           new Response(stream, {
             status: 200,
-            headers: { "Content-Type": "text/event-stream", "X-Stream-Id": "sid-1" },
+            headers: {
+              "Content-Type": "text/event-stream",
+              "X-Stream-Id": "sid-1",
+            },
           }),
         )
         .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
@@ -790,7 +819,10 @@ describe("StreamController", () => {
         .mockResolvedValueOnce(
           new Response(stream, {
             status: 200,
-            headers: { "Content-Type": "text/event-stream", "X-Stream-Id": "sid-1" },
+            headers: {
+              "Content-Type": "text/event-stream",
+              "X-Stream-Id": "sid-1",
+            },
           }),
         )
         .mockRejectedValueOnce(new Error("stop endpoint unreachable"));

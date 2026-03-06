@@ -1,7 +1,7 @@
 {
   "name": "@aibind/vue",
   "version": "0.4.0",
-  "description": "AI SDK bindings for Vue 3 \u2014 reactive composables for streaming, structured output, and agents",
+  "description": "AI SDK bindings for Vue 3 — reactive composables for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
     "vue",
@@ -46,10 +46,18 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
-      "agent": ["dist/agent/index.d.ts"],
-      "markdown": ["dist/markdown/index.d.ts"],
-      "history": ["dist/history/index.d.ts"],
-      "project": ["dist/project/index.d.ts"]
+      "agent": [
+        "dist/agent/index.d.ts"
+      ],
+      "markdown": [
+        "dist/markdown/index.d.ts"
+      ],
+      "history": [
+        "dist/history/index.d.ts"
+      ],
+      "project": [
+        "dist/project/index.d.ts"
+      ]
     }
   },
   "files": [

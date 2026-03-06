@@ -50,13 +50,19 @@ export const handle = createStreamHandler({ models });
 
 ```svelte
 <script lang="ts">
-  import { Stream } from '@aibind/sveltekit';
+  import { Stream } from "@aibind/sveltekit";
 
-  const stream = new Stream({ model: 'fast' });
-  let prompt = $state('');
+  const stream = new Stream({ model: "fast" });
+  let prompt = $state("");
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); stream.send(prompt); prompt = ''; }}>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    stream.send(prompt);
+    prompt = "";
+  }}
+>
   <input bind:value={prompt} placeholder="Ask something..." />
   <button disabled={stream.loading}>Send</button>
 </form>

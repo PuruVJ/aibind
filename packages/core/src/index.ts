@@ -3,7 +3,9 @@ export { defineModels } from "./types";
 export type {
   LanguageModel,
   SendOptions,
+  BaseStreamOptions,
   StreamStatus,
+  StreamUsage,
   AgentStatus,
   ToolCallStatus,
   AgentMessage,
@@ -47,9 +49,23 @@ export type {
   StructuredStreamControllerOptions,
 } from "./structured-stream-controller";
 
+// Conversation history store (server-side sessions)
+export type {
+  ConversationStore,
+  ConversationMessage,
+} from "./conversation-store";
+export { MemoryConversationStore } from "./memory-conversation-store";
+
 // Stream handler (framework-agnostic server handler)
-export { createStreamHandler } from "./stream-handler";
-export type { StreamHandlerConfig } from "./stream-handler";
+export { createStreamHandler, StreamHandler } from "./stream-handler";
+export type {
+  StreamHandlerConfig,
+  ConversationConfig,
+  StreamRequestBody,
+  StructuredStreamRequestBody,
+  CompactRequestBody,
+  StopRequestBody,
+} from "./stream-handler";
 
 // Agent controller (framework-agnostic)
 export { AgentController } from "./agent-controller";

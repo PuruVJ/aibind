@@ -7,7 +7,13 @@
     },
     "build": {
       "dependsOn": ["^package"],
-      "outputs": [".svelte-kit/**", ".next/**", ".output/**", ".vinxi/**", ".vitepress/dist/**"]
+      "outputs": [
+        ".svelte-kit/**",
+        ".next/**",
+        ".output/**",
+        ".vinxi/**",
+        ".vitepress/dist/**"
+      ]
     },
     "test": {
       "dependsOn": ["^package"]

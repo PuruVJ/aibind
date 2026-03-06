@@ -6,30 +6,20 @@ AI responses are usually markdown. But rendering markdown mid-stream creates vis
 
 Every framework package includes a ready-to-use markdown component or hook.
 
-### SvelteKit / Svelte
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { StreamMarkdown } from '@aibind/sveltekit/markdown';
-  import { Stream } from '@aibind/sveltekit';
+  import { StreamMarkdown } from "@aibind/sveltekit/markdown";
+  import { Stream } from "@aibind/sveltekit";
 
-  const stream = new Stream({ model: 'fast' });
+  const stream = new Stream({ model: "fast" });
 </script>
 
 <StreamMarkdown text={stream.text} streaming={stream.loading} />
 ```
 
-**Props:**
-
-| Prop        | Type      | Description                                                  |
-| ----------- | --------- | ------------------------------------------------------------ |
-| `text`      | `string`  | Markdown string to render                                    |
-| `streaming` | `boolean` | When `true`, applies markdown recovery for incomplete syntax |
-| `class`     | `string`  | Optional CSS class                                           |
-
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { StreamMarkdown } from "@aibind/nextjs/markdown";
@@ -42,11 +32,7 @@ function Chat() {
 }
 ```
 
-**Props:** Same as Svelte — `text`, `streaming`, `className`.
-
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { StreamMarkdown } from "@aibind/nuxt/markdown";
 import { useStream } from "@aibind/nuxt";
@@ -59,13 +45,8 @@ const { text, loading } = useStream({ model: "fast" });
 </template>
 ```
 
-**Props:** Same — `:text`, `:streaming`.
-
-### SolidStart / Solid
-
-SolidJS uses a hook instead of a component, returning a reactive HTML string accessor:
-
-```tsx
+```tsx [SolidStart]
+// SolidJS uses a hook returning a reactive HTML string accessor
 import { useStreamMarkdown } from "@aibind/solidstart/markdown";
 import { useStream } from "@aibind/solidstart";
 
@@ -80,9 +61,7 @@ function Chat() {
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { StreamMarkdown } from "@aibind/tanstack-start/markdown";
 import { useStream } from "@aibind/tanstack-start";
 
@@ -92,6 +71,11 @@ function Chat() {
   return <StreamMarkdown text={text} streaming={loading} />;
 }
 ```
+
+:::
+
+**Props:** `text: string`, `streaming: boolean`, `class/className: string` (optional).
+SolidStart exports `useStreamMarkdown` (hook) instead of a component.
 
 ## How It Works
 

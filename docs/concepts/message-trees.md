@@ -9,18 +9,18 @@
 
 ## Basic Usage
 
-### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { MessageTree } from '@aibind/sveltekit/history';
+  import { MessageTree } from "@aibind/sveltekit/history";
 
   type Msg = { role: string; content: string };
   const tree = new MessageTree<Msg>();
 
-  const r1 = tree.append({ role: 'user', content: 'Hello' });
-  const r2 = tree.append({ role: 'assistant', content: 'Hi!' });
-  const alt = tree.branch(r1, { role: 'assistant', content: 'Hey there!' });
+  const r1 = tree.append({ role: "user", content: "Hello" });
+  const r2 = tree.append({ role: "assistant", content: "Hi!" });
+  const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
 </script>
 
 {#each tree.activePath.messages as msg}
@@ -31,9 +31,7 @@
 <button onclick={() => tree.prevSibling(r2)}>Prev branch</button>
 ```
 
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { MessageTree } from "@aibind/nextjs/history";
@@ -62,9 +60,7 @@ function TreeView() {
 }
 ```
 
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { MessageTree } from "@aibind/nuxt/history";
 
@@ -77,7 +73,10 @@ const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
 </script>
 
 <template>
-  <div v-for="(msg, i) in tree.activePath.value.messages" :key="tree.activePath.value.nodeIds[i]">
+  <div
+    v-for="(msg, i) in tree.activePath.value.messages"
+    :key="tree.activePath.value.nodeIds[i]"
+  >
     <strong>{{ msg.role }}:</strong> {{ msg.content }}
   </div>
   <button @click="tree.nextSibling(alt)">Next branch</button>
@@ -85,9 +84,7 @@ const alt = tree.branch(r1, { role: "assistant", content: "Hey there!" });
 </template>
 ```
 
-### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { MessageTree } from "@aibind/solidstart/history";
 import { For } from "solid-js";
 
@@ -115,9 +112,7 @@ function TreeView() {
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { MessageTree } from "@aibind/tanstack-start/history";
 
 type Msg = { role: string; content: string };
@@ -143,6 +138,8 @@ function TreeView() {
   );
 }
 ```
+
+:::
 
 ## Properties (Reactive)
 

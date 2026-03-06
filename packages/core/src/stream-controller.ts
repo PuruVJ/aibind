@@ -8,7 +8,9 @@
 
 import { consumeTextStream } from "./stream-utils";
 import { SSE } from "./sse";
-import type { StreamStatus, SendOptions } from "./types";
+import type { StreamStatus, StreamUsage, SendOptions } from "./types";
+import type { ChatHistory } from "./chat-history";
+import type { ConversationMessage } from "./conversation-store";
 
 // --- Callbacks ---
 
@@ -20,6 +22,7 @@ export interface StreamCallbacks {
   onStatus(status: StreamStatus): void;
   onStreamId(id: string | null): void;
   onCanResume(canResume: boolean): void;
+  onUsage?(usage: StreamUsage): void;
 }
 
 export interface StreamControllerOptions {
@@ -29,6 +32,13 @@ export interface StreamControllerOptions {
   fetch?: typeof globalThis.fetch;
   onFinish?: (text: string) => void;
   onError?: (error: Error) => void;
+  /**
+   * Session ID for server-side conversation history.
+   * When set, the server will maintain conversation context across sends
+   * using a ConversationStore. Set once at construction — tied to the
+   * stream instance lifecycle.
+   */
+  sessionId?: string;
 }
 
 // --- StreamController ---
@@ -67,11 +77,17 @@ export class StreamController {
 
   // --- Protected hooks for StructuredStreamController ---
 
+  /** Change the default model for all future sends. */
+  setModel(model: string): void {
+    this._opts.model = model;
+  }
+
   protected async _buildBody(
     prompt: string,
     system: string | undefined,
+    model: string | undefined,
   ): Promise<Record<string, unknown>> {
-    return { prompt, system, model: this._opts.model };
+    return { prompt, system, model, sessionId: this._opts.sessionId };
   }
 
   protected _processChunk(chunk: string): void {
@@ -154,6 +170,28 @@ export class StreamController {
     this._cb.onCanResume(false);
   }
 
+  async compact(
+    chat: ChatHistory<ConversationMessage>,
+  ): Promise<{ tokensSaved: number }> {
+    const response = await this._fetch(`${this._opts.endpoint}/compact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: chat.messages,
+        sessionId: this._opts.sessionId,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Compact request failed: ${response.status}`);
+    }
+    const { summary, tokensSaved } = (await response.json()) as {
+      summary: string;
+      tokensSaved: number;
+    };
+    chat.compact({ role: "system", content: summary });
+    return { tokensSaved };
+  }
+
   async resume(): Promise<void> {
     if (!this._streamId || !this._isSSE) return;
 
@@ -175,7 +213,8 @@ export class StreamController {
   ): Promise<void> {
     try {
       const system = options?.system ?? this._opts.system;
-      const body = await this._buildBody(prompt, system);
+      const model = options?.model ?? this._opts.model;
+      const body = await this._buildBody(prompt, system, model);
 
       const response = await this._fetch(this._opts.endpoint, {
         method: "POST",
@@ -268,6 +307,14 @@ export class StreamController {
           this._cb.onStatus("done");
         }
         return;
+      }
+      if (msg.event === "usage") {
+        try {
+          this._cb.onUsage?.(JSON.parse(msg.data) as StreamUsage);
+        } catch {
+          // Malformed usage payload — ignore
+        }
+        continue;
       }
       if (msg.event === "stopped") {
         this._status = "stopped";

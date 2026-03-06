@@ -1,7 +1,7 @@
 {
   "name": "@aibind/nextjs",
   "version": "0.4.0",
-  "description": "AI SDK bindings for Next.js \u2014 hooks with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for Next.js — hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "nextjs",

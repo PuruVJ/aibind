@@ -4,23 +4,24 @@
 
 ## Basic Usage
 
-### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { ChatHistory } from '@aibind/sveltekit/history';
+  import { ChatHistory } from "@aibind/sveltekit/history";
 
-  type Msg = { role: 'user' | 'assistant'; content: string };
+  type Msg = { role: "user" | "assistant"; content: string };
   const chat = new ChatHistory<Msg>();
 </script>
 
-<button onclick={() => chat.append({ role: 'user', content: 'Hello!' })}>
+<button onclick={() => chat.append({ role: "user", content: "Hello!" })}>
   Add message
 </button>
 
 {#each chat.messages as msg, i}
   <div>
-    <strong>{msg.role}:</strong> {msg.content}
+    <strong>{msg.role}:</strong>
+    {msg.content}
 
     {#if chat.hasAlternatives(chat.nodeIds[i])}
       <button onclick={() => chat.prevAlternative(chat.nodeIds[i])}>←</button>
@@ -34,9 +35,7 @@
 {/each}
 ```
 
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { ChatHistory } from "@aibind/nextjs/history";
@@ -58,10 +57,14 @@ function ChatView() {
           <strong>{msg.role}:</strong> {msg.content}
           {chat.hasAlternatives(nodeIds[i]) && (
             <span>
-              <button onClick={() => chat.prevAlternative(nodeIds[i])}>←</button>
-              {chat.alternativeIndex(nodeIds[i]) + 1}
-              /{chat.alternativeCount(nodeIds[i])}
-              <button onClick={() => chat.nextAlternative(nodeIds[i])}>→</button>
+              <button onClick={() => chat.prevAlternative(nodeIds[i])}>
+                ←
+              </button>
+              {chat.alternativeIndex(nodeIds[i]) + 1}/
+              {chat.alternativeCount(nodeIds[i])}
+              <button onClick={() => chat.nextAlternative(nodeIds[i])}>
+                →
+              </button>
             </span>
           )}
         </div>
@@ -71,9 +74,7 @@ function ChatView() {
 }
 ```
 
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { ChatHistory } from "@aibind/nuxt/history";
 
@@ -97,9 +98,7 @@ const chat = new ChatHistory<Msg>();
 </template>
 ```
 
-### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { ChatHistory } from "@aibind/solidstart/history";
 import { For, Show } from "solid-js";
 
@@ -119,10 +118,14 @@ function ChatView() {
             <div>
               <strong>{msg.role}:</strong> {msg.content}
               <Show when={chat.hasAlternatives(nodeId())}>
-                <button onClick={() => chat.prevAlternative(nodeId())}>←</button>
-                {chat.alternativeIndex(nodeId()) + 1}
-                /{chat.alternativeCount(nodeId())}
-                <button onClick={() => chat.nextAlternative(nodeId())}>→</button>
+                <button onClick={() => chat.prevAlternative(nodeId())}>
+                  ←
+                </button>
+                {chat.alternativeIndex(nodeId()) + 1}/
+                {chat.alternativeCount(nodeId())}
+                <button onClick={() => chat.nextAlternative(nodeId())}>
+                  →
+                </button>
               </Show>
             </div>
           );
@@ -133,9 +136,7 @@ function ChatView() {
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { ChatHistory } from "@aibind/tanstack-start/history";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -154,10 +155,14 @@ function ChatView() {
           <strong>{msg.role}:</strong> {msg.content}
           {chat.hasAlternatives(nodeIds[i]) && (
             <span>
-              <button onClick={() => chat.prevAlternative(nodeIds[i])}>←</button>
-              {chat.alternativeIndex(nodeIds[i]) + 1}
-              /{chat.alternativeCount(nodeIds[i])}
-              <button onClick={() => chat.nextAlternative(nodeIds[i])}>→</button>
+              <button onClick={() => chat.prevAlternative(nodeIds[i])}>
+                ←
+              </button>
+              {chat.alternativeIndex(nodeIds[i]) + 1}/
+              {chat.alternativeCount(nodeIds[i])}
+              <button onClick={() => chat.nextAlternative(nodeIds[i])}>
+                →
+              </button>
             </span>
           )}
         </div>
@@ -166,6 +171,8 @@ function ChatView() {
   );
 }
 ```
+
+:::
 
 ## API
 
@@ -180,11 +187,12 @@ function ChatView() {
 
 ### Mutation Methods
 
-| Method                          | Description                           |
-| ------------------------------- | ------------------------------------- |
-| `append(message)`               | Add message to current path           |
-| `edit(messageId, newMessage)`   | Create a branch with edited message   |
-| `regenerate(messageId, newMsg)` | Same as edit — creates sibling branch |
+| Method                          | Description                                        |
+| ------------------------------- | -------------------------------------------------- |
+| `append(message)`               | Add message to current path                        |
+| `edit(messageId, newMessage)`   | Create a branch with edited message                |
+| `regenerate(messageId, newMsg)` | Same as edit — creates sibling branch              |
+| `compact(summary)`              | Clear entire history and replace with summary node |
 
 ### Navigation Methods
 
@@ -221,9 +229,9 @@ When you call `edit()` or `regenerate()`, a new sibling node is created. The act
 
 ## Reactivity by Framework
 
-| Framework | Access pattern | Example |
-|-----------|---------------|---------|
-| Svelte    | Direct property | `chat.messages` |
-| React     | Via hook | `const { messages } = chat.useSnapshot()` |
-| Vue       | `.value` | `chat.messages.value` |
-| Solid     | Function call | `chat.messages()` |
+| Framework | Access pattern  | Example                                   |
+| --------- | --------------- | ----------------------------------------- |
+| Svelte    | Direct property | `chat.messages`                           |
+| React     | Via hook        | `const { messages } = chat.useSnapshot()` |
+| Vue       | `.value`        | `chat.messages.value`                     |
+| Solid     | Function call   | `chat.messages()`                         |

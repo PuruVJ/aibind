@@ -1,16 +1,42 @@
 /**
  * Framework-agnostic stream handler.
  *
- * Creates a standard Web Request → Response handler for streaming endpoints.
- * Framework packages (sveltekit, nuxt, solidstart) can either re-export directly
- * or wrap with framework-specific patterns (e.g. SvelteKit's event/resolve).
+ * `StreamHandler` exposes individual typed methods for each AI endpoint.
+ * Use it directly for custom routing/middleware, or use `createStreamHandler`
+ * for the zero-config all-in-one Request → Response handler.
  */
 
-import { streamText, Output, jsonSchema } from "ai";
+import { streamText, generateText, Output, jsonSchema } from "ai";
 import type { StreamStore } from "./stream-store";
 import { MemoryStreamStore } from "./memory-store";
 import { DurableStream } from "./durable-stream";
+import { SSE } from "./sse";
 import type { LanguageModel } from "./types";
+import type {
+  ConversationStore,
+  ConversationMessage,
+} from "./conversation-store";
+import { ChatHistory } from "./chat-history";
+
+const DEFAULT_COMPACT_PROMPT =
+  "Summarize the following conversation into a single dense paragraph that " +
+  "preserves all important context, decisions, facts, and preferences. " +
+  "This summary will replace the conversation history for a future AI session.";
+
+export interface ConversationConfig {
+  /** Pluggable store for conversation history. */
+  store: ConversationStore;
+  /**
+   * Sliding window — only the most recent N messages are sent to the model.
+   * Older messages are still persisted in the store. Default: unlimited.
+   */
+  maxMessages?: number;
+  /**
+   * System prompt used by the /compact endpoint when summarizing.
+   * Defaults to a general-purpose summarization instruction.
+   */
+  compactSystemPrompt?: string;
+}
 
 export interface StreamHandlerConfig {
   /** Single model for all requests. */
@@ -29,49 +55,122 @@ export interface StreamHandlerConfig {
    * Only used when `resumable: true`.
    */
   store?: StreamStore;
+  /**
+   * Enable server-side conversation history. When set, the handler maintains
+   * multi-turn context keyed by `sessionId` from the request body.
+   * Uses ChatHistory<ConversationMessage> — same tree structure as the client.
+   */
+  conversation?: ConversationConfig;
 }
 
-// Map of active durable streams (for stop endpoint)
-const activeStreams = new Map<string, DurableStream>();
+// --- Typed request body interfaces ---
+
+export interface StreamRequestBody {
+  prompt: string;
+  system?: string;
+  model?: string;
+  sessionId?: string;
+}
+
+export interface StructuredStreamRequestBody extends StreamRequestBody {
+  schema?: unknown;
+}
+
+export interface CompactRequestBody {
+  messages: ConversationMessage[];
+  model?: string;
+  sessionId?: string;
+}
+
+export interface StopRequestBody {
+  id: string;
+}
 
 /**
- * Create a standard Web Request → Response handler for streaming endpoints.
- * Works with any framework that uses Web standard Request/Response.
+ * Individual typed responders for each AI endpoint.
+ *
+ * Instantiate directly for custom routing, middleware, or non-standard frameworks.
+ * Each method accepts a pre-parsed body and returns a standard `Response`.
+ *
+ * @example
+ * ```ts
+ * // Hono
+ * import { Hono } from 'hono';
+ * import { StreamHandler } from '@aibind/core';
+ *
+ * const ai = new StreamHandler({ models });
+ * const app = new Hono();
+ *
+ * app.post('/__aibind__/stream', async (c) => ai.stream(await c.req.json()));
+ * app.post('/__aibind__/compact', async (c) => ai.compact(await c.req.json()));
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Next.js with auth middleware
+ * const ai = new StreamHandler({ models });
+ *
+ * export async function POST(request: Request) {
+ *   const session = await getSession(request);
+ *   if (!session) return new Response('Unauthorized', { status: 401 });
+ *
+ *   const body = await request.json();
+ *   return ai.stream({ ...body, sessionId: session.userId });
+ * }
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Express (with a Web Response → express res adapter)
+ * const ai = new StreamHandler({ models });
+ *
+ * app.post('/__aibind__/stream', async (req, res) => {
+ *   const response = await ai.stream(req.body);
+ *   res.status(response.status);
+ *   response.headers.forEach((v, k) => res.setHeader(k, v));
+ *   Readable.fromWeb(response.body!).pipe(res);
+ * });
+ * ```
  */
-export function createStreamHandler(
-  config: StreamHandlerConfig,
-): (request: Request) => Promise<Response> {
-  const prefix = config.prefix ?? "/__aibind__";
-  const resumable = config.resumable ?? false;
-  const store = resumable ? (config.store ?? new MemoryStreamStore()) : null;
+export class StreamHandler {
+  readonly #config: StreamHandlerConfig;
+  readonly #store: StreamStore | null;
+  readonly #activeStreams: Map<string, DurableStream>;
 
-  function resolveModel(requested?: string): import("ai").LanguageModel {
-    if (config.models) {
-      const key = requested ?? Object.keys(config.models)[0];
-      const model = config.models[key];
-      if (!model) {
-        throw new Error(`Unknown model key: "${key}"`);
-      }
-      return model as import("ai").LanguageModel;
-    }
-    if (!config.model) {
-      throw new Error("No model configured — provide `model` or `models`");
-    }
-    return config.model as import("ai").LanguageModel;
+  constructor(config: StreamHandlerConfig) {
+    this.#config = config;
+    this.#store = config.resumable
+      ? (config.store ?? new MemoryStreamStore())
+      : null;
+    this.#activeStreams = new Map();
   }
 
-  function handleStream(
-    body: Record<string, unknown>,
+  #resolveModel(requested?: string): import("ai").LanguageModel {
+    const { models, model } = this.#config;
+    if (models) {
+      const key = requested ?? Object.keys(models)[0];
+      const resolved = models[key];
+      if (!resolved) throw new Error(`Unknown model key: "${key}"`);
+      return resolved as import("ai").LanguageModel;
+    }
+    if (!model)
+      throw new Error("No model configured — provide `model` or `models`");
+    return model as import("ai").LanguageModel;
+  }
+
+  async #handleStream(
+    body: StructuredStreamRequestBody,
     structured: boolean,
-  ): Response | Promise<Response> {
-    const { prompt, system, model: requestedModel, schema } = body;
+  ): Promise<Response> {
+    const { prompt, system, model: requestedModel, sessionId, schema } = body;
+
     if (typeof prompt !== "string" || !prompt.trim()) {
       return Response.json({ error: "prompt is required" }, { status: 400 });
     }
 
     let model: import("ai").LanguageModel;
     try {
-      model = resolveModel(requestedModel as string | undefined);
+      model = this.#resolveModel(requestedModel);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       return Response.json({ error: message }, { status: 400 });
@@ -83,30 +182,180 @@ export function createStreamHandler(
         : Output.json()
       : undefined;
 
-    const result = streamText({
-      model,
-      prompt,
-      system: system as string | undefined,
-      ...(output && { output }),
-    });
+    // Conversation history (server-side sessions)
+    const convConfig = this.#config.conversation;
+    let chat: ChatHistory<ConversationMessage> | null = null;
+    let history: ConversationMessage[] = [];
 
-    if (!resumable || !store) {
-      return result.toTextStreamResponse();
+    if (convConfig && typeof sessionId === "string" && sessionId) {
+      chat = await convConfig.store.load(sessionId);
+      history = chat.messages;
+      if (convConfig.maxMessages) {
+        history = history.slice(-convConfig.maxMessages);
+      }
     }
 
-    return handleDurableStream(result.textStream);
+    const userMsg: ConversationMessage = { role: "user", content: prompt };
+    const capturedChat = chat;
+    const capturedSessionId = sessionId;
+
+    const onFinish =
+      capturedChat !== null
+        ? async ({ text }: { text: string }) => {
+            capturedChat.append(userMsg);
+            capturedChat.append({ role: "assistant", content: text });
+            await convConfig!.store.save(
+              capturedSessionId as string,
+              capturedChat,
+            );
+          }
+        : undefined;
+
+    const result = streamText({
+      model,
+      ...(history.length > 0
+        ? { messages: [...history, userMsg] }
+        : { prompt }),
+      system,
+      ...(output && { output }),
+      ...(onFinish && { onFinish }),
+    });
+
+    if (!this.#store) {
+      return StreamHandler.#buildSSEResponse(result);
+    }
+
+    const durableStream = await DurableStream.create({
+      store: this.#store,
+      source: result.textStream,
+    });
+    this.#activeStreams.set(durableStream.id, durableStream);
+    return durableStream.response;
   }
 
-  async function handleDurableStream(
-    source: AsyncIterable<string>,
-  ): Promise<Response> {
-    const stream = await DurableStream.create({ store: store!, source });
-    activeStreams.set(stream.id, stream);
-    return stream.response;
+  /**
+   * Build an SSE response that streams text chunks then emits a trailing
+   * `usage` event with token counts before the terminal `done` event.
+   */
+  static #buildSSEResponse(result: ReturnType<typeof streamText>): Response {
+    const encoder = new TextEncoder();
+    let seq = 0;
+
+    const readable = new ReadableStream({
+      async start(ctrl) {
+        try {
+          for await (const chunk of result.textStream) {
+            ctrl.enqueue(encoder.encode(SSE.format(seq++, chunk)));
+          }
+          const usage = await result.usage;
+          ctrl.enqueue(
+            encoder.encode(
+              SSE.formatEvent(
+                "usage",
+                JSON.stringify({
+                  inputTokens: usage.inputTokens ?? 0,
+                  outputTokens: usage.outputTokens ?? 0,
+                }),
+              ),
+            ),
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          ctrl.enqueue(encoder.encode(SSE.formatEvent("error", msg)));
+        }
+        ctrl.enqueue(encoder.encode(SSE.formatEvent("done")));
+        ctrl.close();
+      },
+    });
+
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   }
 
-  function handleResume(url: URL): Response {
-    if (!store) {
+  /** Handle a plain text streaming request. */
+  stream(body: StreamRequestBody): Promise<Response> {
+    return this.#handleStream(body, false);
+  }
+
+  /** Handle a structured (JSON) streaming request. */
+  structuredStream(body: StructuredStreamRequestBody): Promise<Response> {
+    return this.#handleStream(body, true);
+  }
+
+  /**
+   * Summarize a conversation and return `{ summary, tokensSaved }`.
+   * `tokensSaved` is the net token reduction (input tokens − output tokens).
+   */
+  async compact(body: CompactRequestBody): Promise<Response> {
+    const { messages, model: requestedModel, sessionId } = body;
+
+    if (!Array.isArray(messages)) {
+      return Response.json({ error: "messages is required" }, { status: 400 });
+    }
+
+    let model: import("ai").LanguageModel;
+    try {
+      model = this.#resolveModel(requestedModel);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return Response.json({ error: message }, { status: 400 });
+    }
+
+    const convConfig = this.#config.conversation;
+    const systemPrompt =
+      convConfig?.compactSystemPrompt ?? DEFAULT_COMPACT_PROMPT;
+
+    const conversationText = messages
+      .map((m) => `${m.role}: ${m.content}`)
+      .join("\n\n");
+
+    const { text, usage } = await generateText({
+      model,
+      prompt: `${systemPrompt}\n\n---\n\n${conversationText}`,
+    });
+
+    if (convConfig && typeof sessionId === "string" && sessionId) {
+      const chat = await convConfig.store.load(sessionId);
+      chat.compact({ role: "system", content: text });
+      await convConfig.store.save(sessionId, chat);
+    }
+
+    const tokensSaved = (usage.inputTokens ?? 0) - (usage.outputTokens ?? 0);
+    return Response.json({ summary: text, tokensSaved });
+  }
+
+  /** Stop a durable stream by ID (requires `resumable: true`). */
+  async stop(body: StopRequestBody): Promise<Response> {
+    const { id } = body;
+    if (typeof id !== "string") {
+      return Response.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const stream = this.#activeStreams.get(id);
+    if (stream) {
+      stream.stop();
+      this.#activeStreams.delete(id);
+    }
+
+    if (this.#store) {
+      try {
+        await this.#store.stop(id);
+      } catch {
+        // Stream may already be stopped/completed
+      }
+    }
+
+    return Response.json({ ok: true });
+  }
+
+  /** Resume a durable stream. Pass the full request URL for `?id=` and `?after=` params. */
+  resume(url: URL): Response {
+    if (!this.#store) {
       return Response.json(
         { error: "Resumable streams not enabled" },
         { status: 400 },
@@ -123,54 +372,53 @@ export function createStreamHandler(
       );
     }
 
-    return DurableStream.resume({ store, streamId, afterSeq });
+    return DurableStream.resume({ store: this.#store, streamId, afterSeq });
   }
 
-  async function handleStop(body: Record<string, unknown>): Promise<Response> {
-    const { id } = body;
-    if (typeof id !== "string") {
-      return Response.json({ error: "id is required" }, { status: 400 });
-    }
-
-    const stream = activeStreams.get(id);
-    if (stream) {
-      stream.stop();
-      activeStreams.delete(id);
-    }
-
-    if (store) {
-      try {
-        await store.stop(id);
-      } catch {
-        // Stream may already be stopped/completed
-      }
-    }
-
-    return Response.json({ ok: true });
-  }
-
-  return async function handle(request: Request): Promise<Response> {
+  /**
+   * All-in-one Request → Response handler with built-in routing.
+   * Equivalent to calling the function returned by `createStreamHandler`.
+   */
+  async handle(request: Request): Promise<Response> {
+    const prefix = this.#config.prefix ?? "/__aibind__";
+    const resumable = this.#config.resumable ?? false;
     const url = new URL(request.url);
-    const pathname = url.pathname;
+    const { pathname } = url;
 
     if (request.method === "POST") {
       if (pathname === `${prefix}/stream`) {
-        return handleStream(await request.json(), false);
+        return this.stream(await request.json());
       }
       if (pathname === `${prefix}/structured`) {
-        return handleStream(await request.json(), true);
+        return this.structuredStream(await request.json());
+      }
+      if (pathname === `${prefix}/compact`) {
+        return this.compact(await request.json());
       }
       if (resumable && pathname === `${prefix}/stream/stop`) {
-        return handleStop(await request.json());
+        return this.stop(await request.json());
       }
     }
 
     if (request.method === "GET") {
       if (resumable && pathname === `${prefix}/stream/resume`) {
-        return handleResume(url);
+        return this.resume(url);
       }
     }
 
     return new Response("Not Found", { status: 404 });
-  };
+  }
+}
+
+/**
+ * Create an all-in-one Request → Response handler for streaming endpoints.
+ * Works with any framework that uses Web standard Request/Response.
+ *
+ * For custom routing or middleware, instantiate `StreamHandler` directly.
+ */
+export function createStreamHandler(
+  config: StreamHandlerConfig,
+): (request: Request) => Promise<Response> {
+  const handler = new StreamHandler(config);
+  return (request: Request) => handler.handle(request);
 }

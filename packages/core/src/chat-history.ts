@@ -1,4 +1,4 @@
-import { MessageTree, type TreeConfig, type TreeNode } from "./message-tree";
+import { MessageTree, type TreeConfig } from "./message-tree";
 
 /**
  * High-level conversation history with branching support.
@@ -144,6 +144,20 @@ export class ChatHistory<M> {
   }
 
   // ─── Persistence ────────────────────────────────────────────
+
+  /**
+   * Replace the entire conversation history with a single summary message.
+   * Clears all branches and resets the tree to one root node tagged
+   * `{ compacted: true }`. Use this after generating a summary from the AI
+   * to compress long conversations before they exceed the context window.
+   */
+  compact(summary: M): void {
+    this.tree.clear();
+    this.tree.append(summary, {
+      compacted: true,
+      compactedAt: new Date().toISOString(),
+    });
+  }
 
   /** Serialize to a JSON string. */
   toJSON(): string {

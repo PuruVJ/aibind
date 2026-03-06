@@ -184,13 +184,25 @@
       "Bash(do echo \"=== packages/$pkg ===\")",
       "Bash(pnpm package)",
       "Bash(pnpm run package)",
-      "Bash(pnpm run test)"
+      "Bash(pnpm run test)",
+      "Bash(pnpm --filter @aibind/core run package)",
+      "Bash(pnpm --filter @aibind/react --filter @aibind/vue --filter @aibind/solid run package)",
+      "Bash(pnpm --filter @aibind/react-router run package)",
+      "Bash(pnpm --filter @aibind/core run test)",
+      "Bash(grep -n \"=>\" /Users/puruvijay/Projects/svai/docs/concepts/*.md /Users/puruvijay/Projects/svai/docs/guide/*.md)",
+      "Bash(npx vitepress build)",
+      "Bash(pnpm add -D prettier-plugin-svelte prettier-plugin-vue)",
+      "Bash(pnpm add -Dw prettier-plugin-svelte prettier-plugin-vue)",
+      "Bash(pnpm remove -w prettier-plugin-vue)",
+      "Bash(pnpm format)",
+      "Read(//Users/puruvijay/Projects/svai/**)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",
       "/Users/puruvijay/.claude/projects/-Users-puruvijay-Projects-svai",
       "/Users/puruvijay/Projects/svai",
-      "/Users/puruvijay/Projects/svai/packages/*"
+      "/Users/puruvijay/Projects/svai/packages/*",
+      "/tmp"
     ]
   }
 }

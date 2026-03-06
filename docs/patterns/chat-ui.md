@@ -6,28 +6,28 @@ Build a full chat interface with streaming, message history, branching, and mark
 
 ```svelte
 <script lang="ts">
-  import { Stream } from '@aibind/sveltekit';
-  import { ChatHistory } from '@aibind/sveltekit/history';
-  import { StreamMarkdown } from '@aibind/sveltekit/markdown';
+  import { Stream } from "@aibind/sveltekit";
+  import { ChatHistory } from "@aibind/sveltekit/history";
+  import { StreamMarkdown } from "@aibind/sveltekit/markdown";
 
-  type Msg = { role: 'user' | 'assistant'; content: string };
+  type Msg = { role: "user" | "assistant"; content: string };
 
   const chat = new ChatHistory<Msg>();
   const stream = new Stream({
-    model: 'smart',
-    system: 'You are a helpful assistant.',
+    model: "smart",
+    system: "You are a helpful assistant.",
     onFinish: (text) => {
-      chat.append({ role: 'assistant', content: text });
+      chat.append({ role: "assistant", content: text });
     },
   });
 
-  let prompt = $state('');
+  let prompt = $state("");
 
   function handleSend() {
     if (!prompt.trim()) return;
-    chat.append({ role: 'user', content: prompt });
+    chat.append({ role: "user", content: prompt });
     stream.send(prompt);
-    prompt = '';
+    prompt = "";
   }
 </script>
 
@@ -36,7 +36,7 @@ Build a full chat interface with streaming, message history, branching, and mark
     <div class="message {msg.role}">
       <strong>{msg.role}</strong>
 
-      {#if msg.role === 'assistant'}
+      {#if msg.role === "assistant"}
         <StreamMarkdown text={msg.content} />
       {:else}
         <p>{msg.content}</p>
@@ -44,12 +44,16 @@ Build a full chat interface with streaming, message history, branching, and mark
 
       {#if chat.hasAlternatives(chat.nodeIds[i])}
         <div class="alternatives">
-          <button onclick={() => chat.prevAlternative(chat.nodeIds[i])}>←</button>
+          <button onclick={() => chat.prevAlternative(chat.nodeIds[i])}
+            >←</button
+          >
           <span>
             {chat.alternativeIndex(chat.nodeIds[i]) + 1}
             / {chat.alternativeCount(chat.nodeIds[i])}
           </span>
-          <button onclick={() => chat.nextAlternative(chat.nodeIds[i])}>→</button>
+          <button onclick={() => chat.nextAlternative(chat.nodeIds[i])}
+            >→</button
+          >
         </div>
       {/if}
     </div>
@@ -63,7 +67,12 @@ Build a full chat interface with streaming, message history, branching, and mark
   {/if}
 </div>
 
-<form onsubmit={(e) => { e.preventDefault(); handleSend(); }}>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    handleSend();
+  }}
+>
   <input bind:value={prompt} placeholder="Type a message..." />
   <button type="submit" disabled={stream.loading}>Send</button>
 </form>

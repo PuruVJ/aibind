@@ -16,11 +16,11 @@ This package requires you to specify an `endpoint` for every class. For SvelteKi
 
 ```svelte
 <script lang="ts">
-  import { Stream } from '@aibind/svelte';
+  import { Stream } from "@aibind/svelte";
 
   const stream = new Stream({
-    endpoint: '/my/stream/endpoint', // required
-    system: 'You are a helpful assistant.'
+    endpoint: "/my/stream/endpoint", // required
+    system: "You are a helpful assistant.",
   });
 </script>
 ```

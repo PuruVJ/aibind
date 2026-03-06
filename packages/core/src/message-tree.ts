@@ -202,6 +202,15 @@ export class MessageTree<M> {
     return id;
   }
 
+  /**
+   * Remove all nodes and reset the tree to empty.
+   */
+  clear(): void {
+    this.#nodes.clear();
+    this.#rootIds = [];
+    this.#activeLeafId = null;
+  }
+
   // ─── Navigation ─────────────────────────────────────────────
 
   /**

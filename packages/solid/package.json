@@ -1,7 +1,7 @@
 {
   "name": "@aibind/solid",
   "version": "0.4.0",
-  "description": "AI SDK bindings for SolidJS \u2014 reactive hooks for streaming, structured output, and agents",
+  "description": "AI SDK bindings for SolidJS — reactive hooks for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
     "solid",
@@ -45,10 +45,18 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
-      "agent": ["dist/agent/index.d.ts"],
-      "markdown": ["dist/markdown/index.d.ts"],
-      "history": ["dist/history/index.d.ts"],
-      "project": ["dist/project/index.d.ts"]
+      "agent": [
+        "dist/agent/index.d.ts"
+      ],
+      "markdown": [
+        "dist/markdown/index.d.ts"
+      ],
+      "history": [
+        "dist/history/index.d.ts"
+      ],
+      "project": [
+        "dist/project/index.d.ts"
+      ]
     }
   },
   "files": [

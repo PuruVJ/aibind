@@ -9,8 +9,12 @@ import {
   type StructuredStreamCallbacks,
   type StructuredStreamControllerOptions,
   type StreamStatus,
+  type StreamUsage,
   type SendOptions,
   type DeepPartial,
+  type BaseStreamOptions,
+  type ChatHistory,
+  type ConversationMessage,
 } from "@aibind/core";
 
 export { defineModels } from "@aibind/core";
@@ -19,11 +23,13 @@ export type {
   DeepPartial,
   LanguageModel,
   StreamStatus,
+  StreamUsage,
+  BaseStreamOptions,
 } from "@aibind/core";
 
 // --- useStream ---
 
-export interface UseStreamReturn {
+export interface UseStreamReturn<M extends string = string> {
   text: Ref<string>;
   loading: Ref<boolean>;
   error: Ref<Error | null>;
@@ -31,20 +37,21 @@ export interface UseStreamReturn {
   status: Ref<StreamStatus>;
   streamId: Ref<string | null>;
   canResume: Ref<boolean>;
-  send: (prompt: string, sendOpts?: SendOptions) => void;
+  model: Ref<M | undefined>;
+  usage: Ref<StreamUsage | null>;
+  setModel: (model: M) => void;
+  send: (prompt: string, sendOpts?: { system?: string; model?: M }) => void;
   abort: () => void;
   retry: () => void;
   stop: () => Promise<void>;
   resume: () => Promise<void>;
+  compact: (chat: ChatHistory<ConversationMessage>) => Promise<{ tokensSaved: number }>;
 }
 
-export interface StreamOptions<M extends string = string> {
+export interface StreamOptions<
+  M extends string = string,
+> extends BaseStreamOptions {
   model?: M;
-  system?: string;
-  endpoint: string;
-  fetch?: typeof globalThis.fetch;
-  onFinish?: (text: string) => void;
-  onError?: (error: Error) => void;
 }
 
 /**
@@ -53,7 +60,7 @@ export interface StreamOptions<M extends string = string> {
  */
 export function useStream<M extends string = string>(
   options: StreamOptions<M>,
-): UseStreamReturn {
+): UseStreamReturn<M> {
   const text = ref("");
   const loading = ref(false);
   const error: Ref<Error | null> = ref(null);
@@ -61,6 +68,8 @@ export function useStream<M extends string = string>(
   const status: Ref<StreamStatus> = ref("idle");
   const streamId: Ref<string | null> = ref(null);
   const canResume = ref(false);
+  const model = ref(options.model) as Ref<M | undefined>;
+  const usage: Ref<StreamUsage | null> = ref(null);
 
   const ctrl = new StreamController(options as StreamControllerOptions, {
     onText: (t) => {
@@ -84,6 +93,9 @@ export function useStream<M extends string = string>(
     onCanResume: (c) => {
       canResume.value = c;
     },
+    onUsage: (u) => {
+      usage.value = u;
+    },
   } satisfies StreamCallbacks);
 
   onUnmounted(() => ctrl.abort());
@@ -96,12 +108,19 @@ export function useStream<M extends string = string>(
     status,
     streamId,
     canResume,
-    send: (prompt: string, sendOpts?: SendOptions) =>
+    model,
+    usage,
+    setModel: (value: M) => {
+      model.value = value;
+      ctrl.setModel(value);
+    },
+    send: (prompt: string, sendOpts?: { system?: string; model?: M }) =>
       ctrl.send(prompt, sendOpts),
     abort: () => ctrl.abort(),
     retry: () => ctrl.retry(),
     stop: () => ctrl.stop(),
     resume: () => ctrl.resume(),
+    compact: (chat) => ctrl.compact(chat),
   };
 }
 

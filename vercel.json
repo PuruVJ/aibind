@@ -1,5 +1,5 @@
 {
-	"$schema": "https://openapi.vercel.sh/vercel.json",
-	"buildCommand": "pnpm --filter aibind-docs build",
-	"outputDirectory": "docs/.vitepress/dist"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter aibind-docs build",
+  "outputDirectory": "docs/.vitepress/dist"
 }

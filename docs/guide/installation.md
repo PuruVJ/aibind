@@ -6,35 +6,29 @@ aibind has separate packages for each framework. Install the one that matches yo
 
 These packages include both client hooks and server handlers with sensible defaults.
 
-### SvelteKit
+::: code-group
 
-```bash
+```bash [SvelteKit]
 pnpm add @aibind/sveltekit ai
 ```
 
-### Next.js
-
-```bash
+```bash [Next.js]
 pnpm add @aibind/nextjs ai
 ```
 
-### Nuxt
-
-```bash
+```bash [Nuxt]
 pnpm add @aibind/nuxt ai
 ```
 
-### SolidStart
-
-```bash
+```bash [SolidStart]
 pnpm add @aibind/solidstart ai
 ```
 
-### TanStack Start
-
-```bash
+```bash [TanStack Start]
 pnpm add @aibind/tanstack-start ai
 ```
+
+:::
 
 ## Client-Only Packages
 

@@ -13,26 +13,24 @@ aibind's streaming API sends a prompt to your server and streams back text in re
 
 Each framework has its own reactive wrapper, but the returned API surface is the same.
 
-### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { Stream } from '@aibind/sveltekit';
+  import { Stream } from "@aibind/sveltekit";
 
   const stream = new Stream({
-    model: 'fast',
-    system: 'You are a helpful assistant.',
+    model: "fast",
+    system: "You are a helpful assistant.",
   });
 </script>
 
-<button onclick={() => stream.send('Hello!')}>Send</button>
+<button onclick={() => stream.send("Hello!")}>Send</button>
 <p>{stream.text}</p>
 <p>Loading: {stream.loading}, Done: {stream.done}</p>
 ```
 
-### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { useStream } from "@aibind/nextjs";
@@ -52,9 +50,7 @@ function Chat() {
 }
 ```
 
-### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { useStream } from "@aibind/nuxt";
 
@@ -71,9 +67,7 @@ const { text, loading, send, abort, retry } = useStream({
 </template>
 ```
 
-### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { useStream } from "@aibind/solidstart";
 
 function Chat() {
@@ -86,15 +80,15 @@ function Chat() {
     <div>
       <button onClick={() => send("Hello!")}>Send</button>
       <p>{text()}</p>
-      <p>Loading: {loading()}, Done: {done()}</p>
+      <p>
+        Loading: {loading()}, Done: {done()}
+      </p>
     </div>
   );
 }
 ```
 
-### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { useStream } from "@aibind/tanstack-start";
 
 function Chat() {
@@ -112,6 +106,8 @@ function Chat() {
 }
 ```
 
+:::
+
 ## Returned State
 
 | Property    | Type             | Description                                        |
@@ -123,6 +119,8 @@ function Chat() {
 | `status`    | `StreamStatus`   | `'idle' \| 'streaming' \| 'stopped' \| 'resuming'` |
 | `streamId`  | `string \| null` | ID for durable stream operations                   |
 | `canResume` | `boolean`        | Whether the stream supports resume                 |
+| `model`     | `M \| undefined` | Current persistent model                           |
+| `setModel`  | `(m: M) => void` | Change persistent model for all future sends       |
 
 ## Methods
 
@@ -136,25 +134,28 @@ function Chat() {
 
 ## Options
 
-| Option     | Type                     | Description                                                          |
-| ---------- | ------------------------ | -------------------------------------------------------------------- |
-| `model`    | `string`                 | Named model key (from `defineModels`)                                |
-| `system`   | `string`                 | System prompt                                                        |
-| `endpoint` | `string`                 | Custom endpoint (fullstack packages default to `/__aibind__/stream`) |
-| `fetch`    | `typeof fetch`           | Custom fetch function                                                |
-| `onFinish` | `(text: string) => void` | Called when stream completes                                         |
-| `onError`  | `(error: Error) => void` | Called on error                                                      |
+| Option      | Type                     | Description                                                          |
+| ----------- | ------------------------ | -------------------------------------------------------------------- |
+| `model`     | `string`                 | Named model key (from `defineModels`)                                |
+| `system`    | `string`                 | System prompt                                                        |
+| `endpoint`  | `string`                 | Custom endpoint (fullstack packages default to `/__aibind__/stream`) |
+| `fetch`     | `typeof fetch`           | Custom fetch function                                                |
+| `onFinish`  | `(text: string) => void` | Called when stream completes                                         |
+| `onError`   | `(error: Error) => void` | Called on error                                                      |
+| `sessionId` | `string`                 | Enable server-side conversation history (see [Conversation Store])   |
+
+[Conversation Store]: /concepts/conversation-store
 
 ## Reactivity by Framework
 
 The API is identical — only the access pattern differs:
 
-| Framework | Access pattern | Example |
-|-----------|---------------|---------|
-| Svelte    | Direct property | `stream.text` |
-| React     | Direct value | `text` (from hook) |
-| Vue       | `.value` | `text.value` |
-| Solid     | Function call | `text()` |
+| Framework | Access pattern  | Example            |
+| --------- | --------------- | ------------------ |
+| Svelte    | Direct property | `stream.text`      |
+| React     | Direct value    | `text` (from hook) |
+| Vue       | `.value`        | `text.value`       |
+| Solid     | Function call   | `text()`           |
 
 ## Server Handler
 

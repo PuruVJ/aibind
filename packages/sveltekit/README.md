@@ -28,16 +28,21 @@ export const handle = createStreamHandler({
 
 ```svelte
 <script lang="ts">
-  import { Stream } from '@aibind/sveltekit';
+  import { Stream } from "@aibind/sveltekit";
 
   const stream = new Stream({
-    system: 'You are a helpful assistant.'
+    system: "You are a helpful assistant.",
   });
 
-  let prompt = $state('');
+  let prompt = $state("");
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); stream.send(prompt); }}>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    stream.send(prompt);
+  }}
+>
   <input bind:value={prompt} />
   <button disabled={stream.loading}>Send</button>
 </form>

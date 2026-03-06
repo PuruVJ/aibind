@@ -26,16 +26,16 @@ export const handle = createStreamHandler({
 
 ### Client
 
-#### SvelteKit
+::: code-group
 
-```svelte
+```svelte [SvelteKit]
 <script lang="ts">
-  import { Stream } from '@aibind/sveltekit';
+  import { Stream } from "@aibind/sveltekit";
 
-  const stream = new Stream({ model: 'fast' });
+  const stream = new Stream({ model: "fast" });
 </script>
 
-<button onclick={() => stream.send('Write a long essay...')}>Start</button>
+<button onclick={() => stream.send("Write a long essay...")}>Start</button>
 
 {#if stream.loading}
   <button onclick={() => stream.stop()}>Pause</button>
@@ -48,9 +48,7 @@ export const handle = createStreamHandler({
 <div>{stream.text}</div>
 ```
 
-#### Next.js / React
-
-```tsx
+```tsx [Next.js]
 "use client";
 
 import { useStream } from "@aibind/nextjs";
@@ -71,9 +69,7 @@ function DurableChat() {
 }
 ```
 
-#### Nuxt / Vue
-
-```vue
+```vue [Nuxt]
 <script setup lang="ts">
 import { useStream } from "@aibind/nuxt";
 
@@ -90,9 +86,7 @@ const { text, loading, canResume, send, stop, resume } = useStream({
 </template>
 ```
 
-#### SolidStart
-
-```tsx
+```tsx [SolidStart]
 import { useStream } from "@aibind/solidstart";
 
 function DurableChat() {
@@ -115,9 +109,7 @@ function DurableChat() {
 }
 ```
 
-#### TanStack Start
-
-```tsx
+```tsx [TanStack Start]
 import { useStream } from "@aibind/tanstack-start";
 
 function DurableChat() {
@@ -135,6 +127,8 @@ function DurableChat() {
   );
 }
 ```
+
+:::
 
 ## Stream Status
 

@@ -56,9 +56,9 @@ describe("AgentController", () => {
 
   describe("constructor", () => {
     it("throws if endpoint is missing", () => {
-      expect(
-        () => new AgentController({ endpoint: "" } as any, cb),
-      ).toThrow("endpoint");
+      expect(() => new AgentController({ endpoint: "" } as any, cb)).toThrow(
+        "endpoint",
+      );
     });
 
     it("creates with valid endpoint", () => {
@@ -141,9 +141,7 @@ describe("AgentController", () => {
 
       // Final call should have complete assistant content
       const finalMessages = messageCalls[messageCalls.length - 1];
-      const assistant = finalMessages.find(
-        (m: any) => m.role === "assistant",
-      );
+      const assistant = finalMessages.find((m: any) => m.role === "assistant");
       expect(assistant.content).toBe("ABC");
     });
 
