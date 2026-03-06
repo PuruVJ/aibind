@@ -2,7 +2,8 @@
  * Minimal async SQLite client interface.
  *
  * Compatible out-of-the-box with `@libsql/client` (Turso).
- * For `better-sqlite3`, use `wrapBetterSqlite3()`.
+ * For `better-sqlite3` (Node.js), use `wrapBetterSqlite3()`.
+ * For Bun's built-in `bun:sqlite`, use `wrapBunSqlite()`.
  */
 export interface SqliteResult {
   rows: Array<Record<string, unknown>>;
@@ -59,6 +60,43 @@ export function wrapBetterSqlite3(db: BetterSqliteDatabase): SqliteClient {
     },
     batch(stmts) {
       const results = db.transaction(() => stmts.map(runOne))();
+      return Promise.resolve(results);
+    },
+  };
+}
+
+type BunDatabase = {
+  query(sql: string): { all(...args: unknown[]): unknown[] };
+  transaction<T>(fn: () => T): { (): T };
+};
+
+/**
+ * Wrap a Bun built-in `bun:sqlite` Database as a `SqliteClient`.
+ *
+ * Uses structural typing — any object with the right shape works.
+ * `batch()` runs statements inside a single transaction.
+ *
+ * @example
+ * ```ts
+ * import { Database } from "bun:sqlite";
+ * import { wrapBunSqlite, SqliteStreamStore } from "@aibind/sqlite";
+ *
+ * const db = new Database("streams.db");
+ * const store = new SqliteStreamStore(wrapBunSqlite(db));
+ * ```
+ */
+export function wrapBunSqlite(db: BunDatabase): SqliteClient {
+  return {
+    execute({ sql, args = [] }) {
+      const rows = db.query(sql).all(...args) as Record<string, unknown>[];
+      return Promise.resolve({ rows });
+    },
+    batch(stmts) {
+      const results = db.transaction(() =>
+        stmts.map(({ sql, args = [] }) => ({
+          rows: db.query(sql).all(...args) as Record<string, unknown>[],
+        })),
+      )();
       return Promise.resolve(results);
     },
   };

@@ -28,6 +28,10 @@ pnpm add @aibind/solidstart ai
 pnpm add @aibind/tanstack-start ai
 ```
 
+```bash [React Router v7]
+pnpm add @aibind/react-router ai
+```
+
 :::
 
 ## Client-Only Packages
@@ -75,11 +79,20 @@ const openrouter = createOpenRouter({
 @aibind/react         ← React hooks
 @aibind/solid         ← SolidJS reactive wrappers
 
-@aibind/sveltekit     ← SvelteKit fullstack adapter
-@aibind/nextjs        ← Next.js fullstack adapter
-@aibind/nuxt          ← Nuxt fullstack adapter
-@aibind/solidstart    ← SolidStart fullstack adapter
+@aibind/sveltekit      ← SvelteKit fullstack adapter
+@aibind/nextjs         ← Next.js fullstack adapter
+@aibind/nuxt           ← Nuxt fullstack adapter
+@aibind/solidstart     ← SolidStart fullstack adapter
 @aibind/tanstack-start ← TanStack Start fullstack adapter
+@aibind/react-router   ← React Router v7 fullstack adapter
+
+# Storage integrations (optional)
+@aibind/redis          ← Redis StreamStore + ConversationStore
+@aibind/sqlite         ← SQLite / Turso StreamStore + ConversationStore
+@aibind/postgres       ← PostgreSQL StreamStore + ConversationStore
+@aibind/cloudflare     ← Cloudflare D1 + KV adapters
 ```
 
 The fullstack packages (`@aibind/sveltekit`, `@aibind/nextjs`, etc.) re-export everything from their client package with default endpoint configuration, plus add server-side handlers.
+
+Storage integrations are optional add-ons for [durable streams](/concepts/durable-streams) and server-side [conversation history](/concepts/conversation-store). See [Integrations](/integrations/redis) for setup.

@@ -57,6 +57,8 @@ export default defineConfig({
           // Production
           { text: "Token Tracking", link: "/concepts/token-tracking" },
           { text: "Prompt Caching", link: "/concepts/prompt-caching" },
+          // Zero-server
+          { text: "Service Worker Mode", link: "/integrations/service-worker" },
         ],
       },
       {

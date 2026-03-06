@@ -195,7 +195,10 @@
       "Bash(pnpm add -Dw prettier-plugin-svelte prettier-plugin-vue)",
       "Bash(pnpm remove -w prettier-plugin-vue)",
       "Bash(pnpm format)",
-      "Read(//Users/puruvijay/Projects/svai/**)"
+      "Read(//Users/puruvijay/Projects/svai/**)",
+      "WebSearch",
+      "Bash(pnpm exec tsc --noEmit)",
+      "Bash(pnpm install --frozen-lockfile)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

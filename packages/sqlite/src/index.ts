@@ -1,4 +1,4 @@
-export { wrapBetterSqlite3 } from "./client";
+export { wrapBetterSqlite3, wrapBunSqlite } from "./client";
 export type { SqliteClient, SqliteResult } from "./client";
 
 export { SqliteStreamStore } from "./sqlite-stream-store";

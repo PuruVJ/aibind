@@ -39,7 +39,7 @@ const streamStore = new SqliteStreamStore(db);
 const conversationStore = new SqliteConversationStore(db);
 ```
 
-### With better-sqlite3
+### With better-sqlite3 (Node.js)
 
 Wrap the synchronous `Database` instance with `wrapBetterSqlite3()`:
 
@@ -48,6 +48,24 @@ import Database from "better-sqlite3";
 import { wrapBetterSqlite3, SqliteStreamStore, SqliteConversationStore } from "@aibind/sqlite";
 
 const db = wrapBetterSqlite3(new Database("app.db"));
+
+const streamStore = new SqliteStreamStore(db);
+const conversationStore = new SqliteConversationStore(db);
+```
+
+::: warning Node.js only
+`better-sqlite3` is a native Node.js addon. It does **not** work with Bun. Use `wrapBunSqlite` instead (see below).
+:::
+
+### With Bun's built-in SQLite
+
+Bun ships a built-in `bun:sqlite` module. Use `wrapBunSqlite()`:
+
+```ts
+import { Database } from "bun:sqlite";
+import { wrapBunSqlite, SqliteStreamStore, SqliteConversationStore } from "@aibind/sqlite";
+
+const db = wrapBunSqlite(new Database("app.db"));
 
 const streamStore = new SqliteStreamStore(db);
 const conversationStore = new SqliteConversationStore(db);
@@ -181,4 +199,4 @@ export interface SqliteResult {
 }
 ```
 
-`batch()` must run all statements atomically (in a single transaction). The `wrapBetterSqlite3()` adapter implements this via `db.transaction()`.
+`batch()` must run all statements atomically (in a single transaction). Both `wrapBetterSqlite3()` and `wrapBunSqlite()` implement this via `db.transaction()`.
