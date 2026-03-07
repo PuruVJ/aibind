@@ -1,5 +1,13 @@
 # @aibind/cloudflare
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`d2093f2`](https://github.com/PuruVJ/aibind/commit/d2093f2a6b73e9679681e45f8cdf2247d5347c4a), [`38ee915`](https://github.com/PuruVJ/aibind/commit/38ee915c9fa10ee228eef8637ec39acdb8442de2)]:
+  - @aibind/core@0.6.0
+  - @aibind/sqlite@2.0.0
+
 ## 1.0.0
 
 ### Patch Changes
