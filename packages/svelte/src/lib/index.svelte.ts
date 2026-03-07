@@ -49,6 +49,58 @@ export type {
   UsageTrackerOptions,
 } from "@aibind/core";
 
+// --- BroadcastChannel types ---
+
+export interface BroadcastMessage {
+  type: "state";
+  text: string;
+  status: StreamStatus;
+  loading: boolean;
+  done: boolean;
+  error: string | null;
+}
+
+// --- StreamMirror ---
+
+/**
+ * Read-only reactive view of a Stream broadcasting on a named BroadcastChannel.
+ * Instantiate in a component's `<script>` block — lifecycle is tied to the component.
+ *
+ * Use on any page/tab that should display a stream owned by another tab without
+ * making its own HTTP request.
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { StreamMirror } from "@aibind/sveltekit";
+ *   const mirror = new StreamMirror("my-stream");
+ * </script>
+ * <p>{mirror.text}</p>
+ * ```
+ */
+export class StreamMirror {
+  text: string = $state("");
+  status: StreamStatus = $state("idle");
+  loading: boolean = $state(false);
+  done: boolean = $state(false);
+  error: string | null = $state(null);
+
+  #channel: BroadcastChannel;
+
+  constructor(channelName: string) {
+    this.#channel = new BroadcastChannel(channelName);
+    this.#channel.onmessage = (event: MessageEvent<BroadcastMessage>) => {
+      const msg = event.data;
+      this.text = msg.text;
+      this.status = msg.status;
+      this.loading = msg.loading;
+      this.done = msg.done;
+      this.error = msg.error;
+    };
+    onDestroy(() => this.#channel.close());
+  }
+}
+
 // --- UsageTracker ---
 
 /**
@@ -278,7 +330,29 @@ export class Stream<M extends string = string> {
   ): Promise<{ tokensSaved: number }> {
     return this.#ctrl.compact(chat);
   }
+
+  /**
+   * Broadcast this stream's reactive state to all tabs/windows listening on
+   * the named BroadcastChannel. Returns a cleanup function and also auto-cleans
+   * on component destroy.
+   *
+   * @example
+   * ```svelte
+   * <script lang="ts">
+   *   import { Stream } from "@aibind/sveltekit";
+   *   const stream = new Stream({ model: "smart" });
+   *   stream.broadcast("my-stream");
+   * </script>
+   * ```
+   */
+  broadcast(channelName: string): () => void {
+    const cleanup = this.#ctrl.broadcast(channelName);
+    onDestroy(cleanup);
+    return cleanup;
+  }
+
 }
+
 
 // --- StructuredStream ---
 

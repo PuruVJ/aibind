@@ -3,11 +3,13 @@ import type { Accessor } from "solid-js";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
+  StreamBroadcastReceiver,
   StructuredStreamController,
   CompletionController,
   RaceController,
   UsageTracker,
   type Artifact,
+  type BroadcastMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -49,6 +51,49 @@ export type {
   DiffFn,
   RaceStrategy,
 } from "@aibind/core";
+
+// --- useStreamMirror ---
+
+export interface UseStreamMirrorReturn {
+  text: Accessor<string>;
+  status: Accessor<StreamStatus>;
+  loading: Accessor<boolean>;
+  done: Accessor<boolean>;
+  error: Accessor<string | null>;
+}
+
+/**
+ * SolidJS hook for reading a stream broadcasted by another tab/window.
+ * Makes no HTTP request — listens on a BroadcastChannel opened by `stream.broadcast()`.
+ *
+ * @example
+ * ```tsx
+ * const mirror = useStreamMirror("my-chat-session");
+ * return <p>{mirror.text()}</p>;
+ * ```
+ */
+export function useStreamMirror(channelName: string): UseStreamMirrorReturn {
+  const [text, setText] = createSignal("");
+  const [status, setStatus] = createSignal<StreamStatus>("idle");
+  const [loading, setLoading] = createSignal(false);
+  const [done, setDone] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+
+  const receiver = new StreamBroadcastReceiver(
+    channelName,
+    (msg: BroadcastMessage) => {
+      setText(msg.text);
+      setStatus(msg.status);
+      setLoading(msg.loading);
+      setDone(msg.done);
+      setError(msg.error);
+    },
+  );
+
+  onCleanup(() => receiver.destroy());
+
+  return { text, status, loading, done, error };
+}
 
 // --- useUsageTracker ---
 
@@ -164,6 +209,7 @@ export interface UseStreamReturn<M extends string = string> {
   compact: (
     chat: ChatHistory<ConversationMessage>,
   ) => Promise<{ tokensSaved: number }>;
+  broadcast: (channelName: string) => () => void;
 }
 
 export interface StreamOptions<
@@ -236,6 +282,7 @@ export function useStream<M extends string = string>(
     stop: () => ctrl.stop(),
     resume: () => ctrl.resume(),
     compact: (chat) => ctrl.compact(chat),
+    broadcast: (channelName) => ctrl.broadcast(channelName),
   };
 }
 

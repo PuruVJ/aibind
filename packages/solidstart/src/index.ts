@@ -7,13 +7,14 @@ import {
   type StructuredStreamOptions,
 } from "@aibind/solid";
 
-export { defineModels } from "@aibind/solid";
+export { defineModels, useStreamMirror } from "@aibind/solid";
 export type {
   SendOptions,
   DeepPartial,
   LanguageModel,
   StreamOptions,
   StructuredStreamOptions,
+  UseStreamMirrorReturn,
 } from "@aibind/solid";
 
 const DEFAULT_PREFIX = "/__aibind__";

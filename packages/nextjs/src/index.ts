@@ -8,12 +8,14 @@ import {
   type UseStreamReturn,
 } from "@aibind/react";
 
+export { useStreamMirror } from "@aibind/react";
 export type {
   DeepPartial,
   LanguageModel,
   SendOptions,
   StreamOptions,
   StructuredStreamOptions,
+  UseStreamMirrorReturn,
 } from "@aibind/react";
 
 const DEFAULT_PREFIX = "/__aibind__";

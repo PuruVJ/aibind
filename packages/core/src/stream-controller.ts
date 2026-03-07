@@ -19,6 +19,7 @@ import type {
 import type { Artifact } from "./artifacts";
 import type { ChatHistory } from "./chat-history";
 import type { ConversationMessage } from "./conversation-store";
+import { StreamBroadcaster } from "./broadcast";
 
 // --- Callbacks ---
 
@@ -95,12 +96,43 @@ export class StreamController {
   private _done = false;
   private _status: StreamStatus = "idle";
   private _streamId: string | null = null;
+  private _broadcaster: StreamBroadcaster | null = null;
+  private _broadcastError: string | null = null;
 
   protected _opts: StreamControllerOptions;
   protected _cb: StreamCallbacks;
 
   get text(): string {
     return this._text;
+  }
+
+  // --- Broadcast ---
+
+  /**
+   * Start broadcasting this stream's state to all tabs/windows listening on
+   * the named BroadcastChannel. Returns a cleanup function.
+   * No-op when BroadcastChannel is unavailable (e.g. SSR).
+   */
+  broadcast(channelName: string): () => void {
+    if (typeof BroadcastChannel === "undefined") return () => {};
+    this._broadcaster?.destroy();
+    this._broadcaster = new StreamBroadcaster(channelName);
+    this._postBroadcast(); // immediately send current state to late joiners
+    return () => {
+      this._broadcaster?.destroy();
+      this._broadcaster = null;
+    };
+  }
+
+  private _postBroadcast(): void {
+    if (!this._broadcaster) return;
+    this._broadcaster.post({
+      text: this._text,
+      status: this._status,
+      loading: this._status === "streaming" || this._status === "reconnecting",
+      done: this._done,
+      error: this._broadcastError,
+    });
   }
 
   private get _fetch(): typeof globalThis.fetch {
@@ -134,6 +166,7 @@ export class StreamController {
     this._text += chunk;
     this._cb.onText(this._text);
     this._scanArtifacts();
+    this._postBroadcast();
   }
 
   protected async _finalize(): Promise<void> {
@@ -150,8 +183,10 @@ export class StreamController {
     this._scannedUpTo = 0;
     this._inArtifact = false;
     this._artifacts = [];
+    this._broadcastError = null;
     this._cb.onText("");
     if (this._opts.artifact) this._cb.onArtifacts?.([]);
+    this._postBroadcast();
   }
 
   private _scanArtifacts(): void {
@@ -359,6 +394,7 @@ export class StreamController {
         this._status = "done";
         this._cb.onDone(true);
         this._cb.onStatus("done");
+        this._postBroadcast();
         this._computeAndEmitDiff();
       }
     } catch (e) {
@@ -383,9 +419,11 @@ export class StreamController {
       }
 
       const error = e instanceof Error ? e : new Error(String(e));
+      this._broadcastError = error.message;
       this._status = "error";
       this._cb.onError(error);
       this._cb.onStatus("error");
+      this._postBroadcast();
       this._opts.onError?.(error);
     } finally {
       this._cb.onLoading(false);
@@ -422,6 +460,7 @@ export class StreamController {
           this._status = "done";
           this._cb.onStatus("done");
         }
+        this._postBroadcast();
         this._computeAndEmitDiff();
         return;
       }

@@ -6,13 +6,14 @@ import {
   type UseStreamReturn,
 } from "@aibind/vue";
 
-export { defineModels } from "@aibind/vue";
+export { defineModels, useStreamMirror } from "@aibind/vue";
 export type {
   DeepPartial,
   LanguageModel,
   SendOptions,
   StreamOptions,
   StructuredStreamOptions,
+  UseStreamMirrorReturn,
 } from "@aibind/vue";
 
 const DEFAULT_PREFIX = "/__aibind__";
