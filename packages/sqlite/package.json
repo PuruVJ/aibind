@@ -1,9 +1,17 @@
 {
   "name": "@aibind/sqlite",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "SQLite-backed StreamStore and ConversationStore for @aibind — works with Turso, libsql, and better-sqlite3",
   "license": "MIT",
-  "keywords": ["sqlite", "turso", "libsql", "aibind", "stream-store", "conversation-store", "ai"],
+  "keywords": [
+    "sqlite",
+    "turso",
+    "libsql",
+    "aibind",
+    "stream-store",
+    "conversation-store",
+    "ai"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/puruvj/aibind"
@@ -27,13 +35,20 @@
       }
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "peerDependencies": {
     "@aibind/core": "*"
   },
   "peerDependenciesMeta": {
-    "@libsql/client": { "optional": true },
-    "better-sqlite3": { "optional": true }
+    "@libsql/client": {
+      "optional": true
+    },
+    "better-sqlite3": {
+      "optional": true
+    }
   },
   "scripts": {
     "test": "vitest run",
