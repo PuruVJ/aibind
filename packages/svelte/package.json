@@ -46,6 +46,10 @@
       "types": "./src/lib/project/index.svelte.ts",
       "svelte": "./src/lib/project/index.svelte.ts",
       "default": "./src/lib/project/index.svelte.ts"
+    },
+    "./artifact": {
+      "types": "./src/lib/artifact.ts",
+      "default": "./src/lib/artifact.ts"
     }
   },
   "publishConfig": {
@@ -76,6 +80,10 @@
         "types": "./dist/project/index.svelte.d.ts",
         "svelte": "./dist/project/index.svelte.js",
         "default": "./dist/project/index.svelte.js"
+      },
+      "./artifact": {
+        "types": "./dist/artifact.d.ts",
+        "default": "./dist/artifact.js"
       }
     }
   },

@@ -14,6 +14,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./artifact": {
+      "types": "./src/artifact-entry.ts",
+      "default": "./src/artifact-entry.ts"
     }
   },
   "publishConfig": {
@@ -23,6 +27,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
+      },
+      "./artifact": {
+        "types": "./dist/artifact-entry.d.ts",
+        "default": "./dist/artifact-entry.js"
       }
     }
   },

@@ -1,4 +1,4 @@
-import { createSignal, onCleanup } from "solid-js";
+import { createSignal, createMemo, onCleanup } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
@@ -7,6 +7,7 @@ import {
   CompletionController,
   RaceController,
   UsageTracker,
+  type Artifact,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -30,6 +31,9 @@ import {
 
 export { defineModels, defaultDiff } from "@aibind/core";
 export type {
+  Artifact,
+  ArtifactDetector,
+  ArtifactLineResult,
   SendOptions,
   DeepPartial,
   LanguageModel,
@@ -149,6 +153,8 @@ export interface UseStreamReturn<M extends string = string> {
   model: Accessor<M | undefined>;
   usage: Accessor<StreamUsage | null>;
   diff: Accessor<DiffChunk[] | null>;
+  artifacts: Accessor<Artifact[]>;
+  activeArtifact: Accessor<Artifact | null>;
   setModel: (model: M) => void;
   send: (prompt: string, options?: { system?: string; model?: M }) => void;
   abort: () => void;
@@ -186,6 +192,10 @@ export function useStream<M extends string = string>(
   );
   const [usage, setUsage] = createSignal<StreamUsage | null>(null);
   const [diff, setDiff] = createSignal<DiffChunk[] | null>(null);
+  const [artifacts, setArtifacts] = createSignal<Artifact[]>([]);
+  const activeArtifact = createMemo<Artifact | null>(
+    () => artifacts().findLast((a) => !a.complete) ?? null,
+  );
 
   const ctrl = new StreamController(options as StreamControllerOptions, {
     onText: (t) => setText(t),
@@ -197,6 +207,7 @@ export function useStream<M extends string = string>(
     onCanResume: (c) => setCanResume(c),
     onUsage: (u) => setUsage(() => u),
     onDiff: (chunks) => setDiff(() => chunks),
+    onArtifacts: (arts) => setArtifacts(() => arts),
   } satisfies StreamCallbacks);
 
   onCleanup(() => ctrl.abort());
@@ -212,6 +223,8 @@ export function useStream<M extends string = string>(
     model,
     usage,
     diff,
+    artifacts,
+    activeArtifact,
     setModel: (value: M) => {
       _setModel(() => value);
       ctrl.setModel(value);

@@ -39,6 +39,10 @@
     "./project": {
       "types": "./dist/project/index.d.ts",
       "import": "./dist/project/index.js"
+    },
+    "./artifact": {
+      "types": "./dist/artifact.d.ts",
+      "import": "./dist/artifact.js"
     }
   },
   "module": "./dist/index.js",
@@ -56,6 +60,9 @@
       ],
       "project": [
         "dist/project/index.d.ts"
+      ],
+      "artifact": [
+        "dist/artifact.d.ts"
       ]
     }
   },

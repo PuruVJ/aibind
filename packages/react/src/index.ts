@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
@@ -6,6 +6,7 @@ import {
   CompletionController,
   RaceController,
   UsageTracker,
+  type Artifact,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -29,6 +30,9 @@ import {
 
 export { defineModels } from "@aibind/core";
 export type {
+  Artifact,
+  ArtifactDetector,
+  ArtifactLineResult,
   SendOptions,
   DeepPartial,
   LanguageModel,
@@ -166,6 +170,8 @@ export interface UseStreamReturn<M extends string = string> {
   setModel: (model: M) => void;
   usage: StreamUsage | null;
   diff: DiffChunk[] | null;
+  artifacts: Artifact[];
+  activeArtifact: Artifact | null;
   send: (prompt: string, sendOpts?: { system?: string; model?: M }) => void;
   abort: () => void;
   retry: () => void;
@@ -206,6 +212,7 @@ export function useStream<M extends string = string>(
   );
   const [usage, setUsage] = useState<StreamUsage | null>(null);
   const [diff, setDiff] = useState<DiffChunk[] | null>(null);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
 
   const ctrlRef = useRef<StreamController | null>(null);
 
@@ -220,10 +227,16 @@ export function useStream<M extends string = string>(
       onCanResume: setCanResume,
       onUsage: setUsage,
       onDiff: setDiff,
+      onArtifacts: setArtifacts,
     } satisfies StreamCallbacks);
   }
 
   useEffect(() => () => ctrlRef.current?.abort(), []);
+
+  const activeArtifact = useMemo(
+    () => artifacts.findLast((a) => !a.complete) ?? null,
+    [artifacts],
+  );
 
   return {
     text,
@@ -236,6 +249,8 @@ export function useStream<M extends string = string>(
     model,
     usage,
     diff,
+    artifacts,
+    activeArtifact,
     setModel: (value: M) => {
       _setModel(value);
       ctrlRef.current!.setModel(value);

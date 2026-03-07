@@ -1,3 +1,6 @@
+// Artifact types (detectors live in @aibind/core/artifact subpath)
+export type { Artifact, ArtifactDetector, ArtifactLineResult } from "./artifacts";
+
 // Shared types
 export { defineModels } from "./types";
 export { routeByLength } from "./routing";

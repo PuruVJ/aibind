@@ -4,6 +4,8 @@ import {
   type StreamCallbacks,
 } from "../src/stream-controller";
 import { SSE } from "../src/sse";
+import { standardDetector, claudeDetector } from "../src/artifacts";
+import type { ArtifactDetector } from "../src/artifacts";
 
 // --- Helpers ---
 
@@ -1028,6 +1030,315 @@ describe("StreamController", () => {
 
       expect(routeModel).toHaveBeenNthCalledWith(1, "first");
       expect(routeModel).toHaveBeenNthCalledWith(2, "second");
+    });
+  });
+
+  // --- artifact scanning ---
+
+  describe("artifact scanning", () => {
+    function makeArtifactCb(): StreamCallbacks & {
+      artifactSnapshots: unknown[][];
+    } {
+      const artifactSnapshots: unknown[][] = [];
+      const base = createCallbacks();
+      return {
+        ...base,
+        artifactSnapshots,
+        onArtifacts: (arts) => {
+          // deep copy each snapshot so we can assert intermediate states
+          artifactSnapshots.push(JSON.parse(JSON.stringify(arts)));
+        },
+      };
+    }
+
+    it("does not fire onArtifacts when no detector is provided", async () => {
+      fetchMock.mockResolvedValue(
+        createTextResponse(["<artifact lang=\"ts\">\ncode\n</artifact>\n"]),
+      );
+
+      const artifactCb = vi.fn();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock },
+        { ...createCallbacks(), onArtifacts: artifactCb },
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      expect(artifactCb).not.toHaveBeenCalled();
+    });
+
+    it("parses a single artifact from a complete chunk", async () => {
+      const body =
+        '<artifact lang="tsx" title="Counter">\nconst x = 1;\n</artifact>\n';
+      fetchMock.mockResolvedValue(createTextResponse([body]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect(last).toHaveLength(1);
+      expect(last[0]).toMatchObject({
+        language: "tsx",
+        title: "Counter",
+        content: "const x = 1;",
+        complete: true,
+      });
+    });
+
+    it("accumulates content across multiple chunks", async () => {
+      fetchMock.mockResolvedValue(
+        createTextResponse([
+          '<artifact lang="ts">\n',
+          "line1\n",
+          "line2\n",
+          "</artifact>\n",
+        ]),
+      );
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect((last[0] as any).content).toBe("line1\nline2");
+      expect((last[0] as any).complete).toBe(true);
+    });
+
+    it("handles marker split across chunks (partial line in first chunk)", async () => {
+      // The open tag is split: first chunk has no newline so nothing is scanned yet
+      fetchMock.mockResolvedValue(
+        createTextResponse([
+          "<artifact lang=",      // no newline — partial line, nothing scanned
+          '"py">\nprint("hi")\n', // newline present — now the open tag line is complete
+          "</artifact>\n",
+        ]),
+      );
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect(last).toHaveLength(1);
+      expect((last[0] as any).language).toBe("py");
+      expect((last[0] as any).complete).toBe(true);
+    });
+
+    it("marks artifact complete in _finalize when no close marker before stream end", async () => {
+      // No closing tag — stream just ends
+      fetchMock.mockResolvedValue(
+        createTextResponse(['<artifact lang="ts">\nconst x = 1;\n']),
+      );
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect((last[0] as any).complete).toBe(true);
+    });
+
+    it("handles multiple artifacts in one response", async () => {
+      const body = [
+        '<artifact lang="ts" title="A">\n',
+        "codeA\n",
+        "</artifact>\n",
+        "some prose in between\n",
+        '<artifact lang="py" title="B">\n',
+        "codeB\n",
+        "</artifact>\n",
+      ].join("");
+      fetchMock.mockResolvedValue(createTextResponse([body]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect(last).toHaveLength(2);
+      expect((last[0] as any).title).toBe("A");
+      expect((last[0] as any).content).toBe("codeA");
+      expect((last[1] as any).title).toBe("B");
+      expect((last[1] as any).content).toBe("codeB");
+      expect((last[1] as any).complete).toBe(true);
+    });
+
+    it("resets artifacts array on new send", async () => {
+      const body = '<artifact lang="ts">\nx\n</artifact>\n';
+      fetchMock
+        .mockResolvedValueOnce(createTextResponse([body]))
+        .mockResolvedValueOnce(createTextResponse(["plain response\n"]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+
+      ctrl.send("first");
+      await flushPromises();
+
+      const snapsBefore = acb.artifactSnapshots.length;
+
+      ctrl.send("second");
+      await flushPromises();
+
+      // After second send, onArtifacts([] should have been fired (reset)
+      const resetSnapshot = acb.artifactSnapshots[snapsBefore];
+      expect(resetSnapshot).toEqual([]);
+    });
+
+    it("uses claude identifier as artifact id", async () => {
+      const body =
+        '<antArtifact identifier="my-widget" language="tsx" title="Widget">\nconst x = 1;\n</antArtifact>\n';
+      fetchMock.mockResolvedValue(createTextResponse([body]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: claudeDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect((last[0] as any).id).toBe("my-widget");
+    });
+
+    it("generates sequential ids when detector returns no id", async () => {
+      const body = [
+        '<artifact lang="ts">\nA\n</artifact>\n',
+        '<artifact lang="ts">\nB\n</artifact>\n',
+      ].join("");
+      fetchMock.mockResolvedValue(createTextResponse([body]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      const ids = last.map((a: any) => a.id as string);
+      // Each id should be unique and match the pattern
+      expect(ids[0]).toMatch(/^artifact-\d+$/);
+      expect(ids[1]).toMatch(/^artifact-\d+$/);
+      expect(ids[0]).not.toBe(ids[1]);
+    });
+
+    it("fires onArtifacts progressively as content arrives", async () => {
+      fetchMock.mockResolvedValue(
+        createTextResponse([
+          '<artifact lang="ts">\n',
+          "line1\n",
+          "line2\n",
+          "</artifact>\n",
+        ]),
+      );
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      // Should have fired at least: open, content×2, close
+      expect(acb.artifactSnapshots.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("prose before and after artifact does not create extra artifacts", async () => {
+      const body = [
+        "Here is some code:\n",
+        '<artifact lang="ts">\nconst x = 1;\n</artifact>\n',
+        "Done!\n",
+      ].join("");
+      fetchMock.mockResolvedValue(createTextResponse([body]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect(last).toHaveLength(1);
+    });
+
+    it("custom detector is called with correct inArtifact state", async () => {
+      const calls: Array<{ line: string; inArtifact: boolean }> = [];
+      const trackingDetector: ArtifactDetector = (line, inArtifact) => {
+        calls.push({ line, inArtifact });
+        return standardDetector(line, inArtifact);
+      };
+
+      const body = '<artifact lang="ts">\ncode\n</artifact>\n';
+      fetchMock.mockResolvedValue(createTextResponse([body]));
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: trackingDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      // Open line: inArtifact=false
+      expect(calls[0]).toMatchObject({ inArtifact: false });
+      // Content line: inArtifact=true
+      expect(calls[1]).toMatchObject({ line: "code", inArtifact: true });
+      // Close line: inArtifact=true
+      expect(calls[2]).toMatchObject({ inArtifact: true });
+    });
+
+    it("works with SSE streaming (chunks via SSE events)", async () => {
+      fetchMock.mockResolvedValue(
+        createSSEResponse([
+          { id: 1, data: '<artifact lang="ts">\n' },
+          { id: 2, data: "const x = 1;\n" },
+          { id: 3, data: "</artifact>\n" },
+          { event: "done", data: "" },
+        ]),
+      );
+
+      const acb = makeArtifactCb();
+      const ctrl = new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        acb,
+      );
+      ctrl.send("hi");
+      await flushPromises();
+
+      const last = acb.artifactSnapshots[acb.artifactSnapshots.length - 1]!;
+      expect(last).toHaveLength(1);
+      expect((last[0] as any).content).toBe("const x = 1;");
+      expect((last[0] as any).complete).toBe(true);
     });
   });
 

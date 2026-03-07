@@ -55,6 +55,10 @@
       "types": "./src/lib/project.ts",
       "svelte": "./src/lib/project.ts",
       "default": "./src/lib/project.ts"
+    },
+    "./artifact": {
+      "types": "./src/lib/artifact.ts",
+      "default": "./src/lib/artifact.ts"
     }
   },
   "publishConfig": {
@@ -93,6 +97,10 @@
         "types": "./dist/project.d.ts",
         "svelte": "./dist/project.js",
         "default": "./dist/project.js"
+      },
+      "./artifact": {
+        "types": "./dist/artifact.d.ts",
+        "default": "./dist/artifact.js"
       }
     }
   },

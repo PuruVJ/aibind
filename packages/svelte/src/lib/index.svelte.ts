@@ -4,6 +4,7 @@ import {
   RaceController,
   StreamController,
   StructuredStreamController,
+  type Artifact,
   type BaseCompletionOptions,
   type BaseStreamOptions,
   type ChatHistory,
@@ -29,6 +30,9 @@ import { onDestroy } from "svelte";
 
 export { defaultDiff, defineModels } from "@aibind/core";
 export type {
+  Artifact,
+  ArtifactDetector,
+  ArtifactLineResult,
   BaseCompletionOptions,
   BaseStreamOptions,
   DeepPartial,
@@ -194,6 +198,10 @@ export class Stream<M extends string = string> {
   canResume = $state(false);
   usage: StreamUsage | null = $state(null);
   diff: DiffChunk[] | null = $state(null);
+  artifacts: Artifact[] = $state([]);
+  activeArtifact: Artifact | null = $derived(
+    this.artifacts.findLast((a) => !a.complete) ?? null,
+  );
 
   #model: M | undefined = $state(undefined);
   #ctrl: StreamController;
@@ -237,6 +245,9 @@ export class Stream<M extends string = string> {
       },
       onDiff: (chunks) => {
         this.diff = chunks;
+      },
+      onArtifacts: (arts) => {
+        this.artifacts = arts;
       },
     } satisfies StreamCallbacks);
     onDestroy(() => this.abort());
