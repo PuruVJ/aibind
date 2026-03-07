@@ -3,11 +3,13 @@ import type { Ref, ComputedRef } from "vue";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
+  StreamBroadcastReceiver,
   StructuredStreamController,
   CompletionController,
   RaceController,
   UsageTracker,
   type Artifact,
+  type BroadcastMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -49,6 +51,51 @@ export type {
   DiffFn,
   RaceStrategy,
 } from "@aibind/core";
+
+// --- useStreamMirror ---
+
+export interface UseStreamMirrorReturn {
+  text: Ref<string>;
+  status: Ref<StreamStatus>;
+  loading: Ref<boolean>;
+  done: Ref<boolean>;
+  error: Ref<string | null>;
+}
+
+/**
+ * Vue composable for reading a stream broadcasted by another tab/window.
+ * Makes no HTTP request — listens on a BroadcastChannel opened by `stream.broadcast()`.
+ *
+ * @example
+ * ```vue
+ * <script setup>
+ * const mirror = useStreamMirror("my-chat-session");
+ * </script>
+ * <template><p>{{ mirror.text }}</p></template>
+ * ```
+ */
+export function useStreamMirror(channelName: string): UseStreamMirrorReturn {
+  const text = ref("");
+  const status: Ref<StreamStatus> = ref("idle");
+  const loading = ref(false);
+  const done = ref(false);
+  const error: Ref<string | null> = ref(null);
+
+  const receiver = new StreamBroadcastReceiver(
+    channelName,
+    (msg: BroadcastMessage) => {
+      text.value = msg.text;
+      status.value = msg.status;
+      loading.value = msg.loading;
+      done.value = msg.done;
+      error.value = msg.error;
+    },
+  );
+
+  onUnmounted(() => receiver.destroy());
+
+  return { text, status, loading, done, error };
+}
 
 // --- useUsageTracker ---
 
@@ -170,6 +217,7 @@ export interface UseStreamReturn<M extends string = string> {
   compact: (
     chat: ChatHistory<ConversationMessage>,
   ) => Promise<{ tokensSaved: number }>;
+  broadcast: (channelName: string) => () => void;
 }
 
 export interface StreamOptions<
@@ -260,6 +308,7 @@ export function useStream<M extends string = string>(
     stop: () => ctrl.stop(),
     resume: () => ctrl.resume(),
     compact: (chat) => ctrl.compact(chat),
+    broadcast: (channelName) => ctrl.broadcast(channelName),
   };
 }
 

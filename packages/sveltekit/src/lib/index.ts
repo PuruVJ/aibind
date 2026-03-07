@@ -6,8 +6,9 @@ import {
   type StructuredStreamOptions,
 } from "@aibind/svelte";
 
-export { defineModels } from "@aibind/svelte";
+export { defineModels, StreamMirror } from "@aibind/svelte";
 export type {
+  BroadcastMessage,
   SendOptions,
   DeepPartial,
   LanguageModel,

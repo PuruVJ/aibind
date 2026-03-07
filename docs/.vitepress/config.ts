@@ -64,6 +64,7 @@ export default defineConfig({
           { text: "Durable Streams", link: "/concepts/durable-streams" },
           { text: "Streaming Artifacts", link: "/concepts/artifacts" },
           { text: "Streaming Diff", link: "/concepts/streaming-diff" },
+          { text: "Cross-tab Sync", link: "/concepts/broadcast" },
           // Production
           { text: "Token Tracking", link: "/concepts/token-tracking" },
           { text: "Prompt Caching", link: "/concepts/prompt-caching" },
@@ -96,6 +97,7 @@ export default defineConfig({
             link: "/patterns/structured-analysis",
           },
           { text: "Tool-calling Agent", link: "/patterns/tool-agent" },
+          { text: "Streaming Pipeline", link: "/patterns/streaming-pipeline" },
         ],
       },
       {

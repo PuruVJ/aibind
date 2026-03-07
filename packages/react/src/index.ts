@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
+  StreamBroadcastReceiver,
   StructuredStreamController,
   CompletionController,
   RaceController,
   UsageTracker,
   type Artifact,
+  type BroadcastMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -49,6 +51,50 @@ export type {
   RaceStrategy,
 } from "@aibind/core";
 export { defaultDiff } from "@aibind/core";
+
+// --- useStreamMirror ---
+
+export interface UseStreamMirrorReturn {
+  text: string;
+  status: StreamStatus;
+  loading: boolean;
+  done: boolean;
+  error: string | null;
+}
+
+/**
+ * React hook for reading a stream broadcasted by another tab/window.
+ * Makes no HTTP request — listens on a BroadcastChannel opened by `stream.broadcast()`.
+ *
+ * @example
+ * ```tsx
+ * const mirror = useStreamMirror("my-chat-session");
+ * return <p>{mirror.text}</p>;
+ * ```
+ */
+export function useStreamMirror(channelName: string): UseStreamMirrorReturn {
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState<StreamStatus>("idle");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const receiver = new StreamBroadcastReceiver(
+      channelName,
+      (msg: BroadcastMessage) => {
+        setText(msg.text);
+        setStatus(msg.status);
+        setLoading(msg.loading);
+        setDone(msg.done);
+        setError(msg.error);
+      },
+    );
+    return () => receiver.destroy();
+  }, [channelName]);
+
+  return { text, status, loading, done, error };
+}
 
 // --- useUsageTracker ---
 
@@ -180,6 +226,7 @@ export interface UseStreamReturn<M extends string = string> {
   compact: (
     chat: ChatHistory<ConversationMessage>,
   ) => Promise<{ tokensSaved: number }>;
+  broadcast: (channelName: string) => () => void;
 }
 
 export interface StreamOptions<
@@ -262,6 +309,7 @@ export function useStream<M extends string = string>(
     stop: () => ctrlRef.current!.stop(),
     resume: () => ctrlRef.current!.resume(),
     compact: (chat) => ctrlRef.current!.compact(chat),
+    broadcast: (channelName) => ctrlRef.current!.broadcast(channelName),
   };
 }
 
