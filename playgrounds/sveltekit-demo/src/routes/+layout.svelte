@@ -7,7 +7,12 @@
 <nav>
   <a href="/">Home</a>
   <a href="/stream">Stream</a>
+  <a href="/chat">Chat</a>
   <a href="/structured">Structured</a>
+  <a href="/artifacts">Artifacts</a>
+  <a href="/race">Race</a>
+  <a href="/broadcast">Broadcast</a>
+  <a href="/completion">Completion</a>
   <a href="/agent">Agent</a>
   <a href="/query">Query</a>
   <a href="/markdown">Markdown</a>
