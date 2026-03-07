@@ -1,9 +1,17 @@
 {
   "name": "@aibind/service-worker",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Service Worker backend for @aibind — run AI streaming with zero server infrastructure using IndexedDB",
   "license": "MIT",
-  "keywords": ["service-worker", "pwa", "offline", "indexeddb", "aibind", "ai", "streaming"],
+  "keywords": [
+    "service-worker",
+    "pwa",
+    "offline",
+    "indexeddb",
+    "aibind",
+    "ai",
+    "streaming"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/puruvj/aibind"
@@ -27,7 +35,10 @@
       }
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "peerDependencies": {
     "@aibind/core": "*",
     "ai": "*"

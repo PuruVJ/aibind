@@ -1,9 +1,19 @@
 {
   "name": "@aibind/cloudflare",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Cloudflare Workers adapters for @aibind — D1 (StreamStore) and KV (ConversationStore)",
   "license": "MIT",
-  "keywords": ["cloudflare", "workers", "d1", "kv", "aibind", "stream-store", "conversation-store", "ai", "edge"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "d1",
+    "kv",
+    "aibind",
+    "stream-store",
+    "conversation-store",
+    "ai",
+    "edge"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/puruvj/aibind"
@@ -27,7 +37,10 @@
       }
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "peerDependencies": {
     "@aibind/core": "*",
     "@aibind/sqlite": "*"
