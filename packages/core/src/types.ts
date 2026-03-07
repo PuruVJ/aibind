@@ -166,6 +166,36 @@ export type DeepPartial<T> = T extends object
   ? { [P in keyof T]?: DeepPartial<T[P]> }
   : T;
 
+// --- Chat types ---
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatCallbacks {
+  onMessages(messages: ChatMessage[]): void;
+  onLoading(loading: boolean): void;
+  onError(error: Error | null): void;
+  onStatus(status: StreamStatus): void;
+}
+
+export interface BaseChatOptions {
+  /** API endpoint for the chat handler (e.g. '/__aibind__/chat'). */
+  endpoint: string;
+  /** Optional system prompt sent with every request. */
+  system?: string;
+  /** Override model key sent in the request body. */
+  model?: string;
+  /** Custom fetch implementation. */
+  fetch?: typeof globalThis.fetch;
+  /** Called when a turn completes with the full messages array. */
+  onFinish?: (messages: ChatMessage[]) => void;
+  /** Called when a network or server error occurs. */
+  onError?: (error: Error) => void;
+}
+
 // --- defineModels ---
 
 /**

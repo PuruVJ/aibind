@@ -101,7 +101,12 @@ export type {
   CompactRequestBody,
   StopRequestBody,
   CompleteRequestBody,
+  ChatRequestBody,
 } from "./stream-handler";
+
+// Chat controller (framework-agnostic client)
+export { ChatController } from "./chat-controller";
+export type { ChatMessage, ChatCallbacks, BaseChatOptions } from "./types";
 
 // Agent controller (framework-agnostic)
 export { AgentController } from "./agent-controller";
