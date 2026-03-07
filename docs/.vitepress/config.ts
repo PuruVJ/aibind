@@ -62,6 +62,7 @@ export default defineConfig({
           { text: "Inline Completions", link: "/concepts/completions" },
           // Resilience & polish
           { text: "Durable Streams", link: "/concepts/durable-streams" },
+          { text: "Streaming Artifacts", link: "/concepts/artifacts" },
           { text: "Streaming Diff", link: "/concepts/streaming-diff" },
           // Production
           { text: "Token Tracking", link: "/concepts/token-tracking" },

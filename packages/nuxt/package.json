@@ -44,6 +44,10 @@
     "./project": {
       "types": "./dist/project.d.ts",
       "import": "./dist/project.js"
+    },
+    "./artifact": {
+      "types": "./dist/artifact.d.ts",
+      "import": "./dist/artifact.js"
     }
   },
   "module": "./dist/index.js",

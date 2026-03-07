@@ -1,5 +1,5 @@
-import { ref, onUnmounted } from "vue";
-import type { Ref } from "vue";
+import { ref, computed, onUnmounted } from "vue";
+import type { Ref, ComputedRef } from "vue";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   StreamController,
@@ -7,6 +7,7 @@ import {
   CompletionController,
   RaceController,
   UsageTracker,
+  type Artifact,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -30,6 +31,9 @@ import {
 
 export { defineModels, defaultDiff } from "@aibind/core";
 export type {
+  Artifact,
+  ArtifactDetector,
+  ArtifactLineResult,
   SendOptions,
   DeepPartial,
   LanguageModel,
@@ -155,6 +159,8 @@ export interface UseStreamReturn<M extends string = string> {
   model: Ref<M | undefined>;
   usage: Ref<StreamUsage | null>;
   diff: Ref<DiffChunk[] | null>;
+  artifacts: Ref<Artifact[]>;
+  activeArtifact: ComputedRef<Artifact | null>;
   setModel: (model: M) => void;
   send: (prompt: string, sendOpts?: { system?: string; model?: M }) => void;
   abort: () => void;
@@ -190,6 +196,10 @@ export function useStream<M extends string = string>(
   const model = ref(options.model) as Ref<M | undefined>;
   const usage: Ref<StreamUsage | null> = ref(null);
   const diff: Ref<DiffChunk[] | null> = ref(null);
+  const artifacts: Ref<Artifact[]> = ref([]);
+  const activeArtifact = computed<Artifact | null>(
+    () => artifacts.value.findLast((a) => !a.complete) ?? null,
+  );
 
   const ctrl = new StreamController(options as StreamControllerOptions, {
     onText: (t) => {
@@ -219,6 +229,9 @@ export function useStream<M extends string = string>(
     onDiff: (chunks) => {
       diff.value = chunks;
     },
+    onArtifacts: (arts) => {
+      artifacts.value = arts;
+    },
   } satisfies StreamCallbacks);
 
   onUnmounted(() => ctrl.abort());
@@ -234,6 +247,8 @@ export function useStream<M extends string = string>(
     model,
     usage,
     diff,
+    artifacts,
+    activeArtifact,
     setModel: (value: M) => {
       model.value = value;
       ctrl.setModel(value);

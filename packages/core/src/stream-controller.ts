@@ -16,6 +16,7 @@ import type {
   DiffChunk,
   DiffFn,
 } from "./types";
+import type { Artifact } from "./artifacts";
 import type { ChatHistory } from "./chat-history";
 import type { ConversationMessage } from "./conversation-store";
 
@@ -31,6 +32,7 @@ export interface StreamCallbacks {
   onCanResume(canResume: boolean): void;
   onUsage?(usage: StreamUsage): void;
   onDiff?(chunks: DiffChunk[] | null): void;
+  onArtifacts?(artifacts: Artifact[]): void;
 }
 
 export interface StreamControllerOptions {
@@ -65,6 +67,12 @@ export interface StreamControllerOptions {
    * - `false`: disable diffing entirely
    */
   diff?: DiffFn;
+  /**
+   * Artifact extraction configuration.
+   * When set, the stream scans each line through the detector and fires
+   * onArtifacts whenever an artifact opens, receives content, or closes.
+   */
+  artifact?: { detector: import("./artifacts").ArtifactDetector };
 }
 
 // --- StreamController ---
@@ -73,6 +81,10 @@ export class StreamController {
   protected _text = "";
   private _prevText = "";
   private _controller: AbortController | null = null;
+  private _scannedUpTo = 0;
+  private _inArtifact = false;
+  private _artifacts: Artifact[] = [];
+  private _artifactIdSeq = 0;
   private _currentModel: string | undefined = undefined;
   private _lastPrompt = "";
   private _lastOptions: SendOptions | undefined;
@@ -121,15 +133,68 @@ export class StreamController {
   protected _processChunk(chunk: string): void {
     this._text += chunk;
     this._cb.onText(this._text);
+    this._scanArtifacts();
   }
 
   protected async _finalize(): Promise<void> {
+    // If a detector was active and stream ended without a close marker, complete the open artifact.
+    if (this._opts.artifact && this._inArtifact && this._artifacts.length > 0) {
+      this._artifacts[this._artifacts.length - 1]!.complete = true;
+      this._cb.onArtifacts?.([...this._artifacts]);
+    }
     this._opts.onFinish?.(this._text);
   }
 
   protected _resetState(): void {
     this._text = "";
+    this._scannedUpTo = 0;
+    this._inArtifact = false;
+    this._artifacts = [];
     this._cb.onText("");
+    if (this._opts.artifact) this._cb.onArtifacts?.([]);
+  }
+
+  private _scanArtifacts(): void {
+    const detector = this._opts.artifact?.detector;
+    if (!detector) return;
+
+    const unseen = this._text.slice(this._scannedUpTo);
+    const newlineIdx = unseen.lastIndexOf("\n");
+    if (newlineIdx === -1) return; // no complete lines yet
+
+    const toScan = unseen.slice(0, newlineIdx);
+    this._scannedUpTo += newlineIdx + 1;
+
+    let changed = false;
+    for (const line of toScan.split("\n")) {
+      const result = detector(line, this._inArtifact);
+      if (!result) continue;
+
+      if (result.type === "open") {
+        const id = result.id ?? `artifact-${++this._artifactIdSeq}`;
+        this._artifacts.push({
+          id,
+          language: result.language,
+          title: result.title,
+          content: "",
+          complete: false,
+        });
+        this._inArtifact = true;
+        changed = true;
+      } else if (result.type === "content" && this._inArtifact) {
+        const artifact = this._artifacts[this._artifacts.length - 1]!;
+        artifact.content = artifact.content
+          ? artifact.content + "\n" + result.text
+          : result.text;
+        changed = true;
+      } else if (result.type === "close" && this._inArtifact) {
+        this._artifacts[this._artifacts.length - 1]!.complete = true;
+        this._inArtifact = false;
+        changed = true;
+      }
+    }
+
+    if (changed) this._cb.onArtifacts?.([...this._artifacts]);
   }
 
   private _computeAndEmitDiff(): void {

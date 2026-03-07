@@ -48,6 +48,12 @@ export interface BaseStreamOptions {
    * Omit to disable diffing (default).
    */
   diff?: DiffFn;
+  /**
+   * Artifact extraction configuration.
+   * When set, the stream will scan each line through the provided detector
+   * and populate `stream.artifacts` / `stream.activeArtifact` as markers appear.
+   */
+  artifact?: { detector: import("./artifacts").ArtifactDetector };
 }
 
 /**
