@@ -103,6 +103,12 @@ export interface CompleteRequestBody {
   model?: string;
 }
 
+export interface ChatRequestBody {
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  system?: string;
+  model?: string;
+}
+
 /**
  * Individual typed responders for each AI endpoint.
  *
@@ -391,6 +397,47 @@ export class StreamHandler {
     });
   }
 
+  /**
+   * Stream a multi-turn chat response.
+   * Accepts a messages array and returns a plain text streaming response.
+   * The client-side `ChatController` consumes this with `consumeTextStream`.
+   */
+  async chat(body: ChatRequestBody): Promise<Response> {
+    const { messages, system, model: requestedModel } = body;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json({ error: "messages is required" }, { status: 400 });
+    }
+
+    let model: import("ai").LanguageModel;
+    try {
+      model = this.#resolveModel(requestedModel);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return Response.json({ error: message }, { status: 400 });
+    }
+
+    const result = streamText({ model, system, messages });
+
+    const encoder = new TextEncoder();
+    const readable = new ReadableStream({
+      async start(ctrl) {
+        try {
+          for await (const chunk of result.textStream) {
+            ctrl.enqueue(encoder.encode(chunk));
+          }
+        } catch {
+          // Ignore — client will see a truncated stream
+        }
+        ctrl.close();
+      },
+    });
+
+    return new Response(readable, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
   /** Stop a durable stream by ID (requires `resumable: true`). */
   async stop(body: StopRequestBody): Promise<Response> {
     const { id } = body;
@@ -456,6 +503,9 @@ export class StreamHandler {
       }
       if (pathname === `${prefix}/compact`) {
         return this.compact(await request.json());
+      }
+      if (pathname === `${prefix}/chat`) {
+        return this.chat(await request.json());
       }
       if (pathname === `${prefix}/complete`) {
         return this.complete(await request.json());

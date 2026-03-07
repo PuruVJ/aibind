@@ -6,13 +6,16 @@ import {
   type UseStreamReturn,
 } from "@aibind/vue";
 
-export { defineModels, useStreamMirror } from "@aibind/vue";
+export { defineModels, useStreamMirror, useChat } from "@aibind/vue";
 export type {
+  ChatMessage,
+  ChatOptions,
   DeepPartial,
   LanguageModel,
   SendOptions,
   StreamOptions,
   StructuredStreamOptions,
+  UseChatReturn,
   UseStreamMirrorReturn,
 } from "@aibind/vue";
 

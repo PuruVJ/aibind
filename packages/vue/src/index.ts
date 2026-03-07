@@ -2,6 +2,7 @@ import { ref, computed, onUnmounted } from "vue";
 import type { Ref, ComputedRef } from "vue";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
+  ChatController,
   StreamController,
   StreamBroadcastReceiver,
   StructuredStreamController,
@@ -9,7 +10,10 @@ import {
   RaceController,
   UsageTracker,
   type Artifact,
+  type BaseChatOptions,
   type BroadcastMessage,
+  type ChatCallbacks,
+  type ChatMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -457,5 +461,59 @@ export function useRace<M extends string = string>(
     winner,
     send: (prompt, options) => ctrl.send(prompt, options),
     abort: () => ctrl.abort(),
+  };
+}
+
+// --- useChat ---
+
+export interface ChatOptions extends BaseChatOptions {}
+
+export interface UseChatReturn {
+  messages: Ref<ChatMessage[]>;
+  loading: Ref<boolean>;
+  error: Ref<Error | null>;
+  status: Ref<StreamStatus>;
+  send: (content: string) => void;
+  abort: () => void;
+  clear: () => void;
+  regenerate: () => void;
+  edit: (id: string, text: string) => void;
+}
+
+/**
+ * Vue composable for multi-turn AI chat.
+ * Manages the messages[] array, streams assistant replies chunk-by-chunk,
+ * and provides helpers for regenerate and edit-and-resend flows.
+ *
+ * @example
+ * ```ts
+ * const { messages, send, loading } = useChat({ endpoint: '/__aibind__/chat' });
+ * ```
+ */
+export function useChat(options: ChatOptions): UseChatReturn {
+  const messages: Ref<ChatMessage[]> = ref([]);
+  const loading = ref(false);
+  const error: Ref<Error | null> = ref(null);
+  const status: Ref<StreamStatus> = ref("idle");
+
+  const ctrl = new ChatController(options, {
+    onMessages: (msgs) => { messages.value = msgs; },
+    onLoading: (l) => { loading.value = l; },
+    onError: (e) => { error.value = e; },
+    onStatus: (s) => { status.value = s; },
+  } satisfies ChatCallbacks);
+
+  onUnmounted(() => ctrl.abort());
+
+  return {
+    messages,
+    loading,
+    error,
+    status,
+    send: (content) => ctrl.send(content),
+    abort: () => ctrl.abort(),
+    clear: () => ctrl.clear(),
+    regenerate: () => ctrl.regenerate(),
+    edit: (id, text) => ctrl.edit(id, text),
   };
 }

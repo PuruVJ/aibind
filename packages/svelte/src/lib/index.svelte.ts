@@ -1,12 +1,16 @@
 import {
+  ChatController,
   CompletionController,
   UsageTracker as CoreUsageTracker,
   RaceController,
   StreamController,
   StructuredStreamController,
   type Artifact,
+  type BaseChatOptions,
   type BaseCompletionOptions,
   type BaseStreamOptions,
+  type ChatCallbacks,
+  type ChatMessage,
   type ChatHistory,
   type CompletionCallbacks,
   type ConversationMessage,
@@ -501,3 +505,74 @@ export class Race<M extends string = string> {
     this.#ctrl.abort();
   }
 }
+
+// --- Chat ---
+
+export interface ChatOptions extends BaseChatOptions {}
+
+/**
+ * Reactive conversational chat.
+ * Manages the full messages[] array, streams assistant replies chunk-by-chunk,
+ * and provides helpers for regenerate and edit-and-resend flows.
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { Chat } from "@aibind/sveltekit";
+ *   const chat = new Chat({ endpoint: '/__aibind__/chat' });
+ * </script>
+ *
+ * {#each chat.messages as msg}
+ *   <p class={msg.role}>{msg.content}</p>
+ * {/each}
+ * <button onclick={() => chat.send(input)}>Send</button>
+ * ```
+ */
+export class Chat {
+  messages: ChatMessage[] = $state([]);
+  loading = $state(false);
+  error: Error | null = $state(null);
+  status: StreamStatus = $state("idle");
+
+  #ctrl: ChatController;
+
+  constructor(options: ChatOptions) {
+    this.#ctrl = new ChatController(options, {
+      onMessages: (msgs) => {
+        this.messages = msgs;
+      },
+      onLoading: (l) => {
+        this.loading = l;
+      },
+      onError: (e) => {
+        this.error = e;
+      },
+      onStatus: (s) => {
+        this.status = s;
+      },
+    } satisfies ChatCallbacks);
+    onDestroy(() => this.abort());
+  }
+
+  send(content: string): void {
+    this.#ctrl.send(content);
+  }
+
+  abort(): void {
+    this.#ctrl.abort();
+  }
+
+  clear(): void {
+    this.#ctrl.clear();
+  }
+
+  regenerate(): void {
+    this.#ctrl.regenerate();
+  }
+
+  edit(id: string, text: string): void {
+    this.#ctrl.edit(id, text);
+  }
+}
+
+export type { ChatMessage };

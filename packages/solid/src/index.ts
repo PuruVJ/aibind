@@ -2,6 +2,7 @@ import { createSignal, createMemo, onCleanup } from "solid-js";
 import type { Accessor } from "solid-js";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
+  ChatController,
   StreamController,
   StreamBroadcastReceiver,
   StructuredStreamController,
@@ -9,7 +10,10 @@ import {
   RaceController,
   UsageTracker,
   type Artifact,
+  type BaseChatOptions,
   type BroadcastMessage,
+  type ChatCallbacks,
+  type ChatMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -409,5 +413,59 @@ export function useRace<M extends string = string>(
     winner,
     send: (prompt, options) => ctrl.send(prompt, options),
     abort: () => ctrl.abort(),
+  };
+}
+
+// --- useChat ---
+
+export interface ChatOptions extends BaseChatOptions {}
+
+export interface UseChatReturn {
+  messages: Accessor<ChatMessage[]>;
+  loading: Accessor<boolean>;
+  error: Accessor<Error | null>;
+  status: Accessor<StreamStatus>;
+  send: (content: string) => void;
+  abort: () => void;
+  clear: () => void;
+  regenerate: () => void;
+  edit: (id: string, text: string) => void;
+}
+
+/**
+ * SolidJS hook for multi-turn AI chat.
+ * Manages the messages[] array, streams assistant replies chunk-by-chunk,
+ * and provides helpers for regenerate and edit-and-resend flows.
+ *
+ * @example
+ * ```tsx
+ * const { messages, send, loading } = useChat({ endpoint: '/__aibind__/chat' });
+ * ```
+ */
+export function useChat(options: ChatOptions): UseChatReturn {
+  const [messages, setMessages] = createSignal<ChatMessage[]>([]);
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal<Error | null>(null);
+  const [status, setStatus] = createSignal<StreamStatus>("idle");
+
+  const ctrl = new ChatController(options, {
+    onMessages: setMessages,
+    onLoading: setLoading,
+    onError: setError,
+    onStatus: setStatus,
+  } satisfies ChatCallbacks);
+
+  onCleanup(() => ctrl.abort());
+
+  return {
+    messages,
+    loading,
+    error,
+    status,
+    send: (content) => ctrl.send(content),
+    abort: () => ctrl.abort(),
+    clear: () => ctrl.clear(),
+    regenerate: () => ctrl.regenerate(),
+    edit: (id, text) => ctrl.edit(id, text),
   };
 }

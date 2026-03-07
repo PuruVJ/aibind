@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
+  ChatController,
   StreamController,
   StreamBroadcastReceiver,
   StructuredStreamController,
@@ -8,7 +9,10 @@ import {
   RaceController,
   UsageTracker,
   type Artifact,
+  type BaseChatOptions,
   type BroadcastMessage,
+  type ChatCallbacks,
+  type ChatMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -450,5 +454,62 @@ export function useRace<M extends string = string>(
     winner,
     send: (prompt, options) => ctrlRef.current!.send(prompt, options),
     abort: () => ctrlRef.current!.abort(),
+  };
+}
+
+// --- useChat ---
+
+export interface ChatOptions extends BaseChatOptions {}
+
+export interface UseChatReturn {
+  messages: ChatMessage[];
+  loading: boolean;
+  error: Error | null;
+  status: StreamStatus;
+  send: (content: string) => void;
+  abort: () => void;
+  clear: () => void;
+  regenerate: () => void;
+  edit: (id: string, text: string) => void;
+}
+
+/**
+ * React hook for multi-turn AI chat.
+ * Manages the messages[] array, streams assistant replies chunk-by-chunk,
+ * and provides helpers for regenerate and edit-and-resend flows.
+ *
+ * @example
+ * ```tsx
+ * const { messages, send, loading } = useChat({ endpoint: '/api/chat' });
+ * ```
+ */
+export function useChat(options: ChatOptions): UseChatReturn {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [status, setStatus] = useState<StreamStatus>("idle");
+
+  const ctrlRef = useRef<ChatController | null>(null);
+  if (!ctrlRef.current) {
+    ctrlRef.current = new ChatController(options, {
+      onMessages: setMessages,
+      onLoading: setLoading,
+      onError: setError,
+      onStatus: setStatus,
+    } satisfies ChatCallbacks);
+  }
+
+  useEffect(() => () => ctrlRef.current?.abort(), []);
+
+  return {
+    messages,
+    loading,
+    error,
+    status,
+    send: (content) => ctrlRef.current!.send(content),
+    abort: () => ctrlRef.current!.abort(),
+    clear: () => ctrlRef.current!.clear(),
+    regenerate: () => ctrlRef.current!.regenerate(),
+    edit: (id, text) => ctrlRef.current!.edit(id, text),
   };
 }

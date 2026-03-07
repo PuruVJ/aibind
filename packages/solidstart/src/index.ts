@@ -7,13 +7,16 @@ import {
   type StructuredStreamOptions,
 } from "@aibind/solid";
 
-export { defineModels, useStreamMirror } from "@aibind/solid";
+export { defineModels, useStreamMirror, useChat } from "@aibind/solid";
 export type {
+  ChatMessage,
+  ChatOptions,
   SendOptions,
   DeepPartial,
   LanguageModel,
   StreamOptions,
   StructuredStreamOptions,
+  UseChatReturn,
   UseStreamMirrorReturn,
 } from "@aibind/solid";
 
