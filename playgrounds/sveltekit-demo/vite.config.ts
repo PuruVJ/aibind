@@ -15,4 +15,9 @@ function externalizeOptionalDeps(): Plugin {
 
 export default defineConfig({
   plugins: [externalizeOptionalDeps(), sveltekit()],
+  ssr: {
+    // Inline workspace packages so Vite transforms them (prevents Node from
+    // loading raw .ts files directly, which requires explicit .ts extensions).
+    noExternal: [/^@aibind\//],
+  },
 });

@@ -8,12 +8,16 @@ import {
   type UseStreamReturn,
 } from "@aibind/react";
 
-export { useStreamMirror, useChat } from "@aibind/react";
+export { useStreamMirror, useChat, useRace, useCompletion } from "@aibind/react";
 export type {
   ChatMessage,
   ChatOptions,
   DeepPartial,
   LanguageModel,
+  RaceOptions,
+  UseRaceReturn,
+  CompletionOptions,
+  UseCompletionReturn,
   SendOptions,
   StreamOptions,
   StructuredStreamOptions,

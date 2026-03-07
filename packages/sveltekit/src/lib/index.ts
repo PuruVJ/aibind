@@ -1,14 +1,22 @@
 import {
   Stream as BaseStream,
   StructuredStream as BaseStructuredStream,
+  Chat as BaseChat,
+  Race as BaseRace,
   defineModels,
   type StreamOptions,
   type StructuredStreamOptions,
+  type ChatOptions,
+  type RaceOptions,
 } from "@aibind/svelte";
 
-export { defineModels, StreamMirror } from "@aibind/svelte";
+export { defineModels, StreamMirror, Completion } from "@aibind/svelte";
 export type {
   BroadcastMessage,
+  ChatMessage,
+  ChatOptions,
+  RaceOptions,
+  CompletionOptions,
   SendOptions,
   DeepPartial,
   LanguageModel,
@@ -45,5 +53,31 @@ export class StructuredStream<M extends string, T> extends BaseStructuredStream<
       Omit<StructuredStreamOptions<T, M>, "endpoint">,
   ) {
     super({ endpoint: `${DEFAULT_PREFIX}/structured`, ...options });
+  }
+}
+
+/**
+ * Reactive conversational chat with SvelteKit defaults.
+ * Endpoint defaults to `/__aibind__/chat`.
+ */
+export class Chat extends BaseChat {
+  constructor(
+    options: Partial<Pick<ChatOptions, "endpoint">> &
+      Omit<ChatOptions, "endpoint"> = {} as any,
+  ) {
+    super({ endpoint: `${DEFAULT_PREFIX}/chat`, ...options });
+  }
+}
+
+/**
+ * Reactive multi-model race with SvelteKit defaults.
+ * Endpoint defaults to `/__aibind__/stream`.
+ */
+export class Race<M extends string = string> extends BaseRace<M> {
+  constructor(
+    options: Partial<Pick<RaceOptions<M>, "endpoint">> &
+      Omit<RaceOptions<M>, "endpoint">,
+  ) {
+    super({ endpoint: `${DEFAULT_PREFIX}/stream`, ...options });
   }
 }
