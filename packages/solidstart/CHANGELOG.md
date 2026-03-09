@@ -1,5 +1,13 @@
 # @aibind/solidstart
 
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies [[`f9f2274`](https://github.com/PuruVJ/aibind/commit/f9f2274374c40bb9f432ae6546e74a1eb8d9f676)]:
+  - @aibind/core@0.8.0
+  - @aibind/solid@0.8.0
+
 ## 0.6.1
 
 ### Patch Changes

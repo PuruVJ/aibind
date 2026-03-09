@@ -1,5 +1,16 @@
 # @aibind/vue
 
+## 0.8.0
+
+### Minor Changes
+
+- [#10](https://github.com/PuruVJ/aibind/pull/10) [`f9f2274`](https://github.com/PuruVJ/aibind/commit/f9f2274374c40bb9f432ae6546e74a1eb8d9f676) Thanks [@PuruVJ](https://github.com/PuruVJ)! - Add optimistic UI to `Chat`/`useChat`: `chat.optimistic(text)` stages a user+assistant message pair without making a request and returns a `StagedMessage` handle with `send()` and `cancel()` methods. `chat.revert()` aborts the current request and removes the last user+assistant pair, returning the user's text. `ChatMessage.optimistic` flag marks unconfirmed messages. `hasOptimistic` reactive property reflects whether any staged messages are present.
+
+### Patch Changes
+
+- Updated dependencies [[`f9f2274`](https://github.com/PuruVJ/aibind/commit/f9f2274374c40bb9f432ae6546e74a1eb8d9f676)]:
+  - @aibind/core@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

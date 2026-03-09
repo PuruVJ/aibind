@@ -1,6 +1,6 @@
 {
   "name": "@aibind/solid",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "AI SDK bindings for SolidJS — reactive hooks for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
