@@ -1,5 +1,12 @@
 # @aibind/react
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [[`f342762`](https://github.com/PuruVJ/aibind/commit/f342762ae6386b5651fc576ea7ea7817885aa1b8)]:
+  - @aibind/core@0.12.0
+
 ## 0.11.0
 
 ### Minor Changes
