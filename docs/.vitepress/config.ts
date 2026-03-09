@@ -28,7 +28,7 @@ export default defineConfig({
       { text: "Guide", link: "/guide/getting-started" },
       { text: "Concepts", link: "/concepts/streaming" },
       { text: "Frameworks", link: "/frameworks/sveltekit" },
-      { text: "Patterns", link: "/patterns/chat-ui" },
+      { text: "Patterns", link: "/patterns/branching-chat" },
     ],
 
     sidebar: [
@@ -49,6 +49,7 @@ export default defineConfig({
           { text: "Structured Output", link: "/concepts/structured-output" },
           { text: "Markdown Rendering", link: "/concepts/markdown" },
           // Conversations
+          { text: "Chat", link: "/concepts/chat" },
           { text: "Conversation Store", link: "/concepts/conversation-store" },
           { text: "Chat History", link: "/concepts/chat-history" },
           { text: "Message Trees", link: "/concepts/message-trees" },
@@ -86,7 +87,6 @@ export default defineConfig({
       {
         text: "Patterns",
         items: [
-          { text: "Chat UI", link: "/patterns/chat-ui" },
           { text: "Branching Chat", link: "/patterns/branching-chat" },
           { text: "Writing Assistant", link: "/patterns/writing-assistant" },
           { text: "Cost-Aware Chat", link: "/patterns/cost-aware-chat" },
