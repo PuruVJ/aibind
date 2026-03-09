@@ -1,5 +1,13 @@
 # @aibind/core
 
+## 0.9.0
+
+### Minor Changes
+
+- [#12](https://github.com/PuruVJ/aibind/pull/12) [`d7b2d54`](https://github.com/PuruVJ/aibind/commit/d7b2d5439410382dc6efbfc5cfb7e40f713dd8c2) Thanks [@PuruVJ](https://github.com/PuruVJ)! - Add multimodal attachment support to chat
+
+  `chat.send()`, `chat.optimistic()`, and `chat.edit()` now accept a second `opts` argument with an optional `attachments` field. Attachments are stored on `ChatMessage.attachments` and replayed automatically by `regenerate()`. A new `fileToAttachment(file: File)` browser utility converts a `File` to base64 `Attachment`. The server-side `StreamHandler` converts attachments to AI SDK `ImagePart`/`FilePart` format automatically.
+
 ## 0.8.0
 
 ### Minor Changes

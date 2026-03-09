@@ -1,6 +1,6 @@
 {
   "name": "@aibind/vue",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "AI SDK bindings for Vue 3 — reactive composables for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
