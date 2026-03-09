@@ -425,11 +425,13 @@ export interface UseChatReturn {
   loading: Accessor<boolean>;
   error: Accessor<Error | null>;
   status: Accessor<StreamStatus>;
+  hasOptimistic: Accessor<boolean>;
   send: (content: string) => void;
   abort: () => void;
   clear: () => void;
   regenerate: () => void;
   edit: (id: string, text: string) => void;
+  revert: () => string | null;
 }
 
 /**
@@ -462,10 +464,12 @@ export function useChat(options: ChatOptions): UseChatReturn {
     loading,
     error,
     status,
+    hasOptimistic: createMemo(() => messages().some((m) => m.optimistic)),
     send: (content) => ctrl.send(content),
     abort: () => ctrl.abort(),
     clear: () => ctrl.clear(),
     regenerate: () => ctrl.regenerate(),
     edit: (id, text) => ctrl.edit(id, text),
+    revert: () => ctrl.revert(),
   };
 }

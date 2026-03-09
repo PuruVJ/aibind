@@ -172,6 +172,8 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** True from `send()` until the first chunk arrives. Use to show pending UI. */
+  optimistic?: boolean;
 }
 
 export interface ChatCallbacks {

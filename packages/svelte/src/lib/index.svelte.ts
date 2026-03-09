@@ -533,6 +533,7 @@ export class Chat {
   loading = $state(false);
   error: Error | null = $state(null);
   status: StreamStatus = $state("idle");
+  hasOptimistic: boolean = $derived(this.messages.some((m) => m.optimistic));
 
   #ctrl: ChatController;
 
@@ -572,6 +573,14 @@ export class Chat {
 
   edit(id: string, text: string): void {
     this.#ctrl.edit(id, text);
+  }
+
+  /**
+   * Undo the most recent send. Aborts if still streaming.
+   * Returns the reverted user message text (to restore an input), or `null`.
+   */
+  revert(): string | null {
+    return this.#ctrl.revert();
   }
 }
 
