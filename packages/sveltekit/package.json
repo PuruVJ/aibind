@@ -1,7 +1,7 @@
 {
   "name": "@aibind/sveltekit",
-  "version": "0.8.0",
-  "description": "AI SDK bindings for SvelteKit \u2014 streaming, structured output, agents, server handlers, and remote functions",
+  "version": "0.9.0",
+  "description": "AI SDK bindings for SvelteKit — streaming, structured output, agents, server handlers, and remote functions",
   "license": "MIT",
   "keywords": [
     "svelte",
