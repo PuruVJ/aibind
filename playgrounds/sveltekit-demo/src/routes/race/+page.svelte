@@ -33,7 +33,7 @@
   >
     <input
       bind:value={prompt}
-      placeholder="Try "What is the speed of light?""
+      placeholder="Try &quot;What is the speed of light?&quot;"
     />
     <button type="submit" disabled={race.loading}>
       {race.loading ? "Racing..." : "Race!"}

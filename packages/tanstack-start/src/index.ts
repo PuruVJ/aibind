@@ -3,16 +3,28 @@
 import {
   useStream as baseUseStream,
   useStructuredStream as baseUseStructuredStream,
+  useChat as baseUseChat,
+  useRace as baseUseRace,
+  useCompletion as baseUseCompletion,
   type StreamOptions,
   type StructuredStreamOptions,
+  type ChatOptions,
+  type RaceOptions,
+  type CompletionOptions,
   type UseStreamReturn,
+  type UseChatReturn,
+  type UseRaceReturn,
+  type UseCompletionReturn,
 } from "@aibind/react";
 
 export {
+  defineModels,
+  fileToAttachment,
+  defaultDiff,
   useStreamMirror,
-  useChat,
-  useRace,
-  useCompletion,
+  useUsageTracker,
+  useChatHistory,
+  useProject,
 } from "@aibind/react";
 export type {
   Attachment,
@@ -28,9 +40,24 @@ export type {
   UseCompletionReturn,
   SendOptions,
   StreamOptions,
+  UseStreamReturn,
   StructuredStreamOptions,
+  UseStructuredStreamReturn,
   UseChatReturn,
   UseStreamMirrorReturn,
+  UseUsageTrackerReturn,
+  UseChatHistoryReturn,
+  UseProjectReturn,
+  TreeConfig,
+  ProjectConfig,
+  ProjectConversation,
+  StreamStatus,
+  StreamUsage,
+  DiffChunk,
+  DiffFn,
+  RaceStrategy,
+  TurnUsage,
+  UsageTrackerOptions,
 } from "@aibind/react";
 
 const DEFAULT_PREFIX = "/__aibind__";
@@ -56,6 +83,42 @@ export function useStructuredStream<M extends string, T>(
 ): ReturnType<typeof baseUseStructuredStream<M, T>> {
   return baseUseStructuredStream({
     endpoint: `${DEFAULT_PREFIX}/structured`,
+    ...options,
+  });
+}
+
+/**
+ * Multi-turn chat hook with TanStack Start defaults.
+ * Endpoint defaults to `/__aibind__/chat`.
+ */
+export function useChat(
+  options: Partial<Pick<ChatOptions, "endpoint">> &
+    Omit<ChatOptions, "endpoint"> = {} as any,
+): UseChatReturn {
+  return baseUseChat({ endpoint: `${DEFAULT_PREFIX}/chat`, ...options });
+}
+
+/**
+ * Multi-model race hook with TanStack Start defaults.
+ * Endpoint defaults to `/__aibind__/stream`.
+ */
+export function useRace<M extends string = string>(
+  options: Partial<Pick<RaceOptions<M>, "endpoint">> &
+    Omit<RaceOptions<M>, "endpoint">,
+): UseRaceReturn<M> {
+  return baseUseRace({ endpoint: `${DEFAULT_PREFIX}/stream`, ...options });
+}
+
+/**
+ * Inline completions hook with TanStack Start defaults.
+ * Endpoint defaults to `/__aibind__/complete`.
+ */
+export function useCompletion(
+  options: Partial<Pick<CompletionOptions, "endpoint">> &
+    Omit<CompletionOptions, "endpoint"> = {} as any,
+): UseCompletionReturn {
+  return baseUseCompletion({
+    endpoint: `${DEFAULT_PREFIX}/complete`,
     ...options,
   });
 }

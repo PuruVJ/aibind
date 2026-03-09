@@ -29,14 +29,18 @@ import {
   type BaseStreamOptions,
   type BaseCompletionOptions,
   type CompletionCallbacks,
-  type ChatHistory,
+  ChatHistory as CoreChatHistory,
+  Project as CoreProject,
   type ConversationMessage,
+  type TreeConfig,
+  type ProjectConfig,
+  type ProjectConversation,
   type TurnUsage,
   type UsageTrackerOptions,
   type DiffChunk,
 } from "@aibind/core";
 
-export { defineModels } from "@aibind/core";
+export { defineModels, fileToAttachment, defaultDiff } from "@aibind/core";
 export type {
   Artifact,
   ArtifactDetector,
@@ -59,8 +63,10 @@ export type {
   ChatMessage,
   ChatSendOptions,
   StagedMessage,
+  TreeConfig,
+  ProjectConfig,
+  ProjectConversation,
 } from "@aibind/core";
-export { defaultDiff } from "@aibind/core";
 
 // --- useStreamMirror ---
 
@@ -234,7 +240,7 @@ export interface UseStreamReturn<M extends string = string> {
   stop: () => Promise<void>;
   resume: () => Promise<void>;
   compact: (
-    chat: ChatHistory<ConversationMessage>,
+    chat: CoreChatHistory<ConversationMessage>,
   ) => Promise<{ tokensSaved: number }>;
   broadcast: (channelName: string) => () => void;
 }
@@ -523,5 +529,172 @@ export function useChat(options: ChatOptions): UseChatReturn {
     edit: (id, text, opts) => ctrlRef.current!.edit(id, text, opts),
     revert: () => ctrlRef.current!.revert(),
     optimistic: (content, opts) => ctrlRef.current!.optimistic(content, opts),
+  };
+}
+
+// --- useChatHistory ---
+
+export interface UseChatHistoryReturn<M> {
+  messages: M[];
+  nodeIds: string[];
+  isEmpty: boolean;
+  size: number;
+  history: CoreChatHistory<M>;
+  append: (message: M) => string;
+  edit: (messageId: string, newMessage: M) => string;
+  regenerate: (messageId: string, newResponse: M) => string;
+  hasAlternatives: (nodeId: string) => boolean;
+  alternativeCount: (nodeId: string) => number;
+  alternativeIndex: (nodeId: string) => number;
+  nextAlternative: (nodeId: string) => void;
+  prevAlternative: (nodeId: string) => void;
+  compact: (summary: M) => void;
+  toJSON: () => string;
+}
+
+/**
+ * React hook for branching conversation history.
+ * All mutating operations trigger a re-render automatically.
+ *
+ * @example
+ * ```tsx
+ * const { messages, nodeIds, append, edit, nextAlternative } = useChatHistory<MyMsg>();
+ * ```
+ */
+export function useChatHistory<M>(
+  config?: TreeConfig,
+): UseChatHistoryReturn<M> {
+  const [, setTick] = useState(0);
+  const histRef = useRef<CoreChatHistory<M> | null>(null);
+  if (!histRef.current) histRef.current = new CoreChatHistory<M>(config);
+  const hist = histRef.current;
+  const update = (): void => setTick((t) => t + 1);
+
+  return {
+    messages: hist.messages,
+    nodeIds: hist.nodeIds,
+    isEmpty: hist.isEmpty,
+    size: hist.size,
+    history: hist,
+    append: (message) => {
+      const id = hist.append(message);
+      update();
+      return id;
+    },
+    edit: (messageId, newMessage) => {
+      const id = hist.edit(messageId, newMessage);
+      update();
+      return id;
+    },
+    regenerate: (messageId, newResponse) => {
+      const id = hist.regenerate(messageId, newResponse);
+      update();
+      return id;
+    },
+    hasAlternatives: (nodeId) => hist.hasAlternatives(nodeId),
+    alternativeCount: (nodeId) => hist.alternativeCount(nodeId),
+    alternativeIndex: (nodeId) => hist.alternativeIndex(nodeId),
+    nextAlternative: (nodeId) => {
+      hist.nextAlternative(nodeId);
+      update();
+    },
+    prevAlternative: (nodeId) => {
+      hist.prevAlternative(nodeId);
+      update();
+    },
+    compact: (summary) => {
+      hist.compact(summary);
+      update();
+    },
+    toJSON: () => hist.toJSON(),
+  };
+}
+
+// --- useProject ---
+
+export interface UseProjectReturn<M> {
+  name: string;
+  instructions: string;
+  knowledge: string[];
+  model: string | undefined;
+  conversationList: Array<{
+    id: string;
+    title: string;
+    createdAt: number;
+    messageCount: number;
+  }>;
+  systemPrompt: string;
+  project: CoreProject<M>;
+  createConversation: (title?: string) => ProjectConversation<M>;
+  getConversation: (id: string) => ProjectConversation<M> | undefined;
+  deleteConversation: (id: string) => boolean;
+  addKnowledge: (text: string) => void;
+  removeKnowledge: (index: number) => void;
+  setName: (name: string) => void;
+  setInstructions: (instructions: string) => void;
+  setModel: (model: string | undefined) => void;
+  buildSystemPrompt: () => string;
+  toJSON: () => string;
+}
+
+/**
+ * React hook for project-scoped context management.
+ * Manages multiple conversations sharing instructions and knowledge snippets.
+ *
+ * @example
+ * ```tsx
+ * const { systemPrompt, createConversation, addKnowledge } = useProject({ name: 'My App' });
+ * ```
+ */
+export function useProject<M = unknown>(
+  config: ProjectConfig,
+): UseProjectReturn<M> {
+  const [, setTick] = useState(0);
+  const projRef = useRef<CoreProject<M> | null>(null);
+  if (!projRef.current) projRef.current = new CoreProject<M>(config);
+  const proj = projRef.current;
+  const update = (): void => setTick((t) => t + 1);
+
+  return {
+    name: proj.name,
+    instructions: proj.instructions,
+    knowledge: proj.knowledge,
+    model: proj.model,
+    conversationList: proj.listConversations(),
+    systemPrompt: proj.buildSystemPrompt(),
+    project: proj,
+    createConversation: (title) => {
+      const conv = proj.createConversation(title);
+      update();
+      return conv;
+    },
+    getConversation: (id) => proj.getConversation(id),
+    deleteConversation: (id) => {
+      const result = proj.deleteConversation(id);
+      if (result) update();
+      return result;
+    },
+    addKnowledge: (text) => {
+      proj.addKnowledge(text);
+      update();
+    },
+    removeKnowledge: (index) => {
+      proj.removeKnowledge(index);
+      update();
+    },
+    setName: (name) => {
+      proj.name = name;
+      update();
+    },
+    setInstructions: (instructions) => {
+      proj.instructions = instructions;
+      update();
+    },
+    setModel: (model) => {
+      proj.model = model;
+      update();
+    },
+    buildSystemPrompt: () => proj.buildSystemPrompt(),
+    toJSON: () => proj.toJSON(),
   };
 }

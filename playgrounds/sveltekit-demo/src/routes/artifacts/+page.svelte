@@ -29,7 +29,7 @@
   >
     <input
       bind:value={prompt}
-      placeholder="Try "Write a React counter component""
+      placeholder="Try &quot;Write a React counter component&quot;"
     />
     <button type="submit" disabled={stream.loading}>
       {stream.loading ? "Streaming..." : "Send"}
