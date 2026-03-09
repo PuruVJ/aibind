@@ -46,7 +46,7 @@
 
   <div class="messages">
     {#each chat.messages as msg (msg.id)}
-      <div class="message {msg.role}">
+      <div class="message {msg.role}" class:optimistic={msg.optimistic}>
         <span class="role-label">{msg.role === "user" ? "You" : "Assistant"}</span>
 
         {#if editingId === msg.id}
@@ -84,7 +84,12 @@
   </div>
 
   {#if chat.error}
-    <div class="error">{chat.error.message}</div>
+    <div class="error">
+      {chat.error.message}
+      <button class="revert-btn" onclick={() => { prompt = chat.revert() ?? prompt; }}>
+        Undo send
+      </button>
+    </div>
   {/if}
 
   <form class="input-form" onsubmit={handleSubmit}>
@@ -169,6 +174,10 @@
     background: #f3f4f6;
     align-self: flex-start;
     border-bottom-left-radius: 0.125rem;
+  }
+
+  .message.optimistic {
+    opacity: 0.6;
   }
 
   .role-label {
@@ -276,7 +285,24 @@
     border-radius: 0.5rem;
     margin-bottom: 0.75rem;
     font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
+
+  .revert-btn {
+    margin-left: auto;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    background: white;
+    border: 1px solid #fecaca;
+    border-radius: 0.25rem;
+    color: #dc2626;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .revert-btn:hover { background: #fef2f2; }
 
   .input-form {
     display: flex;

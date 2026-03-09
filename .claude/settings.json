@@ -237,7 +237,19 @@
       "Bash(timeout 12 pnpm --filter sveltekit-demo dev)",
       "Bash(pnpm --filter @aibind/nextjs exec tsc --noEmit)",
       "Bash(pnpm --filter @aibind/nuxt exec tsc --noEmit)",
-      "Bash(pnpm --filter @aibind/solidstart exec tsc --noEmit)"
+      "Bash(pnpm --filter @aibind/solidstart exec tsc --noEmit)",
+      "Bash(git push --dry-run)",
+      "Bash(grep '\"\"version\"\"')",
+      "Bash(gh run list --limit 5)",
+      "Bash(git -C /Users/puruvijay/Projects/svai status)",
+      "Bash(git -C /Users/puruvijay/Projects/svai checkout main)",
+      "Bash(git -C /Users/puruvijay/Projects/svai pull)",
+      "Bash(git branch -d docs/chat-concept)",
+      "Bash(git push origin --delete docs/chat-concept)",
+      "Bash(pnpm --filter @aibind/svelte exec tsc --noEmit)",
+      "Bash(pnpm --filter @aibind/react exec tsc --noEmit)",
+      "Bash(pnpm --filter @aibind/vue exec tsc --noEmit)",
+      "Bash(pnpm --filter @aibind/solid exec tsc --noEmit)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

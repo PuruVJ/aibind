@@ -8,12 +8,14 @@
  */
 
 import { consumeTextStream } from "./stream-utils";
-import type { ChatCallbacks, BaseChatOptions, ChatMessage, StreamStatus } from "./types";
+import type { ChatCallbacks, BaseChatOptions, ChatMessage, StagedMessage, StreamStatus } from "./types";
 
 export class ChatController {
   private _messages: ChatMessage[] = [];
   private _controller: AbortController | null = null;
   private _status: StreamStatus = "idle";
+  private _stagedUserId: string | null = null;
+  private _stagedAssistantId: string | null = null;
 
   private readonly _opts: BaseChatOptions;
   private readonly _cb: ChatCallbacks;
@@ -40,12 +42,79 @@ export class ChatController {
     this._cb.onMessages([...this._messages]);
   }
 
-  send(content: string): void {
-    if (!content.trim()) return;
+  /**
+   * Stage a message in the UI immediately without starting the network request.
+   * Returns a handle: call `send()` to start streaming, or `cancel()` to discard.
+   *
+   * @example
+   * ```ts
+   * const staged = chat.optimistic(input);
+   * input = "";
+   * // ... do any pre-send work ...
+   * staged.send();
+   * ```
+   */
+  optimistic(content: string): StagedMessage {
+    if (!content.trim()) return { send: () => {}, cancel: () => {} };
+    this._discardStaged();
     this._controller?.abort();
 
-    const userMsg: ChatMessage = { id: this._id(), role: "user", content };
-    const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "" };
+    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true };
+    const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
+    this._stagedUserId = userMsg.id;
+    this._stagedAssistantId = assistantMsg.id;
+    this._messages = [...this._messages, userMsg, assistantMsg];
+    this._emit();
+
+    let consumed = false;
+    return {
+      send: () => {
+        if (consumed) return;
+        consumed = true;
+        this._flushStaged();
+      },
+      cancel: () => {
+        if (consumed) return;
+        consumed = true;
+        this._discardStaged();
+      },
+    };
+  }
+
+  private _discardStaged(): void {
+    const uid = this._stagedUserId;
+    const aid = this._stagedAssistantId;
+    if (!uid && !aid) return;
+    this._messages = this._messages.filter((m) => m.id !== uid && m.id !== aid);
+    this._stagedUserId = null;
+    this._stagedAssistantId = null;
+    this._emit();
+  }
+
+  private _flushStaged(): void {
+    const uid = this._stagedUserId;
+    const aid = this._stagedAssistantId;
+    if (!uid || !aid) return;
+    this._stagedUserId = null;
+    this._stagedAssistantId = null;
+
+    this._status = "streaming";
+    this._cb.onLoading(true);
+    this._cb.onError(null);
+    this._cb.onStatus("streaming");
+
+    const controller = new AbortController();
+    this._controller = controller;
+    this._run(uid, aid, controller);
+  }
+
+  send(content: string): void {
+    if (!content.trim()) return;
+    this._discardStaged();
+    this._controller?.abort();
+
+    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true };
+    const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
     this._messages = [...this._messages, userMsg, assistantMsg];
     this._emit();
 
@@ -56,7 +125,29 @@ export class ChatController {
 
     const controller = new AbortController();
     this._controller = controller;
-    this._run(assistantMsg.id, controller);
+    this._run(userMsg.id, assistantMsg.id, controller);
+  }
+
+  /**
+   * Undo the most recent `send()`.
+   * Aborts if still streaming, removes the user+assistant pair from messages,
+   * and returns the user message text so callers can restore it to an input.
+   * Returns `null` if there is nothing to revert.
+   */
+  revert(): string | null {
+    this.abort();
+    const msgs = [...this._messages];
+    while (msgs.length && msgs[msgs.length - 1]!.role === "assistant") msgs.pop();
+    const lastUser = msgs[msgs.length - 1];
+    if (!lastUser || lastUser.role !== "user") return null;
+    msgs.pop();
+    this._messages = msgs;
+    this._cb.onError(null);
+    this._status = "idle";
+    this._cb.onStatus("idle");
+    this._cb.onLoading(false);
+    this._emit();
+    return lastUser.content;
   }
 
   abort(): void {
@@ -97,7 +188,7 @@ export class ChatController {
     this.send(text);
   }
 
-  private async _run(assistantId: string, controller: AbortController): Promise<void> {
+  private async _run(userId: string, assistantId: string, controller: AbortController): Promise<void> {
     // Build the messages payload, excluding the empty assistant placeholder
     const payload = this._messages
       .filter((m) => m.id !== assistantId)
@@ -119,10 +210,26 @@ export class ChatController {
         throw new Error(`Chat request failed: ${response.status}`);
       }
 
+      let confirmed = false;
       for await (const chunk of consumeTextStream(response)) {
         if (controller.signal.aborted) break;
+        if (!confirmed) {
+          // First chunk — mark both messages as confirmed (no longer optimistic)
+          this._messages = this._messages.map((m) =>
+            m.id === userId || m.id === assistantId ? { ...m, optimistic: false } : m,
+          );
+          confirmed = true;
+        }
         this._messages = this._messages.map((m) =>
           m.id === assistantId ? { ...m, content: m.content + chunk } : m,
+        );
+        this._emit();
+      }
+
+      // If stream ended without any chunks, still confirm the optimistic messages
+      if (!confirmed) {
+        this._messages = this._messages.map((m) =>
+          m.id === userId || m.id === assistantId ? { ...m, optimistic: false } : m,
         );
         this._emit();
       }

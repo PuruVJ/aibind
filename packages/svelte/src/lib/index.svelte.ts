@@ -11,6 +11,7 @@ import {
   type BaseStreamOptions,
   type ChatCallbacks,
   type ChatMessage,
+  type StagedMessage,
   type ChatHistory,
   type CompletionCallbacks,
   type ConversationMessage,
@@ -533,6 +534,7 @@ export class Chat {
   loading = $state(false);
   error: Error | null = $state(null);
   status: StreamStatus = $state("idle");
+  hasOptimistic: boolean = $derived(this.messages.some((m) => m.optimistic));
 
   #ctrl: ChatController;
 
@@ -573,6 +575,23 @@ export class Chat {
   edit(id: string, text: string): void {
     this.#ctrl.edit(id, text);
   }
+
+  /**
+   * Undo the most recent send. Aborts if still streaming.
+   * Returns the reverted user message text (to restore an input), or `null`.
+   */
+  revert(): string | null {
+    return this.#ctrl.revert();
+  }
+
+  /**
+   * Stage a message in the UI immediately without starting the network request.
+   * Returns `{ send(), cancel() }` — call `send()` to stream the response,
+   * or `cancel()` to discard.
+   */
+  optimistic(content: string): StagedMessage {
+    return this.#ctrl.optimistic(content);
+  }
 }
 
-export type { ChatMessage };
+export type { ChatMessage, StagedMessage };

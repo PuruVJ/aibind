@@ -13,6 +13,7 @@ import {
   type BroadcastMessage,
   type ChatCallbacks,
   type ChatMessage,
+  type StagedMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -466,11 +467,14 @@ export interface UseChatReturn {
   loading: boolean;
   error: Error | null;
   status: StreamStatus;
+  hasOptimistic: boolean;
   send: (content: string) => void;
   abort: () => void;
   clear: () => void;
   regenerate: () => void;
   edit: (id: string, text: string) => void;
+  revert: () => string | null;
+  optimistic: (content: string) => StagedMessage;
 }
 
 /**
@@ -506,10 +510,13 @@ export function useChat(options: ChatOptions): UseChatReturn {
     loading,
     error,
     status,
+    hasOptimistic: messages.some((m) => m.optimistic),
     send: (content) => ctrlRef.current!.send(content),
     abort: () => ctrlRef.current!.abort(),
     clear: () => ctrlRef.current!.clear(),
     regenerate: () => ctrlRef.current!.regenerate(),
     edit: (id, text) => ctrlRef.current!.edit(id, text),
+    revert: () => ctrlRef.current!.revert(),
+    optimistic: (content) => ctrlRef.current!.optimistic(content),
   };
 }

@@ -121,6 +121,7 @@ interface ChatOptions {
 | `loading` | `boolean` | `true` while the assistant is streaming. |
 | `error` | `Error \| null` | Last error, or `null`. |
 | `status` | `StreamStatus` | `"idle"` / `"streaming"` / `"done"` / `"error"` |
+| `hasOptimistic` | `boolean` | `true` when any message in the array is still optimistic (unconfirmed). |
 
 ### Methods
 
@@ -131,6 +132,8 @@ interface ChatOptions {
 | `clear()` | Reset to empty conversation. |
 | `regenerate()` | Remove the last assistant reply (and its user turn) and re-send the same user message. |
 | `edit(id, text)` | Truncate history from message `id` onwards and re-send `text` as a new user turn. |
+| `revert()` | Abort the current request, remove the last user+assistant pair, and return the user's text. Returns `null` if nothing to revert. |
+| `optimistic(text)` | Stage a user+assistant message pair immediately without making a request. Returns a [`StagedMessage`](#stagedmessage) handle. |
 
 ### `ChatMessage` type
 
@@ -139,8 +142,22 @@ interface ChatMessage {
   id: string;                      // stable UUID, assigned on creation
   role: "user" | "assistant";
   content: string;                 // accumulates during streaming
+  optimistic?: boolean;            // true until the request is confirmed
 }
 ```
+
+### `StagedMessage`
+
+The handle returned by `chat.optimistic(text)`:
+
+```ts
+interface StagedMessage {
+  send(): void;    // start streaming — commits the staged pair
+  cancel(): void;  // remove the staged pair from messages[]
+}
+```
+
+Both methods are idempotent. Calling `send()` after `cancel()` (or vice versa) is a no-op.
 
 ## Server setup
 
@@ -205,6 +222,78 @@ The two most common chat UI actions work out of the box:
 
 `edit(id, text)` truncates history from the edited message forward and re-sends the new text. `regenerate()` removes the last assistant reply and its paired user message, then re-sends the same user prompt.
 
+## Optimistic UI
+
+`chat.send(text)` is fire-and-forget — the user message appears in `messages[]` instantly and streaming begins. For most apps that's enough.
+
+For flows where you need to **show the message first, then decide whether to send** — e.g. uploading a file attachment before streaming, showing a confirmation step, or triggering send from a different event — use `chat.optimistic(text)`:
+
+```svelte [SvelteKit]
+<script lang="ts">
+  import { Chat } from "@aibind/sveltekit";
+  import type { StagedMessage } from "@aibind/sveltekit";
+
+  const chat = new Chat({ model: "smart" });
+
+  let staged: StagedMessage | null = $state(null);
+  let input = $state("");
+
+  function stage() {
+    const text = input.trim();
+    if (!text) return;
+    input = "";
+    staged = chat.optimistic(text); // message appears immediately, no request yet
+  }
+
+  function confirm() {
+    staged?.send(); // start streaming
+    staged = null;
+  }
+
+  function cancel() {
+    staged?.cancel(); // remove the message
+    staged = null;
+  }
+</script>
+
+{#each chat.messages as msg (msg.id)}
+  <div class={msg.role} style:opacity={msg.optimistic ? 0.5 : 1}>
+    {msg.content}
+  </div>
+{/each}
+
+{#if staged}
+  <div class="confirm-bar">
+    <button onclick={confirm}>Send</button>
+    <button onclick={cancel}>Discard</button>
+  </div>
+{:else}
+  <form onsubmit={(e) => { e.preventDefault(); stage(); }}>
+    <input bind:value={input} />
+    <button type="submit">Stage</button>
+  </form>
+{/if}
+```
+
+Optimistic messages have `msg.optimistic === true` until the first streaming chunk arrives — use this to render a pending state (dimmed opacity, spinner, etc.). Once streaming starts the flag is cleared automatically.
+
+### Undo send with `revert()`
+
+`revert()` aborts the current request, removes the last user+assistant pair from `messages[]`, and returns the user's original text so you can put it back in the input:
+
+```svelte
+{#if chat.error}
+  <div class="error">
+    {chat.error.message}
+    <button onclick={() => { input = chat.revert() ?? input; }}>
+      Undo send
+    </button>
+  </div>
+{/if}
+```
+
+This is different from `abort()`: `abort()` stops streaming but leaves the messages in place. `revert()` removes them entirely.
+
 ## System prompt per session
 
 Pass `system` to set a persistent instruction for the whole conversation:
@@ -226,32 +315,34 @@ Pass `system` to set a persistent instruction for the whole conversation:
 
 ```ts [SvelteKit]
 import { Chat } from "@aibind/sveltekit";
-import type { ChatMessage } from "@aibind/sveltekit";
+import type { ChatMessage, StagedMessage } from "@aibind/sveltekit";
 // Instantiate in <script> — lifecycle tied to component
 const chat = new Chat({ model: "smart" });
 ```
 
 ```ts [Next.js]
 import { useChat } from "@aibind/nextjs";
-import type { ChatMessage } from "@aibind/nextjs";
+import type { ChatMessage, StagedMessage } from "@aibind/nextjs";
 ```
 
 ```ts [React Router v7]
 import { useChat } from "@aibind/react-router";
+import type { StagedMessage } from "@aibind/react-router";
 ```
 
 ```ts [TanStack Start]
 import { useChat } from "@aibind/tanstack-start";
+import type { StagedMessage } from "@aibind/tanstack-start";
 ```
 
 ```ts [Nuxt / Vue]
 import { useChat } from "@aibind/nuxt";
-import type { ChatMessage } from "@aibind/nuxt";
+import type { ChatMessage, StagedMessage } from "@aibind/nuxt";
 ```
 
 ```ts [SolidStart / Solid]
 import { useChat } from "@aibind/solidstart";
-import type { ChatMessage } from "@aibind/solidstart";
+import type { ChatMessage, StagedMessage } from "@aibind/solidstart";
 ```
 
 :::
