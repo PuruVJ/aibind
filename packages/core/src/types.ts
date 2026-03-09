@@ -168,12 +168,28 @@ export type DeepPartial<T> = T extends object
 
 // --- Chat types ---
 
+export interface Attachment {
+  /** MIME type of the attachment, e.g. "image/png", "application/pdf". */
+  mimeType: string;
+  /** Base64-encoded content (no `data:` prefix). Mutually exclusive with `url`. */
+  data?: string;
+  /** Remote URL. Mutually exclusive with `data`. */
+  url?: string;
+}
+
+export interface ChatSendOptions {
+  /** File or image attachments to include with the message. */
+  attachments?: Attachment[];
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   /** True from `send()` until the first chunk arrives. Use to show pending UI. */
   optimistic?: boolean;
+  /** Attachments included with this message (user messages only). */
+  attachments?: Attachment[];
 }
 
 /**

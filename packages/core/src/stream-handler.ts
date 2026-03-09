@@ -11,7 +11,7 @@ import type { StreamStore } from "./stream-store";
 import { MemoryStreamStore } from "./memory-store";
 import { DurableStream } from "./durable-stream";
 import { SSE } from "./sse";
-import type { LanguageModel } from "./types";
+import type { Attachment, LanguageModel } from "./types";
 import type {
   ConversationStore,
   ConversationMessage,
@@ -104,7 +104,7 @@ export interface CompleteRequestBody {
 }
 
 export interface ChatRequestBody {
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  messages: Array<{ role: "user" | "assistant"; content: string; attachments?: Attachment[] }>;
   system?: string;
   model?: string;
 }
@@ -397,6 +397,23 @@ export class StreamHandler {
     });
   }
 
+  #toAiSdkMessage(msg: ChatRequestBody["messages"][number]) {
+    if (!msg.attachments?.length || msg.role !== "user") {
+      return { role: msg.role, content: msg.content };
+    }
+    const parts = [
+      { type: "text" as const, text: msg.content },
+      ...msg.attachments.map((att) => {
+        const src = att.url ?? att.data!;
+        if (att.mimeType.startsWith("image/")) {
+          return { type: "image" as const, image: src, mimeType: att.mimeType };
+        }
+        return { type: "file" as const, data: src, mediaType: att.mimeType };
+      }),
+    ];
+    return { role: "user" as const, content: parts };
+  }
+
   /**
    * Stream a multi-turn chat response.
    * Accepts a messages array and returns a plain text streaming response.
@@ -417,7 +434,7 @@ export class StreamHandler {
       return Response.json({ error: message }, { status: 400 });
     }
 
-    const result = streamText({ model, system, messages });
+    const result = streamText({ model, system, messages: messages.map((m) => this.#toAiSdkMessage(m)) });
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({

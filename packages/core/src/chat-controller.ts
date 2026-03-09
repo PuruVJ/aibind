@@ -8,7 +8,7 @@
  */
 
 import { consumeTextStream } from "./stream-utils";
-import type { ChatCallbacks, BaseChatOptions, ChatMessage, StagedMessage, StreamStatus } from "./types";
+import type { ChatCallbacks, BaseChatOptions, ChatMessage, ChatSendOptions, StagedMessage, StreamStatus } from "./types";
 
 export class ChatController {
   private _messages: ChatMessage[] = [];
@@ -54,12 +54,12 @@ export class ChatController {
    * staged.send();
    * ```
    */
-  optimistic(content: string): StagedMessage {
+  optimistic(content: string, opts?: ChatSendOptions): StagedMessage {
     if (!content.trim()) return { send: () => {}, cancel: () => {} };
     this._discardStaged();
     this._controller?.abort();
 
-    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true };
+    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true, attachments: opts?.attachments };
     const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
     this._stagedUserId = userMsg.id;
     this._stagedAssistantId = assistantMsg.id;
@@ -108,12 +108,12 @@ export class ChatController {
     this._run(uid, aid, controller);
   }
 
-  send(content: string): void {
+  send(content: string, opts?: ChatSendOptions): void {
     if (!content.trim()) return;
     this._discardStaged();
     this._controller?.abort();
 
-    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true };
+    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true, attachments: opts?.attachments };
     const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
     this._messages = [...this._messages, userMsg, assistantMsg];
     this._emit();
@@ -176,23 +176,23 @@ export class ChatController {
     msgs.pop();
     this._messages = msgs;
     this._emit();
-    this.send(lastUser.content);
+    this.send(lastUser.content, { attachments: lastUser.attachments });
   }
 
-  edit(id: string, text: string): void {
+  edit(id: string, text: string, opts?: ChatSendOptions): void {
     const idx = this._messages.findIndex((m) => m.id === id);
     if (idx === -1) return;
     // Truncate from the edited message onwards and re-send as new user turn
     this._messages = this._messages.slice(0, idx);
     this._emit();
-    this.send(text);
+    this.send(text, opts);
   }
 
   private async _run(userId: string, assistantId: string, controller: AbortController): Promise<void> {
     // Build the messages payload, excluding the empty assistant placeholder
     const payload = this._messages
       .filter((m) => m.id !== assistantId)
-      .map(({ role, content }) => ({ role, content }));
+      .map(({ role, content, attachments }) => ({ role, content, ...(attachments?.length ? { attachments } : {}) }));
 
     try {
       const response = await this._fetch(this._opts.endpoint, {

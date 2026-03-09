@@ -483,6 +483,113 @@ describe("ChatController.revert()", () => {
   });
 });
 
+// --- Attachment support ---
+
+describe("ChatController attachment support", () => {
+  it("send() stores attachments on the user message", () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse([]));
+    const { callbacks, onMessages } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    const att = { mimeType: "image/png", data: "abc123" };
+    ctrl.send("Look at this", { attachments: [att] });
+
+    const msgs = onMessages.mock.calls[0][0];
+    expect(msgs[0].attachments).toEqual([att]);
+    expect(msgs[1].attachments).toBeUndefined();
+  });
+
+  it("send() includes attachments in the fetch payload", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    const att = { mimeType: "image/jpeg", data: "base64data" };
+    ctrl.send("Describe this", { attachments: [att] });
+    await flushPromises();
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.messages[0].attachments).toEqual([att]);
+  });
+
+  it("send() without attachments omits the field from payload", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    ctrl.send("Plain text");
+    await flushPromises();
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.messages[0].attachments).toBeUndefined();
+  });
+
+  it("optimistic() stores attachments on the staged user message", () => {
+    const mockFetch = vi.fn();
+    const { callbacks, onMessages } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    const att = { mimeType: "image/png", url: "https://example.com/img.png" };
+    ctrl.optimistic("Check this out", { attachments: [att] });
+
+    const msgs = onMessages.mock.calls.at(-1)![0];
+    expect(msgs[0].attachments).toEqual([att]);
+  });
+
+  it("optimistic().send() includes attachments in fetch payload", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    const att = { mimeType: "application/pdf", data: "pdfdata" };
+    ctrl.optimistic("Analyse this", { attachments: [att] }).send();
+    await flushPromises();
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.messages[0].attachments).toEqual([att]);
+  });
+
+  it("regenerate() replays attachments from the last user message", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(createMockResponse(["first reply"]))
+      .mockResolvedValueOnce(createMockResponse(["second reply"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    const att = { mimeType: "image/png", data: "img" };
+    ctrl.send("Describe", { attachments: [att] });
+    await flushPromises();
+
+    ctrl.regenerate();
+    await flushPromises();
+
+    const body2 = JSON.parse(mockFetch.mock.calls[1][1].body);
+    expect(body2.messages[0].attachments).toEqual([att]);
+  });
+
+  it("edit() passes new attachments through to the re-sent message", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(createMockResponse(["r1"]))
+      .mockResolvedValueOnce(createMockResponse(["r2"]));
+    const { callbacks, onMessages } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    ctrl.send("Original");
+    await flushPromises();
+
+    const userId = onMessages.mock.calls[0][0][0].id;
+    const att = { mimeType: "image/gif", data: "gifdata" };
+    ctrl.edit(userId, "Edited", { attachments: [att] });
+    await flushPromises();
+
+    const body2 = JSON.parse(mockFetch.mock.calls[1][1].body);
+    expect(body2.messages[0].content).toBe("Edited");
+    expect(body2.messages[0].attachments).toEqual([att]);
+  });
+});
+
 // --- StreamHandler.chat ---
 
 describe("StreamHandler.chat", () => {

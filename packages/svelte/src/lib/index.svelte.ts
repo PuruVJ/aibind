@@ -11,6 +11,7 @@ import {
   type BaseStreamOptions,
   type ChatCallbacks,
   type ChatMessage,
+  type ChatSendOptions,
   type StagedMessage,
   type ChatHistory,
   type CompletionCallbacks,
@@ -33,7 +34,7 @@ import {
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { onDestroy } from "svelte";
 
-export { defaultDiff, defineModels } from "@aibind/core";
+export { defaultDiff, defineModels, fileToAttachment } from "@aibind/core";
 export type {
   Artifact,
   ArtifactDetector,
@@ -556,8 +557,8 @@ export class Chat {
     onDestroy(() => this.abort());
   }
 
-  send(content: string): void {
-    this.#ctrl.send(content);
+  send(content: string, opts?: ChatSendOptions): void {
+    this.#ctrl.send(content, opts);
   }
 
   abort(): void {
@@ -572,8 +573,8 @@ export class Chat {
     this.#ctrl.regenerate();
   }
 
-  edit(id: string, text: string): void {
-    this.#ctrl.edit(id, text);
+  edit(id: string, text: string, opts?: ChatSendOptions): void {
+    this.#ctrl.edit(id, text, opts);
   }
 
   /**
@@ -589,9 +590,9 @@ export class Chat {
    * Returns `{ send(), cancel() }` — call `send()` to stream the response,
    * or `cancel()` to discard.
    */
-  optimistic(content: string): StagedMessage {
-    return this.#ctrl.optimistic(content);
+  optimistic(content: string, opts?: ChatSendOptions): StagedMessage {
+    return this.#ctrl.optimistic(content, opts);
   }
 }
 
-export type { ChatMessage, StagedMessage };
+export type { Attachment, ChatMessage, ChatSendOptions, StagedMessage } from "@aibind/core";

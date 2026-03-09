@@ -14,6 +14,7 @@ import {
   type BroadcastMessage,
   type ChatCallbacks,
   type ChatMessage,
+  type ChatSendOptions,
   type StagedMessage,
   type StreamCallbacks,
   type StreamControllerOptions,
@@ -55,7 +56,9 @@ export type {
   DiffChunk,
   DiffFn,
   RaceStrategy,
+  Attachment,
   ChatMessage,
+  ChatSendOptions,
   StagedMessage,
 } from "@aibind/core";
 
@@ -477,13 +480,13 @@ export interface UseChatReturn {
   error: Ref<Error | null>;
   status: Ref<StreamStatus>;
   hasOptimistic: ComputedRef<boolean>;
-  send: (content: string) => void;
+  send: (content: string, opts?: ChatSendOptions) => void;
   abort: () => void;
   clear: () => void;
   regenerate: () => void;
-  edit: (id: string, text: string) => void;
+  edit: (id: string, text: string, opts?: ChatSendOptions) => void;
   revert: () => string | null;
-  optimistic: (content: string) => StagedMessage;
+  optimistic: (content: string, opts?: ChatSendOptions) => StagedMessage;
 }
 
 /**
@@ -517,12 +520,12 @@ export function useChat(options: ChatOptions): UseChatReturn {
     error,
     status,
     hasOptimistic: computed(() => messages.value.some((m) => m.optimistic)),
-    send: (content) => ctrl.send(content),
+    send: (content, opts) => ctrl.send(content, opts),
     abort: () => ctrl.abort(),
     clear: () => ctrl.clear(),
     regenerate: () => ctrl.regenerate(),
-    edit: (id, text) => ctrl.edit(id, text),
+    edit: (id, text, opts) => ctrl.edit(id, text, opts),
     revert: () => ctrl.revert(),
-    optimistic: (content) => ctrl.optimistic(content),
+    optimistic: (content, opts) => ctrl.optimistic(content, opts),
   };
 }

@@ -10,10 +10,12 @@ import {
   type RaceOptions,
 } from "@aibind/svelte";
 
-export { defineModels, StreamMirror, Completion } from "@aibind/svelte";
+export { defineModels, fileToAttachment, StreamMirror, Completion } from "@aibind/svelte";
 export type {
+  Attachment,
   BroadcastMessage,
   ChatMessage,
+  ChatSendOptions,
   StagedMessage,
   ChatOptions,
   RaceOptions,
