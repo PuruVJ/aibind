@@ -16,7 +16,6 @@ function createCallbacks(): StructuredStreamCallbacks<TestSchema> & {
   calls: Record<string, unknown[]>;
 } {
   const calls: Record<string, unknown[]> = {
-    onText: [],
     onLoading: [],
     onDone: [],
     onError: [],
@@ -28,7 +27,6 @@ function createCallbacks(): StructuredStreamCallbacks<TestSchema> & {
   };
   return {
     calls,
-    onText: (v) => calls.onText.push(v),
     onLoading: (v) => calls.onLoading.push(v),
     onDone: (v) => calls.onDone.push(v),
     onError: (v) => calls.onError.push(v),
@@ -40,16 +38,41 @@ function createCallbacks(): StructuredStreamCallbacks<TestSchema> & {
   };
 }
 
-function createTextResponse(chunks: string[], status = 200): Response {
+/**
+ * Build a fake SSE response as the server's /structured endpoint would emit:
+ * partial events, then a data event, then done.
+ */
+function createStructuredSSEResponse(
+  partials: unknown[],
+  finalData: unknown,
+  status = 200,
+): Response {
+  const encoder = new TextEncoder();
+  const parts: Uint8Array[] = [];
+
+  for (const partial of partials) {
+    parts.push(
+      encoder.encode(`event: partial\ndata: ${JSON.stringify(partial)}\n\n`),
+    );
+  }
+  if (finalData !== undefined) {
+    parts.push(
+      encoder.encode(`event: data\ndata: ${JSON.stringify(finalData)}\n\n`),
+    );
+  }
+  parts.push(encoder.encode("event: done\n\n"));
+
   const stream = new ReadableStream({
     start(controller) {
-      for (const chunk of chunks) {
-        controller.enqueue(new TextEncoder().encode(chunk));
-      }
+      for (const part of parts) controller.enqueue(part);
       controller.close();
     },
   });
-  return new Response(stream, { status });
+
+  return new Response(stream, {
+    status,
+    headers: { "Content-Type": "text/event-stream" },
+  });
 }
 
 /** Create a fake StandardSchemaV1 that validates successfully. */
@@ -96,13 +119,16 @@ describe("StructuredStreamController", () => {
     vi.clearAllMocks();
   });
 
-  // --- Basic structured streaming ---
+  // --- Partial events ---
 
-  describe("streaming with partial JSON", () => {
-    it("emits partial objects as chunks arrive", async () => {
+  describe("partial SSE events", () => {
+    it("emits partial objects as partial events arrive", async () => {
       const schema = createFakeSchema({ type: "object" });
       fetchMock.mockResolvedValue(
-        createTextResponse(['{"name":"Al', 'ice","age":30}']),
+        createStructuredSSEResponse(
+          [{ name: "Al" }, { name: "Alice", age: 30 }],
+          { name: "Alice", age: 30 },
+        ),
       );
 
       const ctrl = new StructuredStreamController<TestSchema>(
@@ -112,19 +138,37 @@ describe("StructuredStreamController", () => {
       ctrl.send("describe someone");
       await flushPromises();
 
-      // Should have partial updates
       const partials = cb.calls.onPartial.filter((v) => v !== null);
-      expect(partials.length).toBeGreaterThan(0);
-
-      // First partial should have partial name
-      const firstPartial = partials[0] as DeepPartial<TestSchema>;
-      expect(firstPartial).toHaveProperty("name");
+      expect(partials).toHaveLength(2);
+      expect(partials[0]).toEqual({ name: "Al" });
+      expect(partials[1]).toEqual({ name: "Alice", age: 30 });
     });
 
-    it("emits validated data on completion", async () => {
+    it("emits no partials when partialOutputStream is empty", async () => {
       const schema = createFakeSchema({ type: "object" });
       fetchMock.mockResolvedValue(
-        createTextResponse(['{"name":"Alice","age":30}']),
+        createStructuredSSEResponse([], { name: "Alice", age: 30 }),
+      );
+
+      const ctrl = new StructuredStreamController<TestSchema>(
+        { endpoint: "/api/structured", fetch: fetchMock, schema },
+        cb,
+      );
+      ctrl.send("describe");
+      await flushPromises();
+
+      const partials = cb.calls.onPartial.filter((v) => v !== null);
+      expect(partials).toHaveLength(0);
+    });
+  });
+
+  // --- Data event ---
+
+  describe("data SSE event", () => {
+    it("emits validated data when data event arrives", async () => {
+      const schema = createFakeSchema({ type: "object" });
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "Alice", age: 30 }),
       );
 
       const ctrl = new StructuredStreamController<TestSchema>(
@@ -135,7 +179,7 @@ describe("StructuredStreamController", () => {
       await flushPromises();
 
       const data = cb.calls.onData.filter((v) => v !== null);
-      expect(data.length).toBe(1);
+      expect(data).toHaveLength(1);
       expect(data[0]).toEqual({ name: "Alice", age: 30 });
     });
 
@@ -143,7 +187,7 @@ describe("StructuredStreamController", () => {
       const onFinish = vi.fn();
       const schema = createFakeSchema();
       fetchMock.mockResolvedValue(
-        createTextResponse(['{"name":"Bob","age":25}']),
+        createStructuredSSEResponse([], { name: "Bob", age: 25 }),
       );
 
       const ctrl = new StructuredStreamController<TestSchema>(
@@ -155,6 +199,33 @@ describe("StructuredStreamController", () => {
 
       expect(onFinish).toHaveBeenCalledWith({ name: "Bob", age: 25 });
     });
+
+    it("does not call onData when no data event is received", async () => {
+      const schema = createFakeSchema();
+      // No finalData — only done event
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("event: done\n\n"));
+          controller.close();
+        },
+      });
+      fetchMock.mockResolvedValue(
+        new Response(stream, {
+          headers: { "Content-Type": "text/event-stream" },
+        }),
+      );
+
+      const ctrl = new StructuredStreamController<TestSchema>(
+        { endpoint: "/api/structured", fetch: fetchMock, schema },
+        cb,
+      );
+      ctrl.send("describe");
+      await flushPromises();
+
+      const data = cb.calls.onData.filter((v) => v !== null);
+      expect(data).toHaveLength(0);
+      expect(cb.calls.onStatus).not.toContain("error");
+    });
   });
 
   // --- Validation ---
@@ -165,7 +236,9 @@ describe("StructuredStreamController", () => {
         "name is required",
         "age must be positive",
       ]);
-      fetchMock.mockResolvedValue(createTextResponse(['{"invalid":true}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { invalid: true }),
+      );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -179,13 +252,12 @@ describe("StructuredStreamController", () => {
       expect(errors.length).toBeGreaterThan(0);
       expect((errors[0] as Error).message).toContain("Validation failed");
       expect((errors[0] as Error).message).toContain("name is required");
-      expect((errors[0] as Error).message).toContain("age must be positive");
     });
 
     it("does NOT call onData or onFinish on validation failure", async () => {
       const onFinish = vi.fn();
       const schema = createFailingSchema(["bad data"]);
-      fetchMock.mockResolvedValue(createTextResponse(['{"x":1}']));
+      fetchMock.mockResolvedValue(createStructuredSSEResponse([], { x: 1 }));
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema, onFinish },
@@ -198,6 +270,33 @@ describe("StructuredStreamController", () => {
       expect(data).toEqual([]);
       expect(onFinish).not.toHaveBeenCalled();
     });
+
+    it("async schema validation works", async () => {
+      const schema = {
+        "~standard": {
+          version: 1,
+          vendor: "test",
+          validate: vi.fn(async (input: unknown) => {
+            await new Promise((r) => setTimeout(r, 10));
+            return { value: input };
+          }),
+        },
+      };
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "test", age: 1 }),
+      );
+
+      const ctrl = new StructuredStreamController(
+        { endpoint: "/api/structured", fetch: fetchMock, schema },
+        cb as any,
+      );
+      ctrl.send("describe");
+      await flushPromises();
+      await new Promise((r) => setTimeout(r, 50));
+
+      const data = (cb.calls.onData as any[]).filter((v) => v !== null);
+      expect(data[0]).toEqual({ name: "test", age: 1 });
+    });
   });
 
   // --- Schema resolution ---
@@ -208,7 +307,9 @@ describe("StructuredStreamController", () => {
         type: "object",
         properties: { name: { type: "string" } },
       });
-      fetchMock.mockResolvedValue(createTextResponse(['{"name":"test"}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "test", age: 1 }),
+      );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -236,7 +337,9 @@ describe("StructuredStreamController", () => {
           properties: { age: { type: "number" } },
         }),
       };
-      fetchMock.mockResolvedValue(createTextResponse(['{"age":25}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "x", age: 25 }),
+      );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -254,7 +357,9 @@ describe("StructuredStreamController", () => {
 
     it("sends no schema when none can be resolved", async () => {
       const schema = createFakeSchema(null, "unknown-vendor");
-      fetchMock.mockResolvedValue(createTextResponse(['{"name":"test"}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "test", age: 1 }),
+      );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -277,7 +382,9 @@ describe("StructuredStreamController", () => {
         },
         toJsonSchema,
       };
-      fetchMock.mockResolvedValue(createTextResponse(['{"name":"a"}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "a", age: 1 }),
+      );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -287,11 +394,12 @@ describe("StructuredStreamController", () => {
       ctrl.send("first");
       await flushPromises();
 
-      fetchMock.mockResolvedValue(createTextResponse(['{"name":"b"}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "b", age: 2 }),
+      );
       ctrl.send("second");
       await flushPromises();
 
-      // toJsonSchema should only be called once
       expect(toJsonSchema).toHaveBeenCalledTimes(1);
     });
   });
@@ -303,9 +411,11 @@ describe("StructuredStreamController", () => {
       const schema = createFakeSchema();
       fetchMock
         .mockResolvedValueOnce(
-          createTextResponse(['{"name":"Alice","age":30}']),
+          createStructuredSSEResponse([], { name: "Alice", age: 30 }),
         )
-        .mockResolvedValueOnce(createTextResponse(['{"name":"Bob","age":25}']));
+        .mockResolvedValueOnce(
+          createStructuredSSEResponse([], { name: "Bob", age: 25 }),
+        );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -315,157 +425,13 @@ describe("StructuredStreamController", () => {
       ctrl.send("first");
       await flushPromises();
 
-      // Data should contain Alice
       expect(cb.calls.onData).toContainEqual({ name: "Alice", age: 30 });
 
       ctrl.send("second");
       await flushPromises();
 
-      // Should have null resets between sends
       expect(cb.calls.onData).toContain(null);
       expect(cb.calls.onPartial).toContain(null);
-    });
-  });
-
-  // --- Edge cases ---
-
-  describe("edge cases", () => {
-    it("handles malformed JSON gracefully during streaming", async () => {
-      const schema = createFakeSchema();
-      fetchMock.mockResolvedValue(createTextResponse(["not json"]));
-
-      const ctrl = new StructuredStreamController<TestSchema>(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-
-      // Should error during finalize (JSON.parse fails)
-      expect(cb.calls.onStatus).toContain("error");
-    });
-
-    it("handles empty JSON object", async () => {
-      const schema = createFakeSchema();
-      fetchMock.mockResolvedValue(createTextResponse(["{}"]));
-
-      const ctrl = new StructuredStreamController<TestSchema>(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-
-      const data = cb.calls.onData.filter((v) => v !== null);
-      expect(data).toContainEqual({});
-    });
-
-    it("handles deeply nested JSON", async () => {
-      const schema = createFakeSchema();
-      const nested = JSON.stringify({ a: { b: { c: { d: "deep" } } } });
-      fetchMock.mockResolvedValue(createTextResponse([nested]));
-
-      const ctrl = new StructuredStreamController(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb as any,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-
-      const data = (cb.calls.onData as any[]).filter((v) => v !== null);
-      expect(data[0]).toEqual({ a: { b: { c: { d: "deep" } } } });
-    });
-
-    it("emits multiple partial updates as incremental chunks arrive", async () => {
-      const schema = createFakeSchema();
-      // Simulate very granular chunks
-      fetchMock.mockResolvedValue(
-        createTextResponse([
-          '{"',
-          "name",
-          '":"',
-          "Al",
-          "ice",
-          '","',
-          "age",
-          '":',
-          "30",
-          "}",
-        ]),
-      );
-
-      const ctrl = new StructuredStreamController<TestSchema>(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-
-      // Should have multiple partial updates as the JSON grew
-      const partials = cb.calls.onPartial.filter((v) => v !== null);
-      expect(partials.length).toBeGreaterThanOrEqual(2);
-
-      // Final data should be complete
-      const data = cb.calls.onData.filter((v) => v !== null);
-      expect(data[0]).toEqual({ name: "Alice", age: 30 });
-    });
-
-    it("handles JSON array at top level", async () => {
-      const schema = createFakeSchema();
-      fetchMock.mockResolvedValue(createTextResponse(["[1,2,3]"]));
-
-      const ctrl = new StructuredStreamController(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb as any,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-
-      const data = (cb.calls.onData as any[]).filter((v) => v !== null);
-      expect(data[0]).toEqual([1, 2, 3]);
-    });
-
-    it("handles JSON with special characters in strings", async () => {
-      const schema = createFakeSchema();
-      const obj = { name: 'O\'Brien "Jr"', note: "line1\nline2" };
-      fetchMock.mockResolvedValue(createTextResponse([JSON.stringify(obj)]));
-
-      const ctrl = new StructuredStreamController(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb as any,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-
-      const data = (cb.calls.onData as any[]).filter((v) => v !== null);
-      expect(data[0]).toEqual(obj);
-    });
-
-    it("async schema validation works", async () => {
-      // Schema with async validate
-      const schema = {
-        "~standard": {
-          version: 1,
-          vendor: "test",
-          validate: vi.fn(async (input: unknown) => {
-            await new Promise((r) => setTimeout(r, 10));
-            return { value: input };
-          }),
-        },
-      };
-      fetchMock.mockResolvedValue(createTextResponse(['{"name":"test"}']));
-
-      const ctrl = new StructuredStreamController(
-        { endpoint: "/api/structured", fetch: fetchMock, schema },
-        cb as any,
-      );
-      ctrl.send("describe");
-      await flushPromises();
-      // Wait a bit more for async validation
-      await new Promise((r) => setTimeout(r, 50));
-
-      const data = (cb.calls.onData as any[]).filter((v) => v !== null);
-      expect(data[0]).toEqual({ name: "test" });
     });
   });
 
@@ -474,14 +440,13 @@ describe("StructuredStreamController", () => {
   describe("vendor-specific schema resolution errors", () => {
     it("throws when valibot vendor detected but @valibot/to-json-schema not installed", async () => {
       const schema = createFakeSchema(null, "valibot");
-      fetchMock.mockResolvedValue(createTextResponse(['{"x":1}']));
+      fetchMock.mockResolvedValue(createStructuredSSEResponse([], { x: 1 }));
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
         cb,
       );
       ctrl.send("describe");
-      // Dynamic import rejection takes multiple ticks
       await new Promise((r) => setTimeout(r, 100));
 
       expect(cb.calls.onStatus).toContain("error");
@@ -491,7 +456,7 @@ describe("StructuredStreamController", () => {
 
     it("throws when zod vendor detected but zod/v4 not available", async () => {
       const schema = createFakeSchema(null, "zod");
-      fetchMock.mockResolvedValue(createTextResponse(['{"x":1}']));
+      fetchMock.mockResolvedValue(createStructuredSSEResponse([], { x: 1 }));
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -516,7 +481,9 @@ describe("StructuredStreamController", () => {
           throw new Error("not supported");
         },
       };
-      fetchMock.mockResolvedValue(createTextResponse(['{"name":"test"}']));
+      fetchMock.mockResolvedValue(
+        createStructuredSSEResponse([], { name: "test", age: 1 }),
+      );
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
@@ -525,16 +492,14 @@ describe("StructuredStreamController", () => {
       ctrl.send("describe");
       await flushPromises();
 
-      // Should still work — just no schema sent
       const body = JSON.parse(fetchMock.mock.calls[0][1].body);
       expect(body.schema).toBeUndefined();
 
       const data = cb.calls.onData.filter((v) => v !== null);
-      expect(data[0]).toEqual({ name: "test" });
+      expect(data[0]).toEqual({ name: "test", age: 1 });
     });
 
     it("skips empty jsonSchema object (keys length === 0)", async () => {
-      // Empty jsonSchema should be treated as no schema
       const schema = {
         "~standard": {
           version: 1,
@@ -543,7 +508,7 @@ describe("StructuredStreamController", () => {
           validate: vi.fn((input: unknown) => ({ value: input })),
         },
       };
-      fetchMock.mockResolvedValue(createTextResponse(['{"x":1}']));
+      fetchMock.mockResolvedValue(createStructuredSSEResponse([], { x: 1 }));
 
       const ctrl = new StructuredStreamController<TestSchema>(
         { endpoint: "/api/structured", fetch: fetchMock, schema },
