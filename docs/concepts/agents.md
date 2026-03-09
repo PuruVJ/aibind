@@ -7,16 +7,18 @@ Agents are server-side AI processes that can call tools, handle multi-step workf
 ```
 Client (useAgent)  ←→  Server (ServerAgent)
      ↓                       ↓
-  messages[]            tool calls
-  status                approval flow
+  messages[]            toolset selection
+  status                tool execution
   pendingApproval       streaming response
 ```
 
-## Server Setup
+## Server setup
+
+Register toolsets on `ServerAgent` and export `.handle` as the route:
 
 ```ts
 // src/routes/api/agent/+server.ts (SvelteKit)
-import { ServerAgent } from "@aibind/sveltekit/server";
+import { ServerAgent } from "@aibind/sveltekit/agent";
 import { tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { models } from "../../../models.server";
@@ -24,31 +26,30 @@ import { models } from "../../../models.server";
 const agent = new ServerAgent({
   model: models.gpt,
   system: "You are a helpful assistant with access to tools.",
-  tools: {
-    get_weather: tool({
-      description: "Get current weather for a city",
-      inputSchema: z.object({ city: z.string() }),
-      execute: async ({ city }) => ({
-        city,
-        temperature: Math.round(15 + Math.random() * 20),
-        condition: "sunny",
+  toolsets: {
+    assistant: {
+      get_weather: tool({
+        description: "Get current weather for a city",
+        inputSchema: z.object({ city: z.string() }),
+        execute: async ({ city }) => ({
+          city,
+          temperature: Math.round(15 + Math.random() * 20),
+          condition: "sunny",
+        }),
       }),
-    }),
+    },
   },
+  toolset: "assistant", // server-side default
   stopWhen: stepCountIs(5),
 });
 
-export async function POST({ request }) {
-  const { messages } = await request.json();
-  const lastMessage = messages[messages.length - 1];
-  const result = agent.stream(lastMessage.content, {
-    messages: messages.slice(0, -1),
-  });
-  return result.toTextStreamResponse();
-}
+export const POST = ({ request }: { request: Request }) =>
+  agent.handle(request);
 ```
 
-## Client Usage
+`agent.handle(request)` reads `{ messages, toolset? }` from the body and returns a streaming text response. For Next.js App Router: `export const POST = agent.handle.bind(agent)`.
+
+## Client usage
 
 ::: code-group
 
@@ -56,7 +57,9 @@ export async function POST({ request }) {
 <script lang="ts">
   import { Agent } from "@aibind/sveltekit/agent";
 
-  const agent = new Agent({ endpoint: "/api/agent" });
+  const agent = new Agent({
+    toolset: "assistant", // opts in to the server-registered toolset
+  });
 </script>
 
 <button onclick={() => agent.send("What is the weather in Tokyo?")}>Ask</button>
@@ -76,7 +79,9 @@ export async function POST({ request }) {
 import { useAgent } from "@aibind/nextjs/agent";
 
 function AgentChat() {
-  const { messages, send, status, stop } = useAgent({ endpoint: "/api/agent" });
+  const { messages, send, status, stop } = useAgent({
+    toolset: "assistant",
+  });
 
   return (
     <div>
@@ -96,7 +101,7 @@ function AgentChat() {
 <script setup lang="ts">
 import { useAgent } from "@aibind/nuxt/agent";
 
-const { messages, send, status, stop } = useAgent({ endpoint: "/api/agent" });
+const { messages, send, status, stop } = useAgent({ toolset: "assistant" });
 </script>
 
 <template>
@@ -112,7 +117,7 @@ const { messages, send, status, stop } = useAgent({ endpoint: "/api/agent" });
 import { useAgent } from "@aibind/solidstart/agent";
 
 function AgentChat() {
-  const { messages, send, status, stop } = useAgent({ endpoint: "/api/agent" });
+  const { messages, send, status, stop } = useAgent({ toolset: "assistant" });
 
   return (
     <div>
@@ -132,29 +137,55 @@ function AgentChat() {
 }
 ```
 
-```tsx [TanStack Start]
-import { useAgent } from "@aibind/tanstack-start/agent";
-
-function AgentChat() {
-  const { messages, send, status, stop } = useAgent({ endpoint: "/api/agent" });
-
-  return (
-    <div>
-      {messages.map((msg, i) => (
-        <div key={i}>
-          <strong>{msg.role}:</strong> {msg.content}
-        </div>
-      ))}
-      <button onClick={() => send("What is the weather?")}>Ask</button>
-      {status === "running" && <button onClick={stop}>Stop</button>}
-    </div>
-  );
-}
-```
-
 :::
 
-## Agent State
+## Multiple toolsets
+
+Register several toolsets and let the client select one per instance:
+
+```ts
+// server
+const agent = new ServerAgent({
+  model: models.gpt,
+  system: "You are a helpful assistant.",
+  toolsets: {
+    assistant: { get_weather: tool(...), get_time: tool(...) },
+    billing:   { get_invoice: tool(...), issue_refund: tool(...) },
+  },
+  // no default — client must opt in
+});
+```
+
+```ts
+// client
+const supportAgent  = new Agent({ toolset: "assistant" });
+const billingAgent  = new Agent({ toolset: "billing" });
+const noToolsAgent  = new Agent(); // no toolset — tools disabled
+```
+
+Toolsets are **opt-in**: omitting `toolset` on the client disables tools entirely, regardless of what the server has registered.
+
+## Sharing toolsets with Chat
+
+If both Chat and Agent need the same tools, define them once and share:
+
+```ts
+// lib/toolsets.server.ts
+export const toolsets = {
+  assistant: { get_weather: tool(...) },
+};
+
+// hooks.server.ts — Chat path
+export const handle = createStreamHandler({ models, toolsets });
+
+// routes/api/agent/+server.ts — Agent path
+const agent = new ServerAgent({ system: "...", toolsets, toolset: "assistant" });
+export const POST = ({ request }) => agent.handle(request);
+```
+
+→ For full tool calling details see [Tool Calling](/concepts/tool-calling)
+
+## Agent state
 
 | Property          | Type                             | Description                                             |
 | ----------------- | -------------------------------- | ------------------------------------------------------- |
@@ -172,19 +203,22 @@ function AgentChat() {
 | `approve(id)`       | Approve a pending tool call |
 | `deny(id, reason?)` | Deny a pending tool call    |
 
-## Tool Approval
+## Tool approval
 
-You can configure tools that require user approval before execution:
+Tools can require user approval before execution:
 
 ```ts
 const agent = new ServerAgent({
-  tools: {
-    delete_file: tool({
-      description: "Delete a file",
-      inputSchema: z.object({ path: z.string() }),
-      // Tool requires approval — handled by client
-    }),
+  toolsets: {
+    dangerous: {
+      delete_file: tool({
+        description: "Delete a file",
+        inputSchema: z.object({ path: z.string() }),
+        // Tool requires approval — handled by client
+      }),
+    },
   },
+  toolset: "dangerous",
   requireApproval: ["delete_file"],
 });
 ```

@@ -270,7 +270,17 @@
       "Bash(file=\"/Users/puruvijay/Projects/svai/$pkg/package.json\")",
       "Bash(for pkg in packages/*/package.json)",
       "Bash(do node -p \"const d=require\\(''./$pkg''\\); d.name + '': '' + d.version\")",
-      "Bash(git push -u origin feat/multimodal-attachments)"
+      "Bash(git push -u origin feat/multimodal-attachments)",
+      "Bash(git push)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && cat {} | grep -E \"\"\\\\\"\"name\\\\\"\"|\\\\\"\"version\\\\\"\"\"\" | head -2')",
+      "Bash(git reset HEAD~1)",
+      "Bash(pnpm --filter @aibind/core test -- --reporter=verbose)",
+      "Bash(pnpm --filter @aibind/core test -- tests/chat-controller.test.ts tests/stream-handler.test.ts)",
+      "Bash(pnpm --filter sveltekit-demo exec svelte-check --tsconfig ./tsconfig.json)",
+      "Bash(node -e \"const ai = require\\(''./node_modules/ai/dist/index.js''\\); console.log\\(typeof ai.CoreTool\\)\")",
+      "Bash(grep -r \"\"\"ai\"\":\" /Users/puruvijay/Projects/svai/package.json)",
+      "Bash(node -e \"const {tool} = require\\(''/Users/puruvijay/Projects/svai/playgrounds/sveltekit-demo/node_modules/ai''\\); const {z} = require\\(''/Users/puruvijay/Projects/svai/playgrounds/sveltekit-demo/node_modules/zod''\\); const t = tool\\({description:''test'', parameters: z.object\\({city: z.string\\(\\)}\\), execute: async \\({city}\\) => city}\\); console.log\\(typeof t\\);\")",
+      "Bash(git push -u origin feat/agent-toolsets)"
     ],
     "additionalDirectories": [
       "/Users/puruvijay/Projects/svai/.claude",

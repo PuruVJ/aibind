@@ -139,7 +139,10 @@ export class DurableStream {
           await store.stop(streamId);
           return;
         }
-        await store.append(streamId, DurableStream.#encode(chunk.event, chunk.data));
+        await store.append(
+          streamId,
+          DurableStream.#encode(chunk.event, chunk.data),
+        );
       }
       const status = await store.getStatus(streamId);
       if (status?.state === "active") {
