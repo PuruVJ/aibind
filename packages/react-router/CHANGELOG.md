@@ -1,5 +1,14 @@
 # @aibind/react-router
 
+## 0.9.1
+
+### Patch Changes
+
+- [`30523ec`](https://github.com/PuruVJ/aibind/commit/30523ec40cd818133f1c5ce8cf931c2091395ff4) Thanks [@PuruVJ](https://github.com/PuruVJ)! - Fix cross-package parity: add useChatHistory, useProject, fileToAttachment, and comprehensive type exports to all framework packages; ensure meta-framework wrappers correctly inject endpoint defaults for useChat, useRace, and useCompletion.
+
+- Updated dependencies [[`30523ec`](https://github.com/PuruVJ/aibind/commit/30523ec40cd818133f1c5ce8cf931c2091395ff4)]:
+  - @aibind/react@0.9.1
+
 ## 0.9.0
 
 ### Minor Changes
