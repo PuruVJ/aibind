@@ -1,7 +1,7 @@
 {
   "name": "@aibind/tanstack-start",
-  "version": "0.8.0",
-  "description": "AI SDK bindings for TanStack Start \u2014 hooks with defaults, server handlers, and agents",
+  "version": "0.9.0",
+  "description": "AI SDK bindings for TanStack Start — hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "tanstack",
