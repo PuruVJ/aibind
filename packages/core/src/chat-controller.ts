@@ -7,7 +7,7 @@
  * Framework packages wrap this with reactive primitives ($state, useState, ref, createSignal).
  */
 
-import { consumeTextStream } from "./stream-utils";
+import { SSE } from "./sse";
 import type {
   ChatCallbacks,
   BaseChatOptions,
@@ -241,6 +241,8 @@ export class ChatController {
           messages: payload,
           system: this._opts.system,
           model: this._opts.model,
+          toolset: this._opts.toolset,
+          maxSteps: this._opts.maxSteps,
         }),
         signal: controller.signal,
       });
@@ -250,8 +252,29 @@ export class ChatController {
       }
 
       let confirmed = false;
-      for await (const chunk of consumeTextStream(response)) {
+      for await (const msg of SSE.consume(response)) {
         if (controller.signal.aborted) break;
+
+        if (msg.event === "tool_call") {
+          try {
+            const { name, args } = JSON.parse(msg.data) as {
+              name: string;
+              args: unknown;
+            };
+            this._opts.onToolCall?.(name, args);
+          } catch {
+            // Malformed tool_call payload — ignore
+          }
+          continue;
+        }
+        if (msg.event === "usage") continue;
+        if (msg.event === "stream-id") continue;
+        if (msg.event === "stopped") continue;
+        if (msg.event === "error") throw new Error(msg.data);
+        if (msg.event === "done") break;
+
+        // Regular text chunk
+        const chunk = msg.data;
         if (!confirmed) {
           // First chunk — mark both messages as confirmed (no longer optimistic)
           this._messages = this._messages.map((m) =>

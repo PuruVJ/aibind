@@ -224,6 +224,22 @@ export interface BaseChatOptions {
   onFinish?: (messages: ChatMessage[]) => void;
   /** Called when a network or server error occurs. */
   onError?: (error: Error) => void;
+  /**
+   * Named toolset to activate for this chat instance.
+   * Must match a key registered in `createStreamHandler({ toolsets: { ... } })`.
+   * Falls back to the `"default"` toolset if omitted.
+   */
+  toolset?: string;
+  /**
+   * Maximum tool-call → result → LLM rounds per turn.
+   * Only applied when a toolset is active. Defaults to 5.
+   */
+  maxSteps?: number;
+  /**
+   * Called each time the model invokes a tool before producing the final response.
+   * Useful for showing "Searching…" or progress feedback in the UI.
+   */
+  onToolCall?: (name: string, args: unknown) => void;
 }
 
 // --- defineModels ---

@@ -19,6 +19,7 @@
   <a href="/branching">Branching</a>
   <a href="/resumable">Resumable</a>
   <a href="/multimodal">Multimodal</a>
+  <a href="/tools">Tools</a>
 </nav>
 
 <main>
