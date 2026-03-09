@@ -8,12 +8,14 @@
  */
 
 import { consumeTextStream } from "./stream-utils";
-import type { ChatCallbacks, BaseChatOptions, ChatMessage, StreamStatus } from "./types";
+import type { ChatCallbacks, BaseChatOptions, ChatMessage, StagedMessage, StreamStatus } from "./types";
 
 export class ChatController {
   private _messages: ChatMessage[] = [];
   private _controller: AbortController | null = null;
   private _status: StreamStatus = "idle";
+  private _stagedUserId: string | null = null;
+  private _stagedAssistantId: string | null = null;
 
   private readonly _opts: BaseChatOptions;
   private readonly _cb: ChatCallbacks;
@@ -40,8 +42,75 @@ export class ChatController {
     this._cb.onMessages([...this._messages]);
   }
 
+  /**
+   * Stage a message in the UI immediately without starting the network request.
+   * Returns a handle: call `send()` to start streaming, or `cancel()` to discard.
+   *
+   * @example
+   * ```ts
+   * const staged = chat.optimistic(input);
+   * input = "";
+   * // ... do any pre-send work ...
+   * staged.send();
+   * ```
+   */
+  optimistic(content: string): StagedMessage {
+    if (!content.trim()) return { send: () => {}, cancel: () => {} };
+    this._discardStaged();
+    this._controller?.abort();
+
+    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true };
+    const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
+    this._stagedUserId = userMsg.id;
+    this._stagedAssistantId = assistantMsg.id;
+    this._messages = [...this._messages, userMsg, assistantMsg];
+    this._emit();
+
+    let consumed = false;
+    return {
+      send: () => {
+        if (consumed) return;
+        consumed = true;
+        this._flushStaged();
+      },
+      cancel: () => {
+        if (consumed) return;
+        consumed = true;
+        this._discardStaged();
+      },
+    };
+  }
+
+  private _discardStaged(): void {
+    const uid = this._stagedUserId;
+    const aid = this._stagedAssistantId;
+    if (!uid && !aid) return;
+    this._messages = this._messages.filter((m) => m.id !== uid && m.id !== aid);
+    this._stagedUserId = null;
+    this._stagedAssistantId = null;
+    this._emit();
+  }
+
+  private _flushStaged(): void {
+    const uid = this._stagedUserId;
+    const aid = this._stagedAssistantId;
+    if (!uid || !aid) return;
+    this._stagedUserId = null;
+    this._stagedAssistantId = null;
+
+    this._status = "streaming";
+    this._cb.onLoading(true);
+    this._cb.onError(null);
+    this._cb.onStatus("streaming");
+
+    const controller = new AbortController();
+    this._controller = controller;
+    this._run(uid, aid, controller);
+  }
+
   send(content: string): void {
     if (!content.trim()) return;
+    this._discardStaged();
     this._controller?.abort();
 
     const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true };

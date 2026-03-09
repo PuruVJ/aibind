@@ -106,7 +106,7 @@ export type {
 
 // Chat controller (framework-agnostic client)
 export { ChatController } from "./chat-controller";
-export type { ChatMessage, ChatCallbacks, BaseChatOptions } from "./types";
+export type { ChatMessage, ChatCallbacks, BaseChatOptions, StagedMessage } from "./types";
 
 // Agent controller (framework-agnostic)
 export { AgentController } from "./agent-controller";

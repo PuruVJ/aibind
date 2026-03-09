@@ -11,6 +11,7 @@ import {
   type BaseStreamOptions,
   type ChatCallbacks,
   type ChatMessage,
+  type StagedMessage,
   type ChatHistory,
   type CompletionCallbacks,
   type ConversationMessage,
@@ -582,6 +583,15 @@ export class Chat {
   revert(): string | null {
     return this.#ctrl.revert();
   }
+
+  /**
+   * Stage a message in the UI immediately without starting the network request.
+   * Returns `{ send(), cancel() }` — call `send()` to stream the response,
+   * or `cancel()` to discard.
+   */
+  optimistic(content: string): StagedMessage {
+    return this.#ctrl.optimistic(content);
+  }
 }
 
-export type { ChatMessage };
+export type { ChatMessage, StagedMessage };

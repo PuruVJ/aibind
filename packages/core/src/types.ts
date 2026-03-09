@@ -176,6 +176,18 @@ export interface ChatMessage {
   optimistic?: boolean;
 }
 
+/**
+ * Handle returned by `Chat.optimistic()` / `useChat().optimistic()`.
+ * The message is already visible in the UI — call `send()` to stream the
+ * response, or `cancel()` to discard both messages.
+ */
+export interface StagedMessage {
+  /** Start the actual streaming request for the staged message. */
+  send(): void;
+  /** Remove the staged messages without sending. */
+  cancel(): void;
+}
+
 export interface ChatCallbacks {
   onMessages(messages: ChatMessage[]): void;
   onLoading(loading: boolean): void;
