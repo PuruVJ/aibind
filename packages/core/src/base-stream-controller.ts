@@ -38,6 +38,13 @@ export interface BaseStreamControllerOptions {
   sessionId?: string;
   routeModel?: (prompt: string) => string | Promise<string>;
   tracker?: UsageRecorder;
+  /**
+   * Automatically suspend the stream when the browser tab becomes hidden and
+   * resume it when the tab regains focus. Requires durable streams to be
+   * enabled on the server (`resumable: true` in `createStreamHandler`).
+   * No-op in non-browser environments.
+   */
+  autoResume?: boolean;
 }
 
 // --- BaseStreamController ---
@@ -57,6 +64,8 @@ export class BaseStreamController {
   private _reconnectAttempts = 0;
   private _maxReconnectAttempts = 3;
   private _streamId: string | null = null;
+  private _autoResumeStopped = false;
+  private _visibilityHandler: (() => void) | null = null;
 
   constructor(
     options: BaseStreamControllerOptions,
@@ -67,6 +76,32 @@ export class BaseStreamController {
     }
     this._opts = options;
     this._cb = callbacks;
+    if (options.autoResume && typeof document !== "undefined") {
+      this._visibilityHandler = this._handleVisibilityChange.bind(this);
+      document.addEventListener("visibilitychange", this._visibilityHandler);
+    }
+  }
+
+  /** Remove event listeners. Call when the controller is no longer needed. */
+  destroy(): void {
+    if (this._visibilityHandler) {
+      document.removeEventListener("visibilitychange", this._visibilityHandler);
+      this._visibilityHandler = null;
+    }
+  }
+
+  private _handleVisibilityChange(): void {
+    if (document.hidden) {
+      if (this._status === "streaming" && this._isSSE) {
+        this._autoResumeStopped = true;
+        this.stop();
+      }
+    } else {
+      if (this._autoResumeStopped) {
+        this._autoResumeStopped = false;
+        this.resume();
+      }
+    }
   }
 
   private get _fetch(): typeof globalThis.fetch {
@@ -123,6 +158,7 @@ export class BaseStreamController {
     this._isSSE = false;
     this._lastSeq = 0;
     this._reconnectAttempts = 0;
+    this._autoResumeStopped = false;
 
     this._cb.onLoading(true);
     this._cb.onError(null);

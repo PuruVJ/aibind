@@ -158,9 +158,9 @@ const agent = new ServerAgent({
 
 ```ts
 // client
-const supportAgent  = new Agent({ toolset: "assistant" });
-const billingAgent  = new Agent({ toolset: "billing" });
-const noToolsAgent  = new Agent(); // no toolset — tools disabled
+const supportAgent = new Agent({ toolset: "assistant" });
+const billingAgent = new Agent({ toolset: "billing" });
+const noToolsAgent = new Agent(); // no toolset — tools disabled
 ```
 
 Toolsets are **opt-in**: omitting `toolset` on the client disables tools entirely, regardless of what the server has registered.
@@ -184,6 +184,46 @@ export const POST = ({ request }) => agent.handle(request);
 ```
 
 → For full tool calling details see [Tool Calling](/concepts/tool-calling)
+
+## Multi-agent composition
+
+`ServerAgent.asTool(description)` wraps an agent as a callable AI SDK tool so it can be invoked by another agent's tool loop — or by Chat. This enables orchestrator/sub-agent pipelines in pure TypeScript.
+
+```ts
+// lib/agents.server.ts
+const researcher = new ServerAgent({
+  model,
+  system: "Research topics thoroughly and return detailed findings.",
+});
+
+const writer = new ServerAgent({
+  model,
+  system: "Write clear, compelling content from provided briefs.",
+});
+
+export const toolsets = {
+  default: {
+    researcher: researcher.asTool("Research a topic and return findings"),
+    writer: writer.asTool("Write an article given a brief"),
+  },
+};
+
+// hooks.server.ts — Chat users can also invoke sub-agents
+export const handle = createStreamHandler({ models, toolsets });
+
+// routes/api/orchestrator/+server.ts
+const orchestrator = new ServerAgent({
+  model,
+  system: "Coordinate research and writing tasks to produce great content.",
+  toolsets,
+  toolset: "default",
+});
+export const POST = ({ request }) => orchestrator.handle(request);
+```
+
+Sub-agents run to completion before returning their result to the outer loop — the orchestrator sees the full output as a tool result and uses it to compose its final response.
+
+Because `asTool()` returns a plain AI SDK `Tool`, the same toolset works for both Chat and Agent with no adaptation.
 
 ## Agent state
 

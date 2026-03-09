@@ -24,6 +24,8 @@ import type { ChatHistory } from "./chat-history";
 import type { ConversationMessage } from "./conversation-store";
 import { StreamBroadcaster } from "./broadcast";
 
+const RE_SENTENCE_END = /[.!?](?:\s|$)/;
+
 // --- Callbacks ---
 
 export interface StreamCallbacks extends BaseStreamCallbacks {
@@ -66,6 +68,8 @@ export class StreamController extends BaseStreamController {
   private _artifacts: Artifact[] = [];
   private _artifactIdSeq = 0;
   private _broadcaster: StreamBroadcaster | null = null;
+  private _speakActive = false;
+  private _speakBuffer = "";
 
   get text(): string {
     return this._text;
@@ -75,6 +79,40 @@ export class StreamController extends BaseStreamController {
     super(options, callbacks);
     this._opts = options;
     this._cb = callbacks;
+  }
+
+  // --- Speak ---
+
+  /**
+   * Pipe the streaming response into the browser's Web Speech API.
+   * Audio playback starts after the first sentence completes — no waiting for
+   * the full response. Returns a cleanup function that cancels speech.
+   *
+   * No-op in non-browser environments (returns a no-op cleanup).
+   */
+  speak(): () => void {
+    if (typeof speechSynthesis === "undefined") return () => {};
+    speechSynthesis.cancel();
+    this._speakActive = true;
+    this._speakBuffer = "";
+    return () => {
+      this._speakActive = false;
+      speechSynthesis.cancel();
+    };
+  }
+
+  private _flushSpeak(final = false): void {
+    if (!this._speakActive) return;
+    const match = RE_SENTENCE_END.exec(this._speakBuffer);
+    if (match) {
+      const boundary = match.index + match[0].length;
+      const sentence = this._speakBuffer.slice(0, boundary).trim();
+      this._speakBuffer = this._speakBuffer.slice(boundary);
+      if (sentence) speechSynthesis.speak(new SpeechSynthesisUtterance(sentence));
+    } else if (final && this._speakBuffer.trim()) {
+      speechSynthesis.speak(new SpeechSynthesisUtterance(this._speakBuffer.trim()));
+      this._speakBuffer = "";
+    }
   }
 
   // --- Broadcast ---
@@ -97,6 +135,8 @@ export class StreamController extends BaseStreamController {
     this._cb.onText(this._text);
     this._scanArtifacts();
     this._postBroadcast();
+    this._speakBuffer += chunk;
+    this._flushSpeak();
   }
 
   protected override async _finalize(): Promise<void> {
@@ -104,6 +144,7 @@ export class StreamController extends BaseStreamController {
       this._artifacts[this._artifacts.length - 1]!.complete = true;
       this._cb.onArtifacts?.([...this._artifacts]);
     }
+    this._flushSpeak(true);
     this._opts.onFinish?.(this._text);
   }
 
@@ -114,6 +155,9 @@ export class StreamController extends BaseStreamController {
     this._scannedUpTo = 0;
     this._inArtifact = false;
     this._artifacts = [];
+    this._speakActive = false;
+    this._speakBuffer = "";
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
     this._cb.onText("");
     this._cb.onDiff?.(null);
     if (this._opts.artifact) this._cb.onArtifacts?.([]);

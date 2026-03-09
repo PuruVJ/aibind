@@ -1,4 +1,4 @@
-import { generateText, streamText, stepCountIs } from "ai";
+import { generateText, streamText, stepCountIs, jsonSchema } from "ai";
 import type { LanguageModel } from "./types";
 
 export interface AgentConfig {
@@ -98,6 +98,50 @@ export class ServerAgent {
       ...this.#baseOpts(options?.toolset),
       ...(messages ? { messages } : { prompt }),
     });
+  }
+
+  /**
+   * Wrap this agent as an AI SDK tool so it can be called by another agent or
+   * by Chat (via toolsets). The inner agent runs to completion (`generateText`)
+   * before returning its text to the outer loop.
+   *
+   * Because the returned tool is a plain AI SDK `tool()`, it works in both
+   * `ServerAgent` toolsets and `createStreamHandler` toolsets — define once,
+   * share between Chat and Agent contexts.
+   *
+   * @example
+   * ```ts
+   * const researcher = new ServerAgent({ model, system: "Research topics." });
+   *
+   * export const toolsets = {
+   *   default: {
+   *     research: researcher.asTool("Research a topic in depth"),
+   *   },
+   * };
+   *
+   * // Works in both:
+   * export const handle = createStreamHandler({ models, toolsets });
+   * const orchestrator = new ServerAgent({ model, system: "...", toolsets, toolset: "default" });
+   * ```
+   */
+  asTool(description: string): import("ai").Tool {
+    return {
+      description,
+      inputSchema: jsonSchema<{ prompt: string }>({
+        type: "object",
+        properties: {
+          prompt: {
+            type: "string",
+            description: "The task or question for this agent",
+          },
+        },
+        required: ["prompt"],
+      }),
+      execute: async ({ prompt }: { prompt: string }) => {
+        const result = await this.run(prompt);
+        return result.text;
+      },
+    };
   }
 
   /**

@@ -189,12 +189,16 @@ export interface ChatSendOptions {
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "tool";
   content: string;
   /** True from `send()` until the first chunk arrives. Use to show pending UI. */
   optimistic?: boolean;
   /** Attachments included with this message (user messages only). */
   attachments?: Attachment[];
+  /** Tool name — present on `role: "tool"` messages. */
+  toolName?: string;
+  /** Tool arguments — present on `role: "tool"` messages. */
+  toolArgs?: unknown;
 }
 
 /**

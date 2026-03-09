@@ -224,9 +224,9 @@ export class ChatController {
     assistantId: string,
     controller: AbortController,
   ): Promise<void> {
-    // Build the messages payload, excluding the empty assistant placeholder
+    // Build the messages payload — exclude the assistant placeholder and tool messages
     const payload = this._messages
-      .filter((m) => m.id !== assistantId)
+      .filter((m) => m.id !== assistantId && m.role !== "tool")
       .map(({ role, content, attachments }) => ({
         role,
         content,
@@ -262,6 +262,26 @@ export class ChatController {
               args: unknown;
             };
             this._opts.onToolCall?.(name, args);
+            // Insert a tool message before the assistant placeholder
+            const toolMsg: ChatMessage = {
+              id: this._id(),
+              role: "tool",
+              content: "",
+              toolName: name,
+              toolArgs: args,
+            };
+            const assistantIdx = this._messages.findIndex(
+              (m) => m.id === assistantId,
+            );
+            this._messages =
+              assistantIdx !== -1
+                ? [
+                    ...this._messages.slice(0, assistantIdx),
+                    toolMsg,
+                    ...this._messages.slice(assistantIdx),
+                  ]
+                : [...this._messages, toolMsg];
+            this._emit();
           } catch {
             // Malformed tool_call payload — ignore
           }
