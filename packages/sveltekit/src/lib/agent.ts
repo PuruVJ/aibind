@@ -6,10 +6,12 @@ export type {
   AgentMessage,
   AgentStatus,
 } from "@aibind/svelte/agent";
-export { ServerAgent } from "@aibind/core";
+export { ServerAgent, AgentGraph } from "@aibind/core";
 export type {
   AgentConfig as ServerAgentConfig,
   RunOptions,
+  AgentNodeConfig,
+  RouterFn,
 } from "@aibind/core";
 
 const DEFAULT_PREFIX = "/__aibind__";

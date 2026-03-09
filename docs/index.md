@@ -47,6 +47,11 @@ features:
     details: Server-side multi-step tool loops. Define tools once, model chains them. Built on AI SDK's streamText with configurable stop conditions.
     link: /concepts/agents
     linkText: Learn more
+  - icon: 🗺
+    title: Graph agents
+    details: LangGraph-style state machines in pure TypeScript. Named nodes, conditional edges, shared context. Watch each pipeline stage execute live in the UI.
+    link: /concepts/graph-agents
+    linkText: Learn more
   - icon: 🔁
     title: Resumable streams
     details: Chunks are buffered server-side. Tab reload, network drop, navigating away — client reconnects and picks up exactly where it left off.

@@ -97,6 +97,12 @@ export interface AgentMessage {
   toolStatus?: ToolCallStatus;
   /** Approval ID for approval-request messages. */
   approvalId?: string;
+  /**
+   * Graph node that produced this message.
+   * Set on assistant and tool messages emitted by graph agents.
+   * `undefined` on plain-text (non-graph) agent messages.
+   */
+  nodeId?: string;
 }
 
 export interface AgentOptions {

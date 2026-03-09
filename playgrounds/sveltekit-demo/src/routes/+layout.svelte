@@ -14,6 +14,7 @@
   <a href="/broadcast">Broadcast</a>
   <a href="/completion">Completion</a>
   <a href="/agent">Agent</a>
+  <a href="/graph-agent">Graph Agent</a>
   <a href="/query">Query</a>
   <a href="/markdown">Markdown</a>
   <a href="/branching">Branching</a>

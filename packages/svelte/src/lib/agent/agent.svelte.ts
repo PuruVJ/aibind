@@ -20,6 +20,8 @@ export class Agent {
   error: Error | null = $state(null);
   pendingApproval: { id: string; toolName: string; args: unknown } | null =
     $state(null);
+  /** The name of the graph node currently executing, or `null` when idle. */
+  currentNode: string | null = $state(null);
 
   #ctrl: AgentController;
 
@@ -36,6 +38,9 @@ export class Agent {
       },
       onPendingApproval: (pa) => {
         this.pendingApproval = pa;
+      },
+      onCurrentNode: (node) => {
+        this.currentNode = node;
       },
     } satisfies AgentCallbacks);
     onDestroy(() => this.stop());

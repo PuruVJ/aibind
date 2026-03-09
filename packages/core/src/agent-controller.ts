@@ -7,6 +7,7 @@
  */
 
 import { consumeTextStream } from "./stream-utils";
+import { AgentStream } from "./agent-stream";
 import type { AgentStatus, AgentMessage, AgentOptions } from "./types";
 
 // --- Callbacks ---
@@ -18,6 +19,8 @@ export interface AgentCallbacks {
   onPendingApproval(
     pa: { id: string; toolName: string; args: unknown } | null,
   ): void;
+  /** Called when the active graph node changes (graph agents only). */
+  onCurrentNode(node: string | null): void;
 }
 
 // --- AgentController ---
@@ -31,6 +34,7 @@ export class AgentController {
     args: unknown;
   } | null = null;
   private _status: AgentStatus = "idle";
+  private _currentNode: string | null = null;
 
   private _opts: AgentOptions;
   private _cb: AgentCallbacks;
@@ -49,6 +53,11 @@ export class AgentController {
 
   get messages(): AgentMessage[] {
     return this._messages;
+  }
+
+  /** The name of the graph node currently executing, or `null` when idle. */
+  get currentNode(): string | null {
+    return this._currentNode;
   }
 
   async send(prompt: string): Promise<void> {
@@ -86,25 +95,16 @@ export class AgentController {
       if (!response.ok)
         throw new Error(`Agent request failed: ${response.status}`);
 
-      const assistantMsg: AgentMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "",
-        type: "text",
-      };
-      this._messages = [...this._messages, assistantMsg];
-      this._cb.onMessages(this._messages);
-
-      for await (const chunk of consumeTextStream(response)) {
-        if (controller.signal.aborted) break;
-        assistantMsg.content += chunk;
-        this._messages = [...this._messages.slice(0, -1), { ...assistantMsg }];
-        this._cb.onMessages(this._messages);
+      // Detect graph agents (NDJSON) vs plain-text agents
+      const contentType = response.headers.get("Content-Type") ?? "";
+      if (contentType.includes("application/x-ndjson")) {
+        await this._consumeNdjson(response, controller);
+      } else {
+        await this._consumePlainText(response, controller);
       }
 
       this._status = "idle";
       this._cb.onStatus("idle");
-      this._opts.onMessage?.(assistantMsg);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
         this._status = "idle";
@@ -119,6 +119,170 @@ export class AgentController {
       this._opts.onError?.(error);
     } finally {
       this._controller = null;
+    }
+  }
+
+  private async _consumePlainText(
+    response: Response,
+    controller: AbortController,
+  ): Promise<void> {
+    const assistantMsg: AgentMessage = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: "",
+      type: "text",
+    };
+    this._messages = [...this._messages, assistantMsg];
+    this._cb.onMessages(this._messages);
+
+    for await (const chunk of consumeTextStream(response)) {
+      if (controller.signal.aborted) break;
+      assistantMsg.content += chunk;
+      this._messages = [...this._messages.slice(0, -1), { ...assistantMsg }];
+      this._cb.onMessages(this._messages);
+    }
+
+    this._opts.onMessage?.(assistantMsg);
+  }
+
+  private async _consumeNdjson(
+    response: Response,
+    controller: AbortController,
+  ): Promise<void> {
+    // One assistant message per graph node — created on first text-delta for that node
+    let currentAssistantMsg: AgentMessage | null = null;
+
+    const finalizeCurrentMsg = (): void => {
+      if (currentAssistantMsg) {
+        this._opts.onMessage?.(currentAssistantMsg);
+        currentAssistantMsg = null;
+      }
+    };
+
+    for await (const event of AgentStream.consume(response)) {
+      if (controller.signal.aborted) break;
+
+      switch (event.type) {
+        case "node-enter": {
+          finalizeCurrentMsg();
+          this._currentNode = event.node;
+          this._cb.onCurrentNode(event.node);
+          // Create a placeholder assistant message stamped with the node id
+          currentAssistantMsg = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: "",
+            type: "text",
+            nodeId: event.node,
+          };
+          this._messages = [...this._messages, currentAssistantMsg];
+          this._cb.onMessages(this._messages);
+          break;
+        }
+
+        case "node-exit": {
+          finalizeCurrentMsg();
+          // Keep currentNode set until the next node-enter (or done)
+          break;
+        }
+
+        case "text-delta": {
+          const cur: AgentMessage | null = currentAssistantMsg;
+          if (cur) {
+            const updated: AgentMessage = {
+              ...cur,
+              content: cur.content + event.text,
+            };
+            currentAssistantMsg = updated;
+            this._messages = [
+              ...this._messages.slice(0, -1),
+              updated,
+            ];
+            this._cb.onMessages(this._messages);
+          }
+          break;
+        }
+
+        case "tool-call": {
+          const toolMsg: AgentMessage = {
+            id: crypto.randomUUID(),
+            role: "tool",
+            content: "",
+            type: "tool-call",
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            args: event.args,
+            toolStatus: "running",
+            nodeId: this._currentNode ?? undefined,
+          };
+          // Insert before current assistant placeholder
+          if (currentAssistantMsg) {
+            const idx = this._messages.findIndex(
+              (m) => m.id === currentAssistantMsg!.id,
+            );
+            this._messages =
+              idx !== -1
+                ? [
+                    ...this._messages.slice(0, idx),
+                    toolMsg,
+                    ...this._messages.slice(idx),
+                  ]
+                : [...this._messages, toolMsg];
+          } else {
+            this._messages = [...this._messages, toolMsg];
+          }
+          this._cb.onMessages(this._messages);
+          break;
+        }
+
+        case "tool-result": {
+          this._messages = this._messages.map((m) =>
+            m.toolCallId === event.toolCallId
+              ? { ...m, result: event.result, toolStatus: "completed" as const }
+              : m,
+          );
+          this._cb.onMessages(this._messages);
+          break;
+        }
+
+        case "tool-result-error": {
+          this._messages = this._messages.map((m) =>
+            m.toolCallId === event.toolCallId
+              ? {
+                  ...m,
+                  toolError: event.error,
+                  toolStatus: "error" as const,
+                }
+              : m,
+          );
+          this._cb.onMessages(this._messages);
+          break;
+        }
+
+        case "approval-request": {
+          const pa = {
+            id: event.approvalId,
+            toolName: event.toolName,
+            args: event.args,
+          };
+          this._pendingApproval = pa;
+          this._status = "awaiting-approval";
+          this._cb.onPendingApproval(pa);
+          this._cb.onStatus("awaiting-approval");
+          break;
+        }
+
+        case "error": {
+          throw new Error(event.error);
+        }
+
+        case "done": {
+          finalizeCurrentMsg();
+          this._currentNode = null;
+          this._cb.onCurrentNode(null);
+          break;
+        }
+      }
     }
   }
 
@@ -143,6 +307,10 @@ export class AgentController {
     this._controller = null;
     this._status = "idle";
     this._cb.onStatus("idle");
+    if (this._currentNode !== null) {
+      this._currentNode = null;
+      this._cb.onCurrentNode(null);
+    }
   }
 
   /** Set pending approval (used by framework wrappers for testing). */
