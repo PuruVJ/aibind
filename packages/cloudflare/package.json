@@ -1,6 +1,6 @@
 {
   "name": "@aibind/cloudflare",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Cloudflare Workers adapters for @aibind — D1 (StreamStore) and KV (ConversationStore)",
   "license": "MIT",
   "keywords": [

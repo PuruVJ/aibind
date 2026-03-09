@@ -1,5 +1,12 @@
 # @aibind/postgres
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`f9f2274`](https://github.com/PuruVJ/aibind/commit/f9f2274374c40bb9f432ae6546e74a1eb8d9f676)]:
+  - @aibind/core@0.8.0
+
 ## 3.0.0
 
 ### Patch Changes
