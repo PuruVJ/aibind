@@ -10,40 +10,40 @@ Universal AI SDK bindings for every major JavaScript framework. Reactive streami
 
 ### Fullstack frameworks
 
-| Package | Framework |
-|---------|-----------|
-| [`@aibind/sveltekit`](packages/sveltekit) | SvelteKit |
-| [`@aibind/nextjs`](packages/nextjs) | Next.js |
-| [`@aibind/nuxt`](packages/nuxt) | Nuxt |
-| [`@aibind/solidstart`](packages/solidstart) | SolidStart |
-| [`@aibind/tanstack-start`](packages/tanstack-start) | TanStack Start |
-| [`@aibind/react-router`](packages/react-router) | React Router v7 |
+| Package                                             | Framework       |
+| --------------------------------------------------- | --------------- |
+| [`@aibind/sveltekit`](packages/sveltekit)           | SvelteKit       |
+| [`@aibind/nextjs`](packages/nextjs)                 | Next.js         |
+| [`@aibind/nuxt`](packages/nuxt)                     | Nuxt            |
+| [`@aibind/solidstart`](packages/solidstart)         | SolidStart      |
+| [`@aibind/tanstack-start`](packages/tanstack-start) | TanStack Start  |
+| [`@aibind/react-router`](packages/react-router)     | React Router v7 |
 
 ### Client-only
 
-| Package | Framework |
-|---------|-----------|
-| [`@aibind/svelte`](packages/svelte) | Svelte 5 |
-| [`@aibind/react`](packages/react) | React |
-| [`@aibind/vue`](packages/vue) | Vue 3 |
-| [`@aibind/solid`](packages/solid) | SolidJS |
+| Package                             | Framework |
+| ----------------------------------- | --------- |
+| [`@aibind/svelte`](packages/svelte) | Svelte 5  |
+| [`@aibind/react`](packages/react)   | React     |
+| [`@aibind/vue`](packages/vue)       | Vue 3     |
+| [`@aibind/solid`](packages/solid)   | SolidJS   |
 
 ### Storage integrations
 
-| Package | Backend |
-|---------|---------|
-| [`@aibind/redis`](packages/redis) | Redis (ioredis, Upstash, node-redis) |
-| [`@aibind/sqlite`](packages/sqlite) | SQLite / Turso (libsql, better-sqlite3) |
-| [`@aibind/postgres`](packages/postgres) | PostgreSQL (pg, Neon, Supabase, postgres.js) |
-| [`@aibind/cloudflare`](packages/cloudflare) | Cloudflare Workers (D1 + KV) |
-| [`@aibind/service-worker`](packages/service-worker) | Service Worker (zero-server, IndexedDB) |
+| Package                                             | Backend                                      |
+| --------------------------------------------------- | -------------------------------------------- |
+| [`@aibind/redis`](packages/redis)                   | Redis (ioredis, Upstash, node-redis)         |
+| [`@aibind/sqlite`](packages/sqlite)                 | SQLite / Turso (libsql, better-sqlite3)      |
+| [`@aibind/postgres`](packages/postgres)             | PostgreSQL (pg, Neon, Supabase, postgres.js) |
+| [`@aibind/cloudflare`](packages/cloudflare)         | Cloudflare Workers (D1 + KV)                 |
+| [`@aibind/service-worker`](packages/service-worker) | Service Worker (zero-server, IndexedDB)      |
 
 ### Core
 
-| Package | Description |
-|---------|-------------|
-| [`@aibind/core`](packages/core) | Framework-agnostic controllers and types |
-| [`@aibind/markdown`](packages/markdown) | Streaming markdown parser |
+| Package                                 | Description                              |
+| --------------------------------------- | ---------------------------------------- |
+| [`@aibind/core`](packages/core)         | Framework-agnostic controllers and types |
+| [`@aibind/markdown`](packages/markdown) | Streaming markdown parser                |
 
 ## Quick Start
 
@@ -57,7 +57,9 @@ import { createStreamHandler } from "@aibind/sveltekit/server";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { defineModels } from "@aibind/sveltekit";
 
-const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY! });
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
 
 export const handle = createStreamHandler({
   models: defineModels({
@@ -75,7 +77,9 @@ export const handle = createStreamHandler({
 </script>
 
 <input bind:value={prompt} />
-<button onclick={() => stream.send(prompt)} disabled={stream.loading}>Send</button>
+<button onclick={() => stream.send(prompt)} disabled={stream.loading}
+  >Send</button
+>
 <p>{stream.text}</p>
 ```
 

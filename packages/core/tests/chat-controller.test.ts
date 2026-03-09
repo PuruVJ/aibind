@@ -20,7 +20,13 @@ function flushPromises(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function makeCallbacks(): { callbacks: ChatCallbacks; onMessages: ReturnType<typeof vi.fn>; onLoading: ReturnType<typeof vi.fn>; onError: ReturnType<typeof vi.fn>; onStatus: ReturnType<typeof vi.fn> } {
+function makeCallbacks(): {
+  callbacks: ChatCallbacks;
+  onMessages: ReturnType<typeof vi.fn>;
+  onLoading: ReturnType<typeof vi.fn>;
+  onError: ReturnType<typeof vi.fn>;
+  onStatus: ReturnType<typeof vi.fn>;
+} {
   const onMessages = vi.fn();
   const onLoading = vi.fn();
   const onError = vi.fn();
@@ -34,7 +40,10 @@ function makeCallbacks(): { callbacks: ChatCallbacks; onMessages: ReturnType<typ
   };
 }
 
-function makeOpts(fetch: typeof globalThis.fetch, extra?: Partial<BaseChatOptions>): BaseChatOptions {
+function makeOpts(
+  fetch: typeof globalThis.fetch,
+  extra?: Partial<BaseChatOptions>,
+): BaseChatOptions {
   return { endpoint: "/api/chat", fetch, ...extra };
 }
 
@@ -42,9 +51,9 @@ function makeOpts(fetch: typeof globalThis.fetch, extra?: Partial<BaseChatOption
 
 describe("ChatController", () => {
   it("throws when endpoint is missing", () => {
-    expect(() => new ChatController({ endpoint: "" }, makeCallbacks().callbacks)).toThrow(
-      "@aibind: `endpoint` is required.",
-    );
+    expect(
+      () => new ChatController({ endpoint: "" }, makeCallbacks().callbacks),
+    ).toThrow("@aibind: `endpoint` is required.");
   });
 
   it("send() appends user and assistant messages immediately", async () => {
@@ -65,7 +74,9 @@ describe("ChatController", () => {
   });
 
   it("streams chunks into the assistant message", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["Hello", " World"]));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(createMockResponse(["Hello", " World"]));
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
 
@@ -73,7 +84,9 @@ describe("ChatController", () => {
     await flushPromises();
 
     const lastCall = onMessages.mock.calls.at(-1)![0];
-    const assistant = lastCall.find((m: { role: string }) => m.role === "assistant");
+    const assistant = lastCall.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("Hello World");
   });
 
@@ -100,7 +113,9 @@ describe("ChatController", () => {
   });
 
   it("fires onError on non-ok response", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(new Response("Err", { status: 500 }));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(new Response("Err", { status: 500 }));
     const { callbacks, onError, onStatus } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
 
@@ -232,7 +247,10 @@ describe("ChatController", () => {
     const onFinish = vi.fn();
     const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["done"]));
     const { callbacks } = makeCallbacks();
-    const ctrl = new ChatController(makeOpts(mockFetch, { onFinish }), callbacks);
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { onFinish }),
+      callbacks,
+    );
 
     ctrl.send("hi");
     await flushPromises();
@@ -264,7 +282,9 @@ describe("ChatController.optimistic()", () => {
   });
 
   it("send() starts streaming and clears optimistic flag on first chunk", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["Hi there"]));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(createMockResponse(["Hi there"]));
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
 
@@ -598,7 +618,11 @@ describe("StreamHandler.chat", () => {
   it("returns 400 when messages is missing", async () => {
     const { StreamHandler } = await import("../src/stream-handler");
     const handler = new StreamHandler({ model: "mock" as any });
-    const res = await handler.chat({ messages: [], system: undefined, model: undefined });
+    const res = await handler.chat({
+      messages: [],
+      system: undefined,
+      model: undefined,
+    });
     expect(res.status).toBe(400);
   });
 

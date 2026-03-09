@@ -9,9 +9,10 @@
 <div class="container">
   <h1>Cross-tab Broadcast — Mirror</h1>
   <p class="subtitle">
-    This page is a read-only mirror of channel <code>{CHANNEL}</code>.
-    No HTTP requests are made — it receives updates via <code>BroadcastChannel</code>.
-    Open the <a href="/broadcast" target="_blank">Source page ↗</a> in another tab and send a message.
+    This page is a read-only mirror of channel <code>{CHANNEL}</code>. No HTTP
+    requests are made — it receives updates via <code>BroadcastChannel</code>.
+    Open the <a href="/broadcast" target="_blank">Source page ↗</a> in another tab
+    and send a message.
   </p>
 
   <div class="status-row">
@@ -27,9 +28,7 @@
       {mirror.text}{#if mirror.loading}<span class="cursor">▌</span>{/if}
     </div>
   {:else}
-    <div class="empty">
-      Waiting for a broadcast from the source page…
-    </div>
+    <div class="empty">Waiting for a broadcast from the source page…</div>
   {/if}
 
   {#if mirror.error}
@@ -38,9 +37,14 @@
 </div>
 
 <style>
-  .container { max-width: 42rem; }
+  .container {
+    max-width: 42rem;
+  }
 
-  h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+  }
 
   .subtitle {
     color: #6b7280;
@@ -48,9 +52,13 @@
     margin: 0 0 1rem;
   }
 
-  .subtitle a { color: #4f46e5; }
+  .subtitle a {
+    color: #4f46e5;
+  }
 
-  .status-row { margin-bottom: 1.25rem; }
+  .status-row {
+    margin-bottom: 1.25rem;
+  }
 
   .status-badge {
     display: inline-flex;
@@ -84,8 +92,13 @@
   }
 
   @keyframes ping {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 
   .empty {
@@ -104,7 +117,9 @@
     line-height: 1.6;
   }
 
-  .streaming { opacity: 0.85; }
+  .streaming {
+    opacity: 0.85;
+  }
 
   .label {
     font-size: 0.7rem;
@@ -121,8 +136,13 @@
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .error {

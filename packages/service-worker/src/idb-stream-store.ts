@@ -14,7 +14,11 @@
  *   { id, seq, data }
  */
 
-import type { StreamStore, StreamChunk, DurableStreamStatus } from "@aibind/core";
+import type {
+  StreamStore,
+  StreamChunk,
+  DurableStreamStatus,
+} from "@aibind/core";
 import { openAIBindDB, STORE_STATUS, STORE_CHUNKS, idbReq } from "./idb";
 
 export interface IDBStreamStoreOptions {
@@ -76,7 +80,9 @@ export class IDBStreamStore implements StreamStore {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.onabort = () =>
-        reject(tx.error ?? new DOMException("Transaction aborted", "AbortError"));
+        reject(
+          tx.error ?? new DOMException("Transaction aborted", "AbortError"),
+        );
     });
   }
 
@@ -103,7 +109,9 @@ export class IDBStreamStore implements StreamStore {
 
       tx.onerror = () => reject(tx.error);
       tx.onabort = () =>
-        reject(tx.error ?? new DOMException("Transaction aborted", "AbortError"));
+        reject(
+          tx.error ?? new DOMException("Transaction aborted", "AbortError"),
+        );
     });
   }
 
@@ -164,7 +172,10 @@ export class IDBStreamStore implements StreamStore {
   async getStatus(id: string): Promise<DurableStreamStatus | null> {
     const db = await this.#db;
     const row = await idbReq<StatusRow | undefined>(
-      db.transaction(STORE_STATUS, "readonly").objectStore(STORE_STATUS).get(id),
+      db
+        .transaction(STORE_STATUS, "readonly")
+        .objectStore(STORE_STATUS)
+        .get(id),
     );
     if (!row) return null;
     if (row.state !== "active" && row.expiresAt < Date.now()) return null;
@@ -193,7 +204,10 @@ export class IDBStreamStore implements StreamStore {
 
     // Collect expired stream IDs
     const all = await idbReq<StatusRow[]>(
-      db.transaction(STORE_STATUS, "readonly").objectStore(STORE_STATUS).getAll(),
+      db
+        .transaction(STORE_STATUS, "readonly")
+        .objectStore(STORE_STATUS)
+        .getAll(),
     );
     const expired = all
       .filter((r) => r.state !== "active" && r.expiresAt < now)
@@ -215,9 +229,7 @@ export class IDBStreamStore implements StreamStore {
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE_CHUNKS, "readwrite");
         const store = tx.objectStore(STORE_CHUNKS);
-        store.delete(
-          IDBKeyRange.bound([id, 0], [id, Number.MAX_SAFE_INTEGER]),
-        );
+        store.delete(IDBKeyRange.bound([id, 0], [id, Number.MAX_SAFE_INTEGER]));
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
       });
@@ -226,13 +238,20 @@ export class IDBStreamStore implements StreamStore {
 
   // ─── Private Helpers ─────────────────────────────────────────
 
-  async #chunksAfter(db: IDBDatabase, id: string, afterSeq: number): Promise<ChunkRow[]> {
+  async #chunksAfter(
+    db: IDBDatabase,
+    id: string,
+    afterSeq: number,
+  ): Promise<ChunkRow[]> {
     const range = IDBKeyRange.bound(
       [id, afterSeq + 1],
       [id, Number.MAX_SAFE_INTEGER],
     );
     return idbReq<ChunkRow[]>(
-      db.transaction(STORE_CHUNKS, "readonly").objectStore(STORE_CHUNKS).getAll(range),
+      db
+        .transaction(STORE_CHUNKS, "readonly")
+        .objectStore(STORE_CHUNKS)
+        .getAll(range),
     );
   }
 
@@ -249,7 +268,10 @@ export class IDBStreamStore implements StreamStore {
       const get = store.get(id);
       get.onsuccess = () => {
         const row: StatusRow | undefined = get.result;
-        if (!row) { resolve(); return; }
+        if (!row) {
+          resolve();
+          return;
+        }
         store.put({ ...row, state, ...(error !== undefined ? { error } : {}) });
       };
 

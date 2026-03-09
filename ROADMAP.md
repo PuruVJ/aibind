@@ -4,20 +4,20 @@ aibind is production-ready today for text streaming, structured output, cross-ta
 
 ## Stable
 
-| Feature | Status |
-|---------|--------|
-| Text streaming (`Stream`, `useStream`) | Stable |
-| Structured output (`StructuredStream`) | Stable |
-| Durable streams (stop / resume) | Stable |
+| Feature                                            | Status |
+| -------------------------------------------------- | ------ |
+| Text streaming (`Stream`, `useStream`)             | Stable |
+| Structured output (`StructuredStream`)             | Stable |
+| Durable streams (stop / resume)                    | Stable |
 | Cross-tab sync (`StreamMirror`, `useStreamMirror`) | Stable |
-| Streaming artifacts | Stable |
-| Streaming diff | Stable |
-| Multi-model racing | Stable |
-| Inline completions | Stable |
-| Token tracking | Stable |
-| Conversation history (server-side sessions) | Stable |
-| Prompt caching | Stable |
-| Agent controller | Stable |
+| Streaming artifacts                                | Stable |
+| Streaming diff                                     | Stable |
+| Multi-model racing                                 | Stable |
+| Inline completions                                 | Stable |
+| Token tracking                                     | Stable |
+| Conversation history (server-side sessions)        | Stable |
+| Prompt caching                                     | Stable |
+| Agent controller                                   | Stable |
 
 ## Experimental
 
@@ -29,18 +29,19 @@ A high-level conversational hook built on existing primitives. Manages the full 
 
 ```ts
 // SvelteKit
-const chat = new Chat({ endpoint: '/__aibind__/chat' });
+const chat = new Chat({ endpoint: "/__aibind__/chat" });
 chat.send("What is the capital of France?");
 // chat.messages — [{role:'user', content:...}, {role:'assistant', content:'Paris...'}]
 
 // Next.js / React
-const { messages, send, regenerate, edit } = useChat({ endpoint: '/api/chat' });
+const { messages, send, regenerate, edit } = useChat({ endpoint: "/api/chat" });
 ```
 
 Server:
+
 ```ts
 // Same StreamHandler — just add a /chat route:
-app.post('/api/chat', (req) => handler.chat(req.json()));
+app.post("/api/chat", (req) => handler.chat(req.json()));
 ```
 
 ### Voice Pipeline

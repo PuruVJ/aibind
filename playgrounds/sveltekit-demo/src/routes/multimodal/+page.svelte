@@ -4,7 +4,8 @@
 
   const chat = new Chat({
     model: "gpt",
-    system: "You are a helpful vision assistant. Describe images in detail when provided.",
+    system:
+      "You are a helpful vision assistant. Describe images in detail when provided.",
   });
 
   let prompt = $state("");
@@ -15,7 +16,9 @@
     const input = e.currentTarget as HTMLInputElement;
     const files = input.files;
     if (!files || files.length === 0) return;
-    const converted = await Promise.all(Array.from(files).map(fileToAttachment));
+    const converted = await Promise.all(
+      Array.from(files).map(fileToAttachment),
+    );
     attachments = [...attachments, ...converted];
     input.value = "";
   }
@@ -50,7 +53,9 @@
   <div class="messages">
     {#each chat.messages as msg (msg.id)}
       <div class="message {msg.role}" class:optimistic={msg.optimistic}>
-        <span class="role-label">{msg.role === "user" ? "You" : "Assistant"}</span>
+        <span class="role-label"
+          >{msg.role === "user" ? "You" : "Assistant"}</span
+        >
 
         {#if msg.attachments?.length}
           <div class="msg-attachments">
@@ -65,7 +70,12 @@
         {/if}
 
         <div class="content">
-          {msg.content}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && !msg.content}<span class="dot-pulse"></span>{/if}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && msg.content}<span class="cursor">▌</span>{/if}
+          {msg.content}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && !msg.content}<span
+              class="dot-pulse"
+
+            ></span>{/if}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && msg.content}<span
+              class="cursor">▌</span
+            >{/if}
         </div>
 
         <div class="actions">
@@ -90,7 +100,12 @@
   {#if chat.error}
     <div class="error">
       {chat.error.message}
-      <button class="revert-btn" onclick={() => { prompt = chat.revert() ?? prompt; }}>
+      <button
+        class="revert-btn"
+        onclick={() => {
+          prompt = chat.revert() ?? prompt;
+        }}
+      >
         Undo send
       </button>
     </div>
@@ -145,9 +160,14 @@
       </button>
 
       {#if chat.loading}
-        <button type="button" class="stop-btn" onclick={() => chat.abort()}>Stop</button>
+        <button type="button" class="stop-btn" onclick={() => chat.abort()}
+          >Stop</button
+        >
       {:else}
-        <button type="submit" disabled={!prompt.trim() && attachments.length === 0}>Send</button>
+        <button
+          type="submit"
+          disabled={!prompt.trim() && attachments.length === 0}>Send</button
+        >
       {/if}
     </div>
   </form>
@@ -168,7 +188,11 @@
     margin-bottom: 1.5rem;
   }
 
-  h1 { margin: 0; font-size: 1.5rem; flex: none; }
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    flex: none;
+  }
 
   .subtitle {
     margin: 0;
@@ -187,7 +211,9 @@
     cursor: pointer;
   }
 
-  .clear-btn:hover { background: #f3f4f6; }
+  .clear-btn:hover {
+    background: #f3f4f6;
+  }
 
   .messages {
     flex: 1;
@@ -267,8 +293,13 @@
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .dot-pulse {
@@ -281,8 +312,15 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 0.4; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
   }
 
   .actions {
@@ -291,7 +329,9 @@
     transition: opacity 0.15s;
   }
 
-  .message:hover .actions { opacity: 1; }
+  .message:hover .actions {
+    opacity: 1;
+  }
 
   .action-btn {
     padding: 0.2rem 0.5rem;
@@ -303,8 +343,14 @@
     cursor: pointer;
   }
 
-  .action-btn:hover:not(:disabled) { background: #f3f4f6; color: #374151; }
-  .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .action-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    color: #374151;
+  }
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   .error {
     background: #fef2f2;
@@ -331,7 +377,9 @@
     white-space: nowrap;
   }
 
-  .revert-btn:hover { background: #fef2f2; }
+  .revert-btn:hover {
+    background: #fef2f2;
+  }
 
   .input-form {
     padding-top: 0.75rem;
@@ -378,7 +426,9 @@
     padding: 0;
   }
 
-  .remove-thumb:hover { background: #111827; }
+  .remove-thumb:hover {
+    background: #111827;
+  }
 
   .input-row {
     display: flex;
@@ -417,8 +467,13 @@
     transition: background 0.15s;
   }
 
-  .input-row button:hover:not(:disabled) { background: #4338ca; }
-  .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .input-row button:hover:not(:disabled) {
+    background: #4338ca;
+  }
+  .input-row button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .file-btn {
     background: white !important;
@@ -432,6 +487,10 @@
     border-color: #4338ca !important;
   }
 
-  .stop-btn { background: #dc2626 !important; }
-  .stop-btn:hover:not(:disabled) { background: #b91c1c !important; }
+  .stop-btn {
+    background: #dc2626 !important;
+  }
+  .stop-btn:hover:not(:disabled) {
+    background: #b91c1c !important;
+  }
 </style>

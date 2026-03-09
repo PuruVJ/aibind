@@ -89,7 +89,8 @@ export class SqliteStreamStore implements StreamStore {
       sql: `SELECT id FROM ${this.#status} WHERE id = ?`,
       args: [id],
     });
-    if (existing.rows.length > 0) throw new Error(`Stream "${id}" already exists`);
+    if (existing.rows.length > 0)
+      throw new Error(`Stream "${id}" already exists`);
     const expiresAt = Date.now() + this.#ttlMs;
     await this.#client.execute({
       sql: `INSERT INTO ${this.#status} (id, state, total_chunks, expires_at) VALUES (?, 'active', 0, ?)`,

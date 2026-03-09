@@ -27,10 +27,7 @@ export class CompletionController {
     return this._opts.fetch ?? globalThis.fetch;
   }
 
-  constructor(
-    options: BaseCompletionOptions,
-    callbacks: CompletionCallbacks,
-  ) {
+  constructor(options: BaseCompletionOptions, callbacks: CompletionCallbacks) {
     this._opts = options;
     this._cb = callbacks;
   }

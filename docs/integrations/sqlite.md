@@ -45,7 +45,11 @@ Wrap the synchronous `Database` instance with `wrapBetterSqlite3()`:
 
 ```ts
 import Database from "better-sqlite3";
-import { wrapBetterSqlite3, SqliteStreamStore, SqliteConversationStore } from "@aibind/sqlite";
+import {
+  wrapBetterSqlite3,
+  SqliteStreamStore,
+  SqliteConversationStore,
+} from "@aibind/sqlite";
 
 const db = wrapBetterSqlite3(new Database("app.db"));
 
@@ -63,7 +67,11 @@ Bun ships a built-in `bun:sqlite` module. Use `wrapBunSqlite()`:
 
 ```ts
 import { Database } from "bun:sqlite";
-import { wrapBunSqlite, SqliteStreamStore, SqliteConversationStore } from "@aibind/sqlite";
+import {
+  wrapBunSqlite,
+  SqliteStreamStore,
+  SqliteConversationStore,
+} from "@aibind/sqlite";
 
 const db = wrapBunSqlite(new Database("app.db"));
 
@@ -160,29 +168,32 @@ Both stores have a `cleanup()` method to remove expired records. Call it periodi
 
 ```ts
 // Run every 10 minutes
-setInterval(async () => {
-  await streamStore.cleanup();
-  await conversationStore.cleanup();
-}, 10 * 60 * 1000);
+setInterval(
+  async () => {
+    await streamStore.cleanup();
+    await conversationStore.cleanup();
+  },
+  10 * 60 * 1000,
+);
 ```
 
 ### Options reference
 
 **`SqliteStreamStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `chunksTable` | `string` | `"aibind_stream_chunks"` | Name of the chunks table |
-| `statusTable` | `string` | `"aibind_stream_status"` | Name of the status table |
-| `pollIntervalMs` | `number` | `50` | How often to poll for new chunks in `readFrom()` |
-| `ttlMs` | `number` | `300_000` | TTL for completed streams before cleanup |
+| Option           | Type     | Default                  | Description                                      |
+| ---------------- | -------- | ------------------------ | ------------------------------------------------ |
+| `chunksTable`    | `string` | `"aibind_stream_chunks"` | Name of the chunks table                         |
+| `statusTable`    | `string` | `"aibind_stream_status"` | Name of the status table                         |
+| `pollIntervalMs` | `number` | `50`                     | How often to poll for new chunks in `readFrom()` |
+| `ttlMs`          | `number` | `300_000`                | TTL for completed streams before cleanup         |
 
 **`SqliteConversationStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `table` | `string` | `"aibind_conversations"` | Name of the conversations table |
-| `ttlMs` | `number` | `1_800_000` | TTL for idle conversations before cleanup |
+| Option  | Type     | Default                  | Description                               |
+| ------- | -------- | ------------------------ | ----------------------------------------- |
+| `table` | `string` | `"aibind_conversations"` | Name of the conversations table           |
+| `ttlMs` | `number` | `1_800_000`              | TTL for idle conversations before cleanup |
 
 ## SqliteClient interface
 
@@ -191,7 +202,9 @@ The `SqliteClient` interface is a minimal subset of `@libsql/client` — you can
 ```ts
 export interface SqliteClient {
   execute(stmt: { sql: string; args?: unknown[] }): Promise<SqliteResult>;
-  batch(stmts: Array<{ sql: string; args?: unknown[] }>): Promise<SqliteResult[]>;
+  batch(
+    stmts: Array<{ sql: string; args?: unknown[] }>,
+  ): Promise<SqliteResult[]>;
 }
 
 export interface SqliteResult {

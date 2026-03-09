@@ -15,7 +15,10 @@ npm install @aibind/sqlite
 import { createClient } from "@libsql/client";
 import { SqliteStreamStore, SqliteConversationStore } from "@aibind/sqlite";
 
-const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! });
+const db = createClient({
+  url: process.env.TURSO_URL!,
+  authToken: process.env.TURSO_TOKEN!,
+});
 
 const streamStore = new SqliteStreamStore(db);
 const conversationStore = new SqliteConversationStore(db);

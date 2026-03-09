@@ -22,7 +22,9 @@ const dummyModel = {} as unknown as LanguageModel;
 describe("createSWHandler — routing", () => {
   it("ignores requests that don't match the prefix", () => {
     const handler = createSWHandler({ model: dummyModel });
-    const { event, respondWith } = makeSWFetchEvent("http://localhost/api/other");
+    const { event, respondWith } = makeSWFetchEvent(
+      "http://localhost/api/other",
+    );
 
     handler(event as unknown as SWFetchEvent);
 
@@ -69,10 +71,11 @@ describe("createSWHandler — routing", () => {
       model: dummyModel,
       prefix: "/ai",
     });
-    const { event: matchEvent, respondWith: respondWithMatch } = makeSWFetchEvent(
-      "http://localhost/ai/stream",
-      { method: "POST", body: JSON.stringify({ prompt: "" }) },
-    );
+    const { event: matchEvent, respondWith: respondWithMatch } =
+      makeSWFetchEvent("http://localhost/ai/stream", {
+        method: "POST",
+        body: JSON.stringify({ prompt: "" }),
+      });
     const { event: noMatchEvent, respondWith: respondWithNoMatch } =
       makeSWFetchEvent("http://localhost/__aibind__/stream", {
         method: "POST",

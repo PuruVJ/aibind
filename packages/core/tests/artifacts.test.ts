@@ -22,7 +22,11 @@ describe("standardDetector", () => {
         '<artifact lang="tsx" title="Counter">',
         false,
       );
-      expect(result).toEqual({ type: "open", language: "tsx", title: "Counter" });
+      expect(result).toEqual({
+        type: "open",
+        language: "tsx",
+        title: "Counter",
+      });
     });
 
     it("detects open tag with only lang", () => {
@@ -51,7 +55,7 @@ describe("standardDetector", () => {
     });
 
     it("is case-sensitive — does not match <ARTIFACT>", () => {
-      expect(standardDetector("<ARTIFACT lang=\"ts\">", false)).toBeNull();
+      expect(standardDetector('<ARTIFACT lang="ts">', false)).toBeNull();
     });
   });
 

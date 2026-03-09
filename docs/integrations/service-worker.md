@@ -41,7 +41,11 @@ bun add @aibind/service-worker ai @openrouter/ai-sdk-provider
 
 ```ts
 // public/sw.ts  (or sw.js — depends on your bundler)
-import { createSWHandler, IDBStreamStore, IDBConversationStore } from "@aibind/service-worker";
+import {
+  createSWHandler,
+  IDBStreamStore,
+  IDBConversationStore,
+} from "@aibind/service-worker";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 const openrouter = createOpenRouter({ apiKey: "sk-..." });
@@ -125,9 +129,9 @@ Backs resumable streams. Chunks are written to IDB as they arrive; clients that 
 
 ```ts
 const store = new IDBStreamStore({
-  dbName: "aibind_sw",    // IndexedDB database name
-  pollIntervalMs: 50,     // how often readFrom() polls for new chunks
-  ttlMs: 300_000,         // 5 minutes — how long to keep completed streams
+  dbName: "aibind_sw", // IndexedDB database name
+  pollIntervalMs: 50, // how often readFrom() polls for new chunks
+  ttlMs: 300_000, // 5 minutes — how long to keep completed streams
 });
 ```
 
@@ -137,8 +141,8 @@ Persists multi-turn conversation history per session ID. Preserves full branchin
 
 ```ts
 const store = new IDBConversationStore({
-  dbName: "aibind_sw",    // IndexedDB database name
-  ttlMs: 1_800_000,       // 30 minutes — idle session expiry
+  dbName: "aibind_sw", // IndexedDB database name
+  ttlMs: 1_800_000, // 30 minutes — idle session expiry
 });
 ```
 
@@ -149,7 +153,7 @@ Both stores have a `cleanup()` method that deletes expired records. The best pla
 ```ts
 self.addEventListener("activate", (event: ExtendableEvent) => {
   event.waitUntil(
-    Promise.all([streamStore.cleanup(), conversationStore.cleanup()])
+    Promise.all([streamStore.cleanup(), conversationStore.cleanup()]),
   );
 });
 ```
@@ -166,26 +170,26 @@ Check your provider's CORS policy before using `@aibind/service-worker`.
 
 Accepts the full `StreamHandlerConfig` from `@aibind/core`:
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `model` | `LanguageModel` | Single model for all requests |
-| `models` | `Record<string, LanguageModel>` | Named models — client selects via `model` key |
-| `prefix` | `string` | Route prefix. Default: `"/__aibind__"` |
-| `resumable` | `boolean` | Enable resumable streams |
-| `store` | `StreamStore` | Store for resumable streams (use `IDBStreamStore`) |
-| `conversation` | `ConversationConfig` | Server-side conversation history config |
+| Option         | Type                            | Description                                        |
+| -------------- | ------------------------------- | -------------------------------------------------- |
+| `model`        | `LanguageModel`                 | Single model for all requests                      |
+| `models`       | `Record<string, LanguageModel>` | Named models — client selects via `model` key      |
+| `prefix`       | `string`                        | Route prefix. Default: `"/__aibind__"`             |
+| `resumable`    | `boolean`                       | Enable resumable streams                           |
+| `store`        | `StreamStore`                   | Store for resumable streams (use `IDBStreamStore`) |
+| `conversation` | `ConversationConfig`            | Server-side conversation history config            |
 
 ### `IDBStreamStore`
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `dbName` | `string` | `"aibind_sw"` | IndexedDB database name |
-| `pollIntervalMs` | `number` | `50` | Polling interval for readFrom() (ms) |
-| `ttlMs` | `number` | `300_000` | TTL for completed streams before cleanup (ms) |
+| Option           | Type     | Default       | Description                                   |
+| ---------------- | -------- | ------------- | --------------------------------------------- |
+| `dbName`         | `string` | `"aibind_sw"` | IndexedDB database name                       |
+| `pollIntervalMs` | `number` | `50`          | Polling interval for readFrom() (ms)          |
+| `ttlMs`          | `number` | `300_000`     | TTL for completed streams before cleanup (ms) |
 
 ### `IDBConversationStore`
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `dbName` | `string` | `"aibind_sw"` | IndexedDB database name |
-| `ttlMs` | `number` | `1_800_000` | TTL for idle sessions before cleanup (ms) |
+| Option   | Type     | Default       | Description                               |
+| -------- | -------- | ------------- | ----------------------------------------- |
+| `dbName` | `string` | `"aibind_sw"` | IndexedDB database name                   |
+| `ttlMs`  | `number` | `1_800_000`   | TTL for idle sessions before cleanup (ms) |

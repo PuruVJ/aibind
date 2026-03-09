@@ -18,4 +18,8 @@ export {
   fenceDetector as fence,
 } from "./artifacts";
 
-export type { Artifact, ArtifactDetector, ArtifactLineResult } from "./artifacts";
+export type {
+  Artifact,
+  ArtifactDetector,
+  ArtifactLineResult,
+} from "./artifacts";

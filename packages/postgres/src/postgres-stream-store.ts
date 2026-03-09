@@ -88,7 +88,8 @@ export class PostgresStreamStore implements StreamStore {
       `SELECT id FROM ${this.#status} WHERE id = $1`,
       [id],
     );
-    if (existing.rows.length > 0) throw new Error(`Stream "${id}" already exists`);
+    if (existing.rows.length > 0)
+      throw new Error(`Stream "${id}" already exists`);
     const expiresAt = Date.now() + this.#ttlMs;
     await this.#client.query(
       `INSERT INTO ${this.#status} (id, state, total_chunks, expires_at) VALUES ($1, 'active', 0, $2)`,
@@ -113,7 +114,8 @@ export class PostgresStreamStore implements StreamStore {
       RETURNING seq`,
       [id, chunk],
     );
-    if (!result.rows[0]) throw new Error(`Stream "${id}" not found or not active`);
+    if (!result.rows[0])
+      throw new Error(`Stream "${id}" not found or not active`);
     return result.rows[0].seq as number;
   }
 

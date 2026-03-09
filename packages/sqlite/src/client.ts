@@ -16,7 +16,9 @@ export interface SqliteClient {
    * Execute multiple statements atomically (in a transaction).
    * Used for operations that must succeed or fail together.
    */
-  batch(stmts: Array<{ sql: string; args?: unknown[] }>): Promise<SqliteResult[]>;
+  batch(
+    stmts: Array<{ sql: string; args?: unknown[] }>,
+  ): Promise<SqliteResult[]>;
 }
 
 type BetterSqliteDatabase = {

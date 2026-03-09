@@ -1,7 +1,7 @@
 {
   "name": "@aibind/react-router",
   "version": "0.8.0",
-  "description": "AI SDK bindings for React Router v7 \u2014 hooks with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for React Router v7 — hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "react-router",

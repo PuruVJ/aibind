@@ -21,8 +21,8 @@ The `artifact` option is an object so it can be extended in future versions with
 ## Reactive surface
 
 ```ts
-stream.artifacts       // Artifact[] — all artifacts seen so far
-stream.activeArtifact  // Artifact | null — currently streaming artifact (null when none)
+stream.artifacts; // Artifact[] — all artifacts seen so far
+stream.activeArtifact; // Artifact | null — currently streaming artifact (null when none)
 ```
 
 `activeArtifact` is derived from `artifacts` — it's the last artifact that is not yet `complete`. It becomes `null` the moment the close marker arrives.
@@ -31,10 +31,10 @@ stream.activeArtifact  // Artifact | null — currently streaming artifact (null
 
 ```ts
 interface Artifact {
-  id: string;        // stable identifier — from the detector or auto-generated
-  language: string;  // e.g. "tsx", "python" — from the open marker
-  title: string;     // display name — from the open marker, "" if not present
-  content: string;   // accumulates line-by-line during streaming
+  id: string; // stable identifier — from the detector or auto-generated
+  language: string; // e.g. "tsx", "python" — from the open marker
+  title: string; // display name — from the open marker, "" if not present
+  content: string; // accumulates line-by-line during streaming
   complete: boolean; // true after the close marker (or when stream ends with artifact open)
 }
 ```
@@ -47,11 +47,11 @@ Import via the `/artifact` subpath of any aibind package:
 import * as detectors from "@aibind/sveltekit/artifact";
 ```
 
-| Export | Format | Notes |
-|--------|--------|-------|
-| `detectors.default` | `<artifact lang="tsx" title="Counter">…</artifact>` | Standard tag convention |
-| `detectors.claude` | `<antArtifact identifier="id" language="tsx" title="Counter">…</antArtifact>` | Claude.ai native format |
-| `detectors.fence` | `` ```tsx `` … `` ``` `` | Fenced code blocks |
+| Export              | Format                                                                        | Notes                   |
+| ------------------- | ----------------------------------------------------------------------------- | ----------------------- |
+| `detectors.default` | `<artifact lang="tsx" title="Counter">…</artifact>`                           | Standard tag convention |
+| `detectors.claude`  | `<antArtifact identifier="id" language="tsx" title="Counter">…</antArtifact>` | Claude.ai native format |
+| `detectors.fence`   | ` ```tsx ` … ` ``` `                                                          | Fenced code blocks      |
 
 ::: warning Fence detector caveat
 Code fences appear inline in prose too (e.g. `` `useEffect` ``). Use `detectors.fence` only when your system prompt instructs the model to emit **standalone** fenced blocks and not inline code.
@@ -68,10 +68,8 @@ import type { ArtifactDetector } from "@aibind/sveltekit/artifact";
 const fileDetector: ArtifactDetector = (line, inArtifact) => {
   if (!inArtifact && line.startsWith("===FILE:"))
     return { type: "open", language: "ts", title: line.slice(8) };
-  if (inArtifact && line === "===END")
-    return { type: "close" };
-  if (inArtifact)
-    return { type: "content", text: line };
+  if (inArtifact && line === "===END") return { type: "close" };
+  if (inArtifact) return { type: "content", text: line };
   return null; // prose — ignore
 };
 
@@ -121,7 +119,7 @@ Returning `id` from an `open` result uses that string as `artifact.id`. If omitt
 {/if}
 
 <!-- Completed artifacts panel -->
-{#each stream.artifacts.filter(a => a.complete) as artifact (artifact.id)}
+{#each stream.artifacts.filter((a) => a.complete) as artifact (artifact.id)}
   <div class="artifact">
     <span class="badge">{artifact.language}</span>
     <h4>{artifact.title}</h4>
@@ -153,18 +151,24 @@ export function Chat() {
       {activeArtifact && (
         <div className="artifact-preview">
           <h3>{activeArtifact.title}</h3>
-          <pre><code>{activeArtifact.content}</code></pre>
+          <pre>
+            <code>{activeArtifact.content}</code>
+          </pre>
         </div>
       )}
 
       {/* Completed artifacts */}
-      {artifacts.filter(a => a.complete).map(artifact => (
-        <div key={artifact.id} className="artifact">
-          <span>{artifact.language}</span>
-          <h4>{artifact.title}</h4>
-          <pre><code>{artifact.content}</code></pre>
-        </div>
-      ))}
+      {artifacts
+        .filter((a) => a.complete)
+        .map((artifact) => (
+          <div key={artifact.id} className="artifact">
+            <span>{artifact.language}</span>
+            <h4>{artifact.title}</h4>
+            <pre>
+              <code>{artifact.content}</code>
+            </pre>
+          </div>
+        ))}
     </div>
   );
 }
@@ -194,7 +198,7 @@ const { text, artifacts, activeArtifact, send } = useStream({
   </div>
 
   <div
-    v-for="artifact in artifacts.filter(a => a.complete)"
+    v-for="artifact in artifacts.filter((a) => a.complete)"
     :key="artifact.id"
     class="artifact"
   >
@@ -228,17 +232,21 @@ export function Chat() {
         {(a) => (
           <div class="artifact-preview">
             <h3>{a().title}</h3>
-            <pre><code>{a().content}</code></pre>
+            <pre>
+              <code>{a().content}</code>
+            </pre>
           </div>
         )}
       </Show>
 
-      <For each={artifacts().filter(a => a.complete)}>
+      <For each={artifacts().filter((a) => a.complete)}>
         {(artifact) => (
           <div class="artifact">
             <span>{artifact.language}</span>
             <h4>{artifact.title}</h4>
-            <pre><code>{artifact.content}</code></pre>
+            <pre>
+              <code>{artifact.content}</code>
+            </pre>
           </div>
         )}
       </For>
@@ -279,10 +287,10 @@ Write prose outside these tags.`,
 
 ## Edge cases
 
-| Scenario | Behavior |
-|----------|----------|
-| Marker split across chunks | Scanning only processes complete lines — partial trailing line waits for the next chunk |
-| Stream ends while artifact is open | The open artifact is automatically marked `complete: true` |
-| Multiple artifacts in one response | Each `open` result pushes a new entry; all accumulate in `artifacts` |
-| Prose before/after artifact | `null` results are ignored; prose never creates an artifact |
-| No `artifact` option provided | Scanning is skipped entirely — zero overhead |
+| Scenario                           | Behavior                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| Marker split across chunks         | Scanning only processes complete lines — partial trailing line waits for the next chunk |
+| Stream ends while artifact is open | The open artifact is automatically marked `complete: true`                              |
+| Multiple artifacts in one response | Each `open` result pushes a new entry; all accumulate in `artifacts`                    |
+| Prose before/after artifact        | `null` results are ignored; prose never creates an artifact                             |
+| No `artifact` option provided      | Scanning is skipped entirely — zero overhead                                            |

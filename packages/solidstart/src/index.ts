@@ -7,7 +7,13 @@ import {
   type StructuredStreamOptions,
 } from "@aibind/solid";
 
-export { defineModels, useStreamMirror, useChat, useRace, useCompletion } from "@aibind/solid";
+export {
+  defineModels,
+  useStreamMirror,
+  useChat,
+  useRace,
+  useCompletion,
+} from "@aibind/solid";
 export type {
   Attachment,
   ChatMessage,

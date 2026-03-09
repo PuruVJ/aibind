@@ -244,7 +244,10 @@ describe("SqliteConversationStore", () => {
     const loaded = await store.load("s1");
     expect(loaded.messages).toHaveLength(2);
     expect(loaded.messages[0]).toEqual({ role: "user", content: "Hello" });
-    expect(loaded.messages[1]).toEqual({ role: "assistant", content: "Hi there!" });
+    expect(loaded.messages[1]).toEqual({
+      role: "assistant",
+      content: "Hi there!",
+    });
   });
 
   it("save() overwrites existing session on second save", async () => {

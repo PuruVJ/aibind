@@ -120,7 +120,9 @@ describe("useChat (React)", () => {
     const chat = useChat({ endpoint: "/api/chat", fetch: mockFetch });
     chat.send("test");
     await flushPromises();
-    expect((chat.error as unknown as () => Error | null)()).toBeInstanceOf(Error);
+    expect((chat.error as unknown as () => Error | null)()).toBeInstanceOf(
+      Error,
+    );
     expect((chat.status as unknown as () => string)()).toBe("error");
   });
 });

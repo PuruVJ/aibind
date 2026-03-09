@@ -18,8 +18,8 @@
   <h1>Cross-tab Broadcast — Source</h1>
   <p class="subtitle">
     This page broadcasts on channel <code>{CHANNEL}</code>. Open the
-    <a href="/broadcast/mirror" target="_blank">Mirror page ↗</a> in another
-    tab to see updates appear in real time without making a second HTTP request.
+    <a href="/broadcast/mirror" target="_blank">Mirror page ↗</a> in another tab to
+    see updates appear in real time without making a second HTTP request.
   </p>
 
   <div class="channel-badge">
@@ -56,9 +56,14 @@
 </div>
 
 <style>
-  .container { max-width: 42rem; }
+  .container {
+    max-width: 42rem;
+  }
 
-  h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+  }
 
   .subtitle {
     color: #6b7280;
@@ -66,7 +71,9 @@
     margin: 0 0 1rem;
   }
 
-  .subtitle a { color: #4f46e5; }
+  .subtitle a {
+    color: #4f46e5;
+  }
 
   .channel-badge {
     display: inline-flex;
@@ -90,8 +97,13 @@
   }
 
   @keyframes ping {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 
   form {
@@ -109,7 +121,10 @@
     outline: none;
   }
 
-  input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+  input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
 
   button {
     padding: 0.5rem 1rem;
@@ -122,8 +137,13 @@
     color: white;
   }
 
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  button:last-child:not([type="submit"]) { background: #dc2626; }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button:last-child:not([type="submit"]) {
+    background: #dc2626;
+  }
 
   .response {
     background: #f3f4f6;
@@ -134,7 +154,9 @@
     line-height: 1.6;
   }
 
-  .streaming { opacity: 0.85; }
+  .streaming {
+    opacity: 0.85;
+  }
 
   .label {
     font-size: 0.7rem;
@@ -151,8 +173,13 @@
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .error {

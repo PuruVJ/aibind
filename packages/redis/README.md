@@ -30,7 +30,7 @@ import { createStreamHandler } from "@aibind/sveltekit/server";
 
 export const handle = createStreamHandler({
   models,
-  store: streamStore,          // enables durable streams
+  store: streamStore, // enables durable streams
   conversation: { store: conversationStore }, // enables multi-turn history
 });
 ```

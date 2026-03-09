@@ -8,7 +8,14 @@
  */
 
 import { consumeTextStream } from "./stream-utils";
-import type { ChatCallbacks, BaseChatOptions, ChatMessage, ChatSendOptions, StagedMessage, StreamStatus } from "./types";
+import type {
+  ChatCallbacks,
+  BaseChatOptions,
+  ChatMessage,
+  ChatSendOptions,
+  StagedMessage,
+  StreamStatus,
+} from "./types";
 
 export class ChatController {
   private _messages: ChatMessage[] = [];
@@ -59,8 +66,19 @@ export class ChatController {
     this._discardStaged();
     this._controller?.abort();
 
-    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true, attachments: opts?.attachments };
-    const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
+    const userMsg: ChatMessage = {
+      id: this._id(),
+      role: "user",
+      content,
+      optimistic: true,
+      attachments: opts?.attachments,
+    };
+    const assistantMsg: ChatMessage = {
+      id: this._id(),
+      role: "assistant",
+      content: "",
+      optimistic: true,
+    };
     this._stagedUserId = userMsg.id;
     this._stagedAssistantId = assistantMsg.id;
     this._messages = [...this._messages, userMsg, assistantMsg];
@@ -113,8 +131,19 @@ export class ChatController {
     this._discardStaged();
     this._controller?.abort();
 
-    const userMsg: ChatMessage = { id: this._id(), role: "user", content, optimistic: true, attachments: opts?.attachments };
-    const assistantMsg: ChatMessage = { id: this._id(), role: "assistant", content: "", optimistic: true };
+    const userMsg: ChatMessage = {
+      id: this._id(),
+      role: "user",
+      content,
+      optimistic: true,
+      attachments: opts?.attachments,
+    };
+    const assistantMsg: ChatMessage = {
+      id: this._id(),
+      role: "assistant",
+      content: "",
+      optimistic: true,
+    };
     this._messages = [...this._messages, userMsg, assistantMsg];
     this._emit();
 
@@ -137,7 +166,8 @@ export class ChatController {
   revert(): string | null {
     this.abort();
     const msgs = [...this._messages];
-    while (msgs.length && msgs[msgs.length - 1]!.role === "assistant") msgs.pop();
+    while (msgs.length && msgs[msgs.length - 1]!.role === "assistant")
+      msgs.pop();
     const lastUser = msgs[msgs.length - 1];
     if (!lastUser || lastUser.role !== "user") return null;
     msgs.pop();
@@ -169,7 +199,8 @@ export class ChatController {
   regenerate(): void {
     const msgs = [...this._messages];
     // Remove trailing assistant messages
-    while (msgs.length > 0 && msgs[msgs.length - 1]!.role === "assistant") msgs.pop();
+    while (msgs.length > 0 && msgs[msgs.length - 1]!.role === "assistant")
+      msgs.pop();
     const lastUser = msgs[msgs.length - 1];
     if (!lastUser || lastUser.role !== "user") return;
     // Remove the last user message too — send() will re-add it
@@ -188,11 +219,19 @@ export class ChatController {
     this.send(text, opts);
   }
 
-  private async _run(userId: string, assistantId: string, controller: AbortController): Promise<void> {
+  private async _run(
+    userId: string,
+    assistantId: string,
+    controller: AbortController,
+  ): Promise<void> {
     // Build the messages payload, excluding the empty assistant placeholder
     const payload = this._messages
       .filter((m) => m.id !== assistantId)
-      .map(({ role, content, attachments }) => ({ role, content, ...(attachments?.length ? { attachments } : {}) }));
+      .map(({ role, content, attachments }) => ({
+        role,
+        content,
+        ...(attachments?.length ? { attachments } : {}),
+      }));
 
     try {
       const response = await this._fetch(this._opts.endpoint, {
@@ -216,7 +255,9 @@ export class ChatController {
         if (!confirmed) {
           // First chunk — mark both messages as confirmed (no longer optimistic)
           this._messages = this._messages.map((m) =>
-            m.id === userId || m.id === assistantId ? { ...m, optimistic: false } : m,
+            m.id === userId || m.id === assistantId
+              ? { ...m, optimistic: false }
+              : m,
           );
           confirmed = true;
         }
@@ -229,7 +270,9 @@ export class ChatController {
       // If stream ended without any chunks, still confirm the optimistic messages
       if (!confirmed) {
         this._messages = this._messages.map((m) =>
-          m.id === userId || m.id === assistantId ? { ...m, optimistic: false } : m,
+          m.id === userId || m.id === assistantId
+            ? { ...m, optimistic: false }
+            : m,
         );
         this._emit();
       }

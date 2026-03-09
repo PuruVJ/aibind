@@ -13,7 +13,10 @@ npm install @aibind/postgres
 ```ts
 // pg (node-postgres) — implements PostgresClient directly
 import { Pool } from "pg";
-import { PostgresStreamStore, PostgresConversationStore } from "@aibind/postgres";
+import {
+  PostgresStreamStore,
+  PostgresConversationStore,
+} from "@aibind/postgres";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -26,7 +29,9 @@ const conversationStore = new PostgresConversationStore(pool);
 import { neon } from "@neondatabase/serverless";
 import { wrapNeon, PostgresStreamStore } from "@aibind/postgres";
 
-const store = new PostgresStreamStore(wrapNeon(neon(process.env.DATABASE_URL!)));
+const store = new PostgresStreamStore(
+  wrapNeon(neon(process.env.DATABASE_URL!)),
+);
 ```
 
 ## Required schema

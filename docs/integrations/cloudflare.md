@@ -135,10 +135,10 @@ export default {
 
 **`KVConversationStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `prefix` | `string` | `"aibind:conv"` | Key prefix for all KV entries |
-| `ttlSec` | `number` | `1800` | TTL in seconds (maps to KV `expirationTtl`) |
+| Option   | Type     | Default         | Description                                 |
+| -------- | -------- | --------------- | ------------------------------------------- |
+| `prefix` | `string` | `"aibind:conv"` | Key prefix for all KV entries               |
+| `ttlSec` | `number` | `1800`          | TTL in seconds (maps to KV `expirationTtl`) |
 
 For `SqliteStreamStore` and `SqliteConversationStore` options (custom table names, TTL, poll interval), see the [`@aibind/sqlite` docs](/integrations/sqlite).
 

@@ -106,7 +106,14 @@ describe("StreamBroadcastReceiver", () => {
     new StreamBroadcastReceiver("chan", onMessage);
 
     const sender = new MockBroadcastChannel("chan");
-    sender.postMessage({ type: "state", text: "hi", status: "idle", loading: false, done: false, error: null });
+    sender.postMessage({
+      type: "state",
+      text: "hi",
+      status: "idle",
+      loading: false,
+      done: false,
+      error: null,
+    });
 
     expect(onMessage).toHaveBeenCalledOnce();
     expect(onMessage.mock.calls[0][0].text).toBe("hi");
@@ -117,7 +124,14 @@ describe("StreamBroadcastReceiver", () => {
     new StreamBroadcastReceiver("chan-a", onMessage);
 
     const sender = new MockBroadcastChannel("chan-b");
-    sender.postMessage({ type: "state", text: "nope", status: "idle", loading: false, done: false, error: null });
+    sender.postMessage({
+      type: "state",
+      text: "nope",
+      status: "idle",
+      loading: false,
+      done: false,
+      error: null,
+    });
 
     expect(onMessage).not.toHaveBeenCalled();
   });
@@ -128,7 +142,14 @@ describe("StreamBroadcastReceiver", () => {
     receiver.destroy();
 
     const sender = new MockBroadcastChannel("chan");
-    sender.postMessage({ type: "state", text: "too late", status: "idle", loading: false, done: false, error: null });
+    sender.postMessage({
+      type: "state",
+      text: "too late",
+      status: "idle",
+      loading: false,
+      done: false,
+      error: null,
+    });
 
     expect(onMessage).not.toHaveBeenCalled();
   });
@@ -182,7 +203,9 @@ describe("StreamController.broadcast()", () => {
 
     // Should have received at least one chunk update
     const calls = onMessage.mock.calls.map((c) => c[0].data);
-    const streamingCalls = calls.filter((m) => m.status === "streaming" || m.text.length > 0);
+    const streamingCalls = calls.filter(
+      (m) => m.status === "streaming" || m.text.length > 0,
+    );
     expect(streamingCalls.length).toBeGreaterThan(0);
     expect(calls.at(-1)?.done).toBe(true);
   });

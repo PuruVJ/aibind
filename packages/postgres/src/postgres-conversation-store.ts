@@ -1,4 +1,8 @@
-import { ChatHistory, type ConversationMessage, type ConversationStore } from "@aibind/core";
+import {
+  ChatHistory,
+  type ConversationMessage,
+  type ConversationStore,
+} from "@aibind/core";
 import type { PostgresClient } from "./client";
 
 export interface PostgresConversationStoreOptions {
@@ -45,7 +49,10 @@ export class PostgresConversationStore implements ConversationStore {
   readonly #table: string;
   readonly #ttlMs: number;
 
-  constructor(client: PostgresClient, options?: PostgresConversationStoreOptions) {
+  constructor(
+    client: PostgresClient,
+    options?: PostgresConversationStoreOptions,
+  ) {
     this.#client = client;
     this.#table = options?.table ?? "aibind_conversations";
     this.#ttlMs = options?.ttlMs ?? 1_800_000;

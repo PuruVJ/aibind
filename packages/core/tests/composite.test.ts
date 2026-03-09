@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StreamController, type StreamCallbacks } from "../src/stream-controller";
+import {
+  StreamController,
+  type StreamCallbacks,
+} from "../src/stream-controller";
 import { RaceController, type RaceCallbacks } from "../src/race-controller";
 import { UsageTracker } from "../src/usage-tracker";
 import { ChatHistory } from "../src/chat-history";
@@ -112,7 +115,8 @@ describe("UsageTracker + StreamController", () => {
       },
     });
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(
         sseResponse(["Hello"], { inputTokens: 100, outputTokens: 20 }),
       )
@@ -146,7 +150,8 @@ describe("UsageTracker + StreamController", () => {
       },
     });
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(
         sseResponse(["ok"], { inputTokens: 50, outputTokens: 10 }),
       )
@@ -164,7 +169,7 @@ describe("UsageTracker + StreamController", () => {
       cb,
     );
 
-    ctrl.send("hi");        // short → fast
+    ctrl.send("hi"); // short → fast
     await flushPromises();
     ctrl.send("a".repeat(50)); // long → smart
     await flushPromises();
@@ -222,11 +227,11 @@ describe("routeByLength + StreamController", () => {
       cb,
     );
 
-    ctrl.send("short");                 // < 50 → fast
+    ctrl.send("short"); // < 50 → fast
     await flushPromises();
-    ctrl.send("a".repeat(100));         // 51–200 → smart
+    ctrl.send("a".repeat(100)); // 51–200 → smart
     await flushPromises();
-    ctrl.send("a".repeat(300));         // > 200 → reason
+    ctrl.send("a".repeat(300)); // > 200 → reason
     await flushPromises();
 
     const bodies = fetchMock.mock.calls.map((c) => JSON.parse(c[1].body));
@@ -260,7 +265,8 @@ describe("routeByLength + StreamController", () => {
         smart: { inputPerMillion: 3.0, outputPerMillion: 15.0 },
       },
     });
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(
         sseResponse(["ok"], { inputTokens: 100, outputTokens: 50 }),
       )
@@ -269,13 +275,16 @@ describe("routeByLength + StreamController", () => {
       );
 
     const cb = makeCallbacks();
-    const routeModel = routeByLength([{ maxLength: 10, model: "fast" }], "smart");
+    const routeModel = routeByLength(
+      [{ maxLength: 10, model: "fast" }],
+      "smart",
+    );
     const ctrl = new StreamController(
       { endpoint: "/api/stream", fetch: fetchMock, tracker, routeModel },
       cb,
     );
 
-    ctrl.send("hi");           // fast
+    ctrl.send("hi"); // fast
     await flushPromises();
     ctrl.send("a".repeat(50)); // smart (same tokens, higher cost)
     await flushPromises();
@@ -296,7 +305,8 @@ describe("RaceController + UsageTracker", () => {
       },
     });
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockImplementation((_url: string, opts: RequestInit) => {
         const body = JSON.parse(opts.body as string);
         if (body.model === "fast") {
@@ -306,7 +316,10 @@ describe("RaceController + UsageTracker", () => {
         }
         // smart returns too — but fast finishes first
         return Promise.resolve(
-          sseResponse(["smart response"], { inputTokens: 200, outputTokens: 80 }),
+          sseResponse(["smart response"], {
+            inputTokens: 200,
+            outputTokens: 80,
+          }),
         );
       });
 
@@ -336,9 +349,11 @@ describe("RaceController + UsageTracker", () => {
 
   it("onFinish fires with final text and winner name", async () => {
     const onFinish = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue(
-      sseResponse(["winner text"], { inputTokens: 10, outputTokens: 5 }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        sseResponse(["winner text"], { inputTokens: 10, outputTokens: 5 }),
+      );
 
     const cb = makeRaceCallbacks();
     const ctrl = new RaceController(
@@ -384,8 +399,9 @@ describe("RaceController + UsageTracker", () => {
     const tracker = new UsageTracker();
     let slowResolve: (() => void) | undefined;
 
-    const fetchMock = vi.fn().mockImplementation(
-      (_url: string, opts: RequestInit) => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation((_url: string, opts: RequestInit) => {
         const body = JSON.parse(opts.body as string);
         if (body.model === "fast") {
           return Promise.resolve(textResponse(["immediate response"]));
@@ -394,8 +410,7 @@ describe("RaceController + UsageTracker", () => {
         return new Promise<Response>((resolve) => {
           slowResolve = () => resolve(textResponse(["slow"]));
         });
-      },
-    );
+      });
 
     const cb = makeRaceCallbacks();
     const ctrl = new RaceController(
@@ -445,7 +460,10 @@ describe("ChatHistory + StreamController", () => {
     await flushPromises();
 
     expect(chat.messages).toHaveLength(2);
-    expect(chat.messages[1]).toEqual({ role: "assistant", content: "Great idea!" });
+    expect(chat.messages[1]).toEqual({
+      role: "assistant",
+      content: "Great idea!",
+    });
   });
 
   it("edit + regenerate creates branches and navigates between them", async () => {
@@ -466,16 +484,23 @@ describe("ChatHistory + StreamController", () => {
     expect(chat.messages[0]).toEqual({ role: "user", content: "Hi" });
 
     // Regenerate response — creates a sibling of m2
-    const m2b = chat.regenerate(m2, { role: "assistant", content: "Hi there!" });
+    const m2b = chat.regenerate(m2, {
+      role: "assistant",
+      content: "Hi there!",
+    });
 
-    expect(chat.messages[1]).toEqual({ role: "assistant", content: "Hi there!" });
+    expect(chat.messages[1]).toEqual({
+      role: "assistant",
+      content: "Hi there!",
+    });
     expect(chat.hasAlternatives(m2b)).toBe(true);
     expect(chat.alternativeCount(m2b)).toBe(2);
   });
 
   it("pendingRegenId pattern: regenerate via StreamController", async () => {
     const chat = new ChatHistory<Msg>();
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(textResponse(["Original response"]))
       .mockResolvedValueOnce(textResponse(["Regenerated response"]));
 
@@ -488,7 +513,10 @@ describe("ChatHistory + StreamController", () => {
         fetch: fetchMock,
         onFinish: (text) => {
           if (pendingRegenId) {
-            chat.regenerate(pendingRegenId, { role: "assistant", content: text });
+            chat.regenerate(pendingRegenId, {
+              role: "assistant",
+              content: text,
+            });
             pendingRegenId = null;
           } else {
             chat.append({ role: "assistant", content: text });
@@ -499,7 +527,10 @@ describe("ChatHistory + StreamController", () => {
     );
 
     // First turn
-    const userMsgId = chat.append({ role: "user", content: "Tell me something" });
+    const userMsgId = chat.append({
+      role: "user",
+      content: "Tell me something",
+    });
     ctrl.send("Tell me something");
     await flushPromises();
 
@@ -555,7 +586,10 @@ describe("DurableStream + MemoryStreamStore", () => {
       yield "chunk3";
     }
 
-    const { id, response } = await DurableStream.create({ store, source: source() });
+    const { id, response } = await DurableStream.create({
+      store,
+      source: source(),
+    });
 
     // Collect the original stream
     const msgs: Array<{ event?: string; data: string }> = [];
@@ -573,7 +607,11 @@ describe("DurableStream + MemoryStreamStore", () => {
     expect(status!.totalChunks).toBe(3);
 
     // Resume from seq 1 — should get chunks 2 and 3 only
-    const resumeResponse = DurableStream.resume({ store, streamId: id, afterSeq: 1 });
+    const resumeResponse = DurableStream.resume({
+      store,
+      streamId: id,
+      afterSeq: 1,
+    });
     const resumeMsgs: Array<{ event?: string; data: string }> = [];
     for await (const msg of SSE.consume(resumeResponse)) {
       resumeMsgs.push(msg);
@@ -607,7 +645,11 @@ describe("DurableStream + MemoryStreamStore", () => {
     expect(status!.state).toBe("stopped");
 
     // Resume — should get stopped event
-    const resumeResponse = DurableStream.resume({ store, streamId: id, afterSeq: 0 });
+    const resumeResponse = DurableStream.resume({
+      store,
+      streamId: id,
+      afterSeq: 0,
+    });
     const msgs: Array<{ event?: string; data: string }> = [];
     for await (const msg of SSE.consume(resumeResponse)) {
       msgs.push(msg);
@@ -651,7 +693,8 @@ describe("DurableStream + MemoryStreamStore", () => {
 
 describe("defaultDiff + StreamController", () => {
   it("diff is null on first response, populated on second", async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(textResponse(["The cat sat on the mat"]))
       .mockResolvedValueOnce(textResponse(["The dog sat on the floor"]));
 
@@ -672,36 +715,49 @@ describe("defaultDiff + StreamController", () => {
     await flushPromises();
 
     // Diff should be populated after second send
-    const lastDiff = cb.diffs[cb.diffs.length - 1] as ReturnType<typeof defaultDiff> | null;
+    const lastDiff = cb.diffs[cb.diffs.length - 1] as ReturnType<
+      typeof defaultDiff
+    > | null;
     expect(lastDiff).not.toBeNull();
     expect(Array.isArray(lastDiff)).toBe(true);
 
     // Should contain removes (cat → dog, mat → floor)
-    const removedWords = lastDiff!.filter((c) => c.type === "remove").map((c) => c.text.trim());
-    const addedWords = lastDiff!.filter((c) => c.type === "add").map((c) => c.text.trim());
+    const removedWords = lastDiff!
+      .filter((c) => c.type === "remove")
+      .map((c) => c.text.trim());
+    const addedWords = lastDiff!
+      .filter((c) => c.type === "add")
+      .map((c) => c.text.trim());
     expect(removedWords.join(" ")).toContain("cat");
     expect(addedWords.join(" ")).toContain("dog");
   });
 
   it("diff: keep chunks are unchanged words shared between both responses", () => {
-    const diff = defaultDiff(
-      "Hello beautiful world",
-      "Hello wonderful world",
-    );
-    const kept = diff.filter((c) => c.type === "keep").map((c) => c.text.trim()).filter(Boolean);
+    const diff = defaultDiff("Hello beautiful world", "Hello wonderful world");
+    const kept = diff
+      .filter((c) => c.type === "keep")
+      .map((c) => c.text.trim())
+      .filter(Boolean);
     expect(kept).toContain("Hello");
     expect(kept).toContain("world");
 
-    const removed = diff.filter((c) => c.type === "remove").map((c) => c.text.trim()).filter(Boolean);
+    const removed = diff
+      .filter((c) => c.type === "remove")
+      .map((c) => c.text.trim())
+      .filter(Boolean);
     expect(removed.join("")).toContain("beautiful");
 
-    const added = diff.filter((c) => c.type === "add").map((c) => c.text.trim()).filter(Boolean);
+    const added = diff
+      .filter((c) => c.type === "add")
+      .map((c) => c.text.trim())
+      .filter(Boolean);
     expect(added.join("")).toContain("wonderful");
   });
 
   it("diff with custom DiffFn is called with prev and next text", async () => {
     const customDiff = vi.fn().mockReturnValue([{ type: "keep", text: "ok" }]);
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(textResponse(["prev"]))
       .mockResolvedValueOnce(textResponse(["next"]));
 

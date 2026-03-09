@@ -3,7 +3,8 @@
   import type { ChatMessage } from "@aibind/sveltekit";
 
   const chat = new Chat({
-    system: "You are a helpful assistant. Keep responses concise (2-3 sentences).",
+    system:
+      "You are a helpful assistant. Keep responses concise (2-3 sentences).",
     model: "gpt",
   });
 
@@ -36,8 +37,8 @@
   <header>
     <h1>Chat Demo</h1>
     <p class="subtitle">
-      Multi-turn chat using <code>new Chat()</code>. Edit user messages, regenerate responses,
-      or clear the conversation.
+      Multi-turn chat using <code>new Chat()</code>. Edit user messages,
+      regenerate responses, or clear the conversation.
     </p>
     {#if chat.messages.length > 0}
       <button class="clear-btn" onclick={() => chat.clear()}>Clear</button>
@@ -47,23 +48,42 @@
   <div class="messages">
     {#each chat.messages as msg (msg.id)}
       <div class="message {msg.role}" class:optimistic={msg.optimistic}>
-        <span class="role-label">{msg.role === "user" ? "You" : "Assistant"}</span>
+        <span class="role-label"
+          >{msg.role === "user" ? "You" : "Assistant"}</span
+        >
 
         {#if editingId === msg.id}
-          <form onsubmit={(e) => { e.preventDefault(); submitEdit(msg.id); }}>
+          <form
+            onsubmit={(e) => {
+              e.preventDefault();
+              submitEdit(msg.id);
+            }}
+          >
             <textarea bind:value={editText} rows={2}></textarea>
             <div class="edit-actions">
               <button type="submit">Save & Send</button>
-              <button type="button" onclick={() => { editingId = null; }}>Cancel</button>
+              <button
+                type="button"
+                onclick={() => {
+                  editingId = null;
+                }}>Cancel</button
+              >
             </div>
           </form>
         {:else}
           <div class="content">
-            {msg.content}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && !msg.content}<span class="dot-pulse"></span>{/if}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && msg.content}<span class="cursor">▌</span>{/if}
+            {msg.content}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && !msg.content}<span
+                class="dot-pulse"
+
+              ></span>{/if}{#if chat.loading && msg.role === "assistant" && msg === chat.messages.at(-1) && msg.content}<span
+                class="cursor">▌</span
+              >{/if}
           </div>
           <div class="actions">
             {#if msg.role === "user"}
-              <button class="action-btn" onclick={() => startEdit(msg)}>Edit</button>
+              <button class="action-btn" onclick={() => startEdit(msg)}
+                >Edit</button
+              >
             {:else}
               <button
                 class="action-btn"
@@ -86,7 +106,12 @@
   {#if chat.error}
     <div class="error">
       {chat.error.message}
-      <button class="revert-btn" onclick={() => { prompt = chat.revert() ?? prompt; }}>
+      <button
+        class="revert-btn"
+        onclick={() => {
+          prompt = chat.revert() ?? prompt;
+        }}
+      >
         Undo send
       </button>
     </div>
@@ -99,7 +124,9 @@
       disabled={chat.loading}
     />
     {#if chat.loading}
-      <button type="button" class="stop-btn" onclick={() => chat.abort()}>Stop</button>
+      <button type="button" class="stop-btn" onclick={() => chat.abort()}
+        >Stop</button
+      >
     {:else}
       <button type="submit" disabled={!prompt.trim()}>Send</button>
     {/if}
@@ -121,7 +148,11 @@
     margin-bottom: 1.5rem;
   }
 
-  h1 { margin: 0; font-size: 1.5rem; flex: none; }
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    flex: none;
+  }
 
   .subtitle {
     margin: 0;
@@ -140,7 +171,9 @@
     cursor: pointer;
   }
 
-  .clear-btn:hover { background: #f3f4f6; }
+  .clear-btn:hover {
+    background: #f3f4f6;
+  }
 
   .messages {
     flex: 1;
@@ -204,8 +237,13 @@
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .dot-pulse {
@@ -218,8 +256,15 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 0.4; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
   }
 
   .actions {
@@ -228,7 +273,9 @@
     transition: opacity 0.15s;
   }
 
-  .message:hover .actions { opacity: 1; }
+  .message:hover .actions {
+    opacity: 1;
+  }
 
   .action-btn {
     padding: 0.2rem 0.5rem;
@@ -240,8 +287,14 @@
     cursor: pointer;
   }
 
-  .action-btn:hover:not(:disabled) { background: #f3f4f6; color: #374151; }
-  .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .action-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    color: #374151;
+  }
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   textarea {
     width: 100%;
@@ -255,7 +308,10 @@
     box-sizing: border-box;
   }
 
-  textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+  textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
 
   .edit-actions {
     display: flex;
@@ -272,10 +328,20 @@
     font-weight: 500;
   }
 
-  .edit-actions button[type="submit"] { background: #4f46e5; color: white; }
-  .edit-actions button[type="submit"]:hover { background: #4338ca; }
-  .edit-actions button[type="button"] { background: #e5e7eb; color: #374151; }
-  .edit-actions button[type="button"]:hover { background: #d1d5db; }
+  .edit-actions button[type="submit"] {
+    background: #4f46e5;
+    color: white;
+  }
+  .edit-actions button[type="submit"]:hover {
+    background: #4338ca;
+  }
+  .edit-actions button[type="button"] {
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .edit-actions button[type="button"]:hover {
+    background: #d1d5db;
+  }
 
   .error {
     background: #fef2f2;
@@ -302,7 +368,9 @@
     white-space: nowrap;
   }
 
-  .revert-btn:hover { background: #fef2f2; }
+  .revert-btn:hover {
+    background: #fef2f2;
+  }
 
   .input-form {
     display: flex;
@@ -321,8 +389,14 @@
     transition: border-color 0.15s;
   }
 
-  input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
-  input:disabled { background: #f9fafb; color: #9ca3af; }
+  input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
+  input:disabled {
+    background: #f9fafb;
+    color: #9ca3af;
+  }
 
   .input-form button {
     padding: 0.625rem 1.25rem;
@@ -336,9 +410,18 @@
     transition: background 0.15s;
   }
 
-  .input-form button:hover:not(:disabled) { background: #4338ca; }
-  .input-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .input-form button:hover:not(:disabled) {
+    background: #4338ca;
+  }
+  .input-form button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-  .stop-btn { background: #dc2626 !important; }
-  .stop-btn:hover { background: #b91c1c !important; }
+  .stop-btn {
+    background: #dc2626 !important;
+  }
+  .stop-btn:hover {
+    background: #b91c1c !important;
+  }
 </style>

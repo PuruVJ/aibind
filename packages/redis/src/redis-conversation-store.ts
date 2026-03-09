@@ -1,4 +1,8 @@
-import { ChatHistory, type ConversationMessage, type ConversationStore } from "@aibind/core";
+import {
+  ChatHistory,
+  type ConversationMessage,
+  type ConversationStore,
+} from "@aibind/core";
 import type { RedisClient } from "./redis-stream-store";
 
 export interface RedisConversationStoreOptions {

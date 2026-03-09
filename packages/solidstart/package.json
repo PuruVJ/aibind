@@ -1,7 +1,7 @@
 {
   "name": "@aibind/solidstart",
   "version": "0.8.0",
-  "description": "AI SDK bindings for SolidStart \u2014 reactive hooks with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for SolidStart — reactive hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "solid",

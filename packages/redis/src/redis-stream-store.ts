@@ -67,7 +67,12 @@ export class RedisStreamStore implements StreamStore {
     const existing = await this.#client.exists(statusKey);
     if (existing) throw new Error(`Stream "${id}" already exists`);
     const status: DurableStreamStatus = { state: "active", totalChunks: 0 };
-    await this.#client.set(statusKey, JSON.stringify(status), "EX", this.#ttlSec);
+    await this.#client.set(
+      statusKey,
+      JSON.stringify(status),
+      "EX",
+      this.#ttlSec,
+    );
   }
 
   async append(id: string, chunk: string): Promise<number> {
@@ -81,7 +86,12 @@ export class RedisStreamStore implements StreamStore {
     if (statusJson) {
       const status = JSON.parse(statusJson) as DurableStreamStatus;
       status.totalChunks = seq;
-      await this.#client.set(statusKey, JSON.stringify(status), "EX", this.#ttlSec);
+      await this.#client.set(
+        statusKey,
+        JSON.stringify(status),
+        "EX",
+        this.#ttlSec,
+      );
     }
 
     return seq;
@@ -158,6 +168,11 @@ export class RedisStreamStore implements StreamStore {
     if (status.state !== "active") return;
     status.state = state;
     if (error) status.error = error;
-    await this.#client.set(statusKey, JSON.stringify(status), "EX", this.#ttlSec);
+    await this.#client.set(
+      statusKey,
+      JSON.stringify(status),
+      "EX",
+      this.#ttlSec,
+    );
   }
 }

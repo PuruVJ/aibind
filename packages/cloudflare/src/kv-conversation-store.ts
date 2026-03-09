@@ -1,4 +1,8 @@
-import { ChatHistory, type ConversationMessage, type ConversationStore } from "@aibind/core";
+import {
+  ChatHistory,
+  type ConversationMessage,
+  type ConversationStore,
+} from "@aibind/core";
 
 /**
  * Minimal structural type matching the Cloudflare KV namespace binding.
@@ -6,7 +10,11 @@ import { ChatHistory, type ConversationMessage, type ConversationStore } from "@
  */
 type KVNamespace = {
   get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void>;
   delete(key: string): Promise<void>;
 };
 

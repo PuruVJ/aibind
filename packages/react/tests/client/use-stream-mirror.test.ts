@@ -138,7 +138,8 @@ describe("useStreamMirror", () => {
     let capturedCleanup: (() => void) | undefined;
     vi.mocked(useEffect).mockImplementationOnce((fn: () => unknown) => {
       const cleanup = fn();
-      if (typeof cleanup === "function") capturedCleanup = cleanup as () => void;
+      if (typeof cleanup === "function")
+        capturedCleanup = cleanup as () => void;
     });
 
     useStreamMirror("chan");

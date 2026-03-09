@@ -62,7 +62,8 @@ export function idbTx(
     const tx = db.transaction(stores, mode);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error ?? new DOMException("Transaction aborted", "AbortError"));
+    tx.onabort = () =>
+      reject(tx.error ?? new DOMException("Transaction aborted", "AbortError"));
     fn(tx);
   });
 }

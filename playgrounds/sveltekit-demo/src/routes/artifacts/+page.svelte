@@ -15,7 +15,8 @@
 <div class="container">
   <h1>Streaming Artifacts Demo</h1>
   <p class="subtitle">
-    The <code>fenceDetector</code> extracts code fences from the stream in real time.
+    The <code>fenceDetector</code> extracts code fences from the stream in real
+    time.
     <code>stream.artifacts</code> populates as the model writes code.
   </p>
 
@@ -26,7 +27,10 @@
       prompt = "";
     }}
   >
-    <input bind:value={prompt} placeholder='Try "Write a React counter component"' />
+    <input
+      bind:value={prompt}
+      placeholder="Try "Write a React counter component""
+    />
     <button type="submit" disabled={stream.loading}>
       {stream.loading ? "Streaming..." : "Send"}
     </button>
@@ -39,7 +43,9 @@
     <div class="panels">
       <div class="panel">
         <h2>Raw response</h2>
-        <pre class="raw">{stream.text}{#if stream.loading}<span class="cursor">▌</span>{/if}</pre>
+        <pre class="raw">{stream.text}{#if stream.loading}<span class="cursor"
+              >▌</span
+            >{/if}</pre>
       </div>
 
       <div class="panel">
@@ -57,7 +63,10 @@
                   <span class="badge done">done</span>
                 {/if}
               </div>
-              <pre class="artifact-code">{artifact.content}{#if !artifact.complete && stream.loading}<span class="cursor">▌</span>{/if}</pre>
+              <pre
+                class="artifact-code">{artifact.content}{#if !artifact.complete && stream.loading}<span
+                    class="cursor">▌</span
+                  >{/if}</pre>
             </div>
           {/each}
         {/if}
@@ -71,9 +80,14 @@
 </div>
 
 <style>
-  .container { max-width: 100%; }
+  .container {
+    max-width: 100%;
+  }
 
-  h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+  }
 
   .subtitle {
     color: #6b7280;
@@ -96,7 +110,10 @@
     outline: none;
   }
 
-  input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+  input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
 
   button {
     padding: 0.5rem 1rem;
@@ -109,8 +126,13 @@
     color: white;
   }
 
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  button:last-child:not([type="submit"]) { background: #dc2626; }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button:last-child:not([type="submit"]) {
+    background: #dc2626;
+  }
 
   .panels {
     display: grid;
@@ -119,7 +141,9 @@
   }
 
   @media (max-width: 700px) {
-    .panels { grid-template-columns: 1fr; }
+    .panels {
+      grid-template-columns: 1fr;
+    }
   }
 
   .panel h2 {
@@ -145,7 +169,11 @@
     overflow-y: auto;
   }
 
-  .empty { color: #9ca3af; font-size: 0.875rem; padding: 1rem 0; }
+  .empty {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    padding: 1rem 0;
+  }
 
   .artifact {
     background: #f8fafc;
@@ -155,7 +183,9 @@
     overflow: hidden;
   }
 
-  .artifact.streaming { border-color: #a5b4fc; }
+  .artifact.streaming {
+    border-color: #a5b4fc;
+  }
 
   .artifact-header {
     display: flex;
@@ -182,8 +212,14 @@
     letter-spacing: 0.05em;
   }
 
-  .badge.streaming { background: #ede9fe; color: #7c3aed; }
-  .badge.done { background: #dcfce7; color: #16a34a; }
+  .badge.streaming {
+    background: #ede9fe;
+    color: #7c3aed;
+  }
+  .badge.done {
+    background: #dcfce7;
+    color: #16a34a;
+  }
 
   .artifact-code {
     padding: 0.75rem 1rem;
@@ -203,8 +239,13 @@
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .error {

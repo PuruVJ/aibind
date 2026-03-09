@@ -107,27 +107,27 @@ const conversationStore = new RedisConversationStore(redis);
 
 **`RedisStreamStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `prefix` | `string` | `"aibind:stream"` | Key prefix for all stream keys |
-| `pollIntervalMs` | `number` | `50` | How often to poll for new chunks in `readFrom()` |
-| `ttlSec` | `number` | `300` | TTL in seconds for completed stream keys |
+| Option           | Type     | Default           | Description                                      |
+| ---------------- | -------- | ----------------- | ------------------------------------------------ |
+| `prefix`         | `string` | `"aibind:stream"` | Key prefix for all stream keys                   |
+| `pollIntervalMs` | `number` | `50`              | How often to poll for new chunks in `readFrom()` |
+| `ttlSec`         | `number` | `300`             | TTL in seconds for completed stream keys         |
 
 **`RedisConversationStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| Option   | Type     | Default         | Description                          |
+| -------- | -------- | --------------- | ------------------------------------ |
 | `prefix` | `string` | `"aibind:conv"` | Key prefix for all conversation keys |
-| `ttlSec` | `number` | `1800` | TTL in seconds for conversation keys |
+| `ttlSec` | `number` | `1800`          | TTL in seconds for conversation keys |
 
 ## Key schema
 
 `RedisStreamStore` uses these keys per stream (where `{id}` is the stream ID):
 
-| Key | Type | Description |
-|-----|------|-------------|
+| Key                    | Type          | Description                     |
+| ---------------------- | ------------- | ------------------------------- |
 | `{prefix}:{id}:status` | String (JSON) | Stream state, total chunk count |
-| `{prefix}:{id}:chunks` | List | Ordered chunk data |
+| `{prefix}:{id}:chunks` | List          | Ordered chunk data              |
 
 `RedisConversationStore` stores serialized `ChatHistory` JSON at `{prefix}:{sessionId}` with an EX TTL.
 

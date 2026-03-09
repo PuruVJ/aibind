@@ -27,7 +27,11 @@ npm install @aibind/service-worker ai @openrouter/ai-sdk-provider
 
 ```ts
 // sw.ts
-import { createSWHandler, IDBStreamStore, IDBConversationStore } from "@aibind/service-worker";
+import {
+  createSWHandler,
+  IDBStreamStore,
+  IDBConversationStore,
+} from "@aibind/service-worker";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 const openrouter = createOpenRouter({ apiKey: "sk-..." }); // user accepts key exposure
@@ -64,8 +68,7 @@ if ("serviceWorker" in navigator) {
   const stream = new Stream({ model: "fast" });
 </script>
 
-<button onclick={() => stream.send("Hello!")}>Send</button>
-<p>{stream.text}</p>
+<button onclick={() => stream.send("Hello!")}>Send</button><p>{stream.text}</p>
 ```
 
 No changes to client code — the SW handles the request before it ever reaches the network.
@@ -78,9 +81,9 @@ Backs durable/resumable streams. Chunks are written to IndexedDB as they arrive 
 
 ```ts
 const store = new IDBStreamStore({
-  dbName: "aibind_sw",        // IndexedDB database name
-  pollIntervalMs: 50,          // how often readFrom() checks for new chunks
-  ttlMs: 300_000,              // TTL for completed streams before cleanup
+  dbName: "aibind_sw", // IndexedDB database name
+  pollIntervalMs: 50, // how often readFrom() checks for new chunks
+  ttlMs: 300_000, // TTL for completed streams before cleanup
 });
 ```
 
@@ -90,8 +93,8 @@ Persists conversation history per session. Preserves branching structure (edits,
 
 ```ts
 const store = new IDBConversationStore({
-  dbName: "aibind_sw",        // IndexedDB database name
-  ttlMs: 1_800_000,            // TTL for idle sessions (30 min default)
+  dbName: "aibind_sw", // IndexedDB database name
+  ttlMs: 1_800_000, // TTL for idle sessions (30 min default)
 });
 ```
 
@@ -105,7 +108,7 @@ Call `cleanup()` periodically to remove expired records:
 // In your SW activate event
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    Promise.all([streamStore.cleanup(), conversationStore.cleanup()])
+    Promise.all([streamStore.cleanup(), conversationStore.cleanup()]),
   );
 });
 ```
@@ -116,18 +119,18 @@ self.addEventListener("activate", (event) => {
 
 **`IDBStreamStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `dbName` | `string` | `"aibind_sw"` | IndexedDB database name |
-| `pollIntervalMs` | `number` | `50` | Polling interval for readFrom() |
-| `ttlMs` | `number` | `300_000` | TTL for completed streams |
+| Option           | Type     | Default       | Description                     |
+| ---------------- | -------- | ------------- | ------------------------------- |
+| `dbName`         | `string` | `"aibind_sw"` | IndexedDB database name         |
+| `pollIntervalMs` | `number` | `50`          | Polling interval for readFrom() |
+| `ttlMs`          | `number` | `300_000`     | TTL for completed streams       |
 
 **`IDBConversationStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| Option   | Type     | Default       | Description             |
+| -------- | -------- | ------------- | ----------------------- |
 | `dbName` | `string` | `"aibind_sw"` | IndexedDB database name |
-| `ttlMs` | `number` | `1_800_000` | TTL for idle sessions |
+| `ttlMs`  | `number` | `1_800_000`   | TTL for idle sessions   |
 
 ## Documentation
 

@@ -13,7 +13,10 @@ export interface PostgresClient {
 }
 
 type PostgresJsSql = {
-  unsafe(query: string, params?: unknown[]): Promise<Array<Record<string, unknown>>>;
+  unsafe(
+    query: string,
+    params?: unknown[],
+  ): Promise<Array<Record<string, unknown>>>;
 };
 
 /**

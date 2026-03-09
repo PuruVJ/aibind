@@ -1,5 +1,9 @@
 // Artifact types (detectors live in @aibind/core/artifact subpath)
-export type { Artifact, ArtifactDetector, ArtifactLineResult } from "./artifacts";
+export type {
+  Artifact,
+  ArtifactDetector,
+  ArtifactLineResult,
+} from "./artifacts";
 
 // Broadcast
 export type { BroadcastMessage } from "./broadcast";
@@ -107,7 +111,14 @@ export type {
 // Chat controller (framework-agnostic client)
 export { ChatController } from "./chat-controller";
 export { fileToAttachment } from "./file-to-attachment";
-export type { ChatMessage, ChatCallbacks, BaseChatOptions, StagedMessage, Attachment, ChatSendOptions } from "./types";
+export type {
+  ChatMessage,
+  ChatCallbacks,
+  BaseChatOptions,
+  StagedMessage,
+  Attachment,
+  ChatSendOptions,
+} from "./types";
 
 // Agent controller (framework-agnostic)
 export { AgentController } from "./agent-controller";

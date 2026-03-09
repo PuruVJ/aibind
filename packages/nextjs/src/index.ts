@@ -8,7 +8,12 @@ import {
   type UseStreamReturn,
 } from "@aibind/react";
 
-export { useStreamMirror, useChat, useRace, useCompletion } from "@aibind/react";
+export {
+  useStreamMirror,
+  useChat,
+  useRace,
+  useCompletion,
+} from "@aibind/react";
 export type {
   Attachment,
   ChatMessage,

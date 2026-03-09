@@ -3,7 +3,8 @@
 
   const race = new Race({
     models: ["gpt", "google"],
-    system: "You are a helpful assistant. Keep responses concise (2-3 sentences).",
+    system:
+      "You are a helpful assistant. Keep responses concise (2-3 sentences).",
     strategy: "complete",
   });
 
@@ -30,7 +31,10 @@
       prompt = "";
     }}
   >
-    <input bind:value={prompt} placeholder='Try "What is the speed of light?"' />
+    <input
+      bind:value={prompt}
+      placeholder="Try "What is the speed of light?""
+    />
     <button type="submit" disabled={race.loading}>
       {race.loading ? "Racing..." : "Race!"}
     </button>
@@ -67,9 +71,14 @@
 </div>
 
 <style>
-  .container { max-width: 42rem; }
+  .container {
+    max-width: 42rem;
+  }
 
-  h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+  }
 
   .subtitle {
     color: #6b7280;
@@ -117,7 +126,10 @@
     outline: none;
   }
 
-  input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+  input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
 
   button {
     padding: 0.5rem 1rem;
@@ -130,8 +142,13 @@
     color: white;
   }
 
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  button:last-child:not([type="submit"]) { background: #dc2626; }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button:last-child:not([type="submit"]) {
+    background: #dc2626;
+  }
 
   .waiting {
     display: flex;
@@ -152,11 +169,20 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1); }
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
-  .result { margin-top: 0.5rem; }
+  .result {
+    margin-top: 0.5rem;
+  }
 
   .winner-badge {
     display: inline-flex;
@@ -180,7 +206,9 @@
     line-height: 1.6;
   }
 
-  .streaming { opacity: 0.85; }
+  .streaming {
+    opacity: 0.85;
+  }
 
   .cursor {
     animation: blink 0.6s step-end infinite;
@@ -188,8 +216,13 @@
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .error {

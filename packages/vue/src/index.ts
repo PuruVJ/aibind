@@ -506,10 +506,18 @@ export function useChat(options: ChatOptions): UseChatReturn {
   const status: Ref<StreamStatus> = ref("idle");
 
   const ctrl = new ChatController(options, {
-    onMessages: (msgs) => { messages.value = msgs; },
-    onLoading: (l) => { loading.value = l; },
-    onError: (e) => { error.value = e; },
-    onStatus: (s) => { status.value = s; },
+    onMessages: (msgs) => {
+      messages.value = msgs;
+    },
+    onLoading: (l) => {
+      loading.value = l;
+    },
+    onError: (e) => {
+      error.value = e;
+    },
+    onStatus: (s) => {
+      status.value = s;
+    },
   } satisfies ChatCallbacks);
 
   onUnmounted(() => ctrl.abort());

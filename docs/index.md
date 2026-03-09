@@ -211,7 +211,11 @@ const ProductSchema = z.object({
   import { StructuredStream } from "@aibind/sveltekit";
   import { ProductSchema } from "$lib/schemas";
 
-  const stream = new StructuredStream({ model: "fast", endpoint: "/__aibind__/structured", schema: ProductSchema });
+  const stream = new StructuredStream({
+    model: "fast",
+    endpoint: "/__aibind__/structured",
+    schema: ProductSchema,
+  });
 </script>
 
 <!-- Partial renders as tokens arrive — name shows before description is done -->

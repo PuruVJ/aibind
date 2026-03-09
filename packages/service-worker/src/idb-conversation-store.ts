@@ -40,7 +40,10 @@ export class IDBConversationStore implements ConversationStore {
   async load(sessionId: string): Promise<ChatHistory<ConversationMessage>> {
     const db = await this.#db;
     const row = await idbReq<ConvRow | undefined>(
-      db.transaction(STORE_CONVS, "readonly").objectStore(STORE_CONVS).get(sessionId),
+      db
+        .transaction(STORE_CONVS, "readonly")
+        .objectStore(STORE_CONVS)
+        .get(sessionId),
     );
 
     if (!row || row.expiresAt < Date.now()) {
@@ -88,7 +91,9 @@ export class IDBConversationStore implements ConversationStore {
     const all = await idbReq<ConvRow[]>(
       db.transaction(STORE_CONVS, "readonly").objectStore(STORE_CONVS).getAll(),
     );
-    const expired = all.filter((r) => r.expiresAt < now).map((r) => r.sessionId);
+    const expired = all
+      .filter((r) => r.expiresAt < now)
+      .map((r) => r.sessionId);
 
     if (expired.length === 0) return;
 

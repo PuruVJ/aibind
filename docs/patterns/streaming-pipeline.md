@@ -51,7 +51,10 @@ plain prose. Do not skip stages.`,
         sections: z.number().int().min(2).max(6).describe("Number of sections"),
       }),
       execute: async ({ research, sections }) => {
-        return { outline: `Intro\n${Array.from({ length: sections - 1 }, (_, i) => `Section ${i + 1}`).join("\n")}\nConclusion`, research };
+        return {
+          outline: `Intro\n${Array.from({ length: sections - 1 }, (_, i) => `Section ${i + 1}`).join("\n")}\nConclusion`,
+          research,
+        };
       },
     }),
 
@@ -63,7 +66,10 @@ plain prose. Do not skip stages.`,
       }),
       execute: async ({ outline, wordCount }) => {
         // Replace with a real sub-model call if desired
-        return { draft: `[Draft based on outline — ${wordCount} words target]`, wordCount };
+        return {
+          draft: `[Draft based on outline — ${wordCount} words target]`,
+          wordCount,
+        };
       },
     }),
 
@@ -165,12 +171,12 @@ stream2.send(`Outline this: ${stream1.text}`);
 
 But this is a worse version of what Agent already does:
 
-| Manual chaining | Agent |
-|-----------------|-------|
-| You hardcode the order | Model adapts if a step fails or needs revision |
-| No streaming between steps | Model streams reasoning between tool calls |
-| Error handling at every hand-off | Agent retries naturally |
-| Step count hardcoded | `stopWhen` bounds it safely |
+| Manual chaining                  | Agent                                          |
+| -------------------------------- | ---------------------------------------------- |
+| You hardcode the order           | Model adapts if a step fails or needs revision |
+| No streaming between steps       | Model streams reasoning between tool calls     |
+| Error handling at every hand-off | Agent retries naturally                        |
+| Step count hardcoded             | `stopWhen` bounds it safely                    |
 
 Use manual chaining only when the steps are **fixed transforms** with no model reasoning between them (e.g., extracting structured data then formatting it). For anything that requires judgment between steps, Agent is the right primitive.
 
@@ -210,8 +216,14 @@ draft: tool({
 {#if agent.pendingApproval?.toolName === "draft"}
   <div class="approval">
     <p>Ready to write the draft. Outline looks good?</p>
-    <button onclick={() => agent.approve(agent.pendingApproval.id)}>Yes, draft it</button>
-    <button onclick={() => agent.deny(agent.pendingApproval.id, "Revise outline first")}>Not yet</button>
+    <button onclick={() => agent.approve(agent.pendingApproval.id)}
+      >Yes, draft it</button
+    >
+    <button
+      onclick={() =>
+        agent.deny(agent.pendingApproval.id, "Revise outline first")}
+      >Not yet</button
+    >
   </div>
 {/if}
 ```

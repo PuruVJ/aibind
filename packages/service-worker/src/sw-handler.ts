@@ -91,9 +91,7 @@ export function createSWHandler(
           const [forBrowser, forTracking] = response.body.tee();
 
           forTracking
-            .pipeTo(
-              new WritableStream({ close: resolveComplete }),
-            )
+            .pipeTo(new WritableStream({ close: resolveComplete }))
             .catch(resolveComplete);
 
           return new Response(forBrowser, {

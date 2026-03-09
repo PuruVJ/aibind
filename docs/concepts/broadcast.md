@@ -10,25 +10,25 @@ When a user has your app open in multiple places (desktop + phone, two browser w
 
 ## When to use it
 
-| Use case | Good fit? |
-|----------|-----------|
-| Desktop tab + phone PWA, same active stream | Yes |
-| Two windows: chat input + fullscreen reader | Yes |
-| Presentation: control tab + projector display | Yes |
-| Background progress widget in another tab | Yes |
-| Syncing past conversation history | No — use your DB |
+| Use case                                        | Good fit?           |
+| ----------------------------------------------- | ------------------- |
+| Desktop tab + phone PWA, same active stream     | Yes                 |
+| Two windows: chat input + fullscreen reader     | Yes                 |
+| Presentation: control tab + projector display   | Yes                 |
+| Background progress widget in another tab       | Yes                 |
+| Syncing past conversation history               | No — use your DB    |
 | Real-time collaboration between different users | No — use WebSockets |
 
 ## How it works
 
 Two primitives, one channel name:
 
-| | Source page | Mirror page |
-|-|-------------|-------------|
+|            | Source page                         | Mirror page              |
+| ---------- | ----------------------------------- | ------------------------ |
 | **Svelte** | `Stream` + `stream.broadcast(name)` | `new StreamMirror(name)` |
-| **React** | `useStream` + `broadcast(name)` | `useStreamMirror(name)` |
-| **Vue** | `useStream` + `broadcast(name)` | `useStreamMirror(name)` |
-| **Solid** | `useStream` + `broadcast(name)` | `useStreamMirror(name)` |
+| **React**  | `useStream` + `broadcast(name)`     | `useStreamMirror(name)`  |
+| **Vue**    | `useStream` + `broadcast(name)`     | `useStreamMirror(name)`  |
+| **Solid**  | `useStream` + `broadcast(name)`     | `useStreamMirror(name)`  |
 
 The source owns the HTTP connection and broadcasts its state on every chunk. Mirrors listen and update reactively — no additional requests. The channel name is the only shared identifier; pick something session-specific (e.g. a user or session ID) so independent streams don't cross-talk.
 
@@ -52,7 +52,13 @@ The page where the user types and sends. Owns the HTTP connection.
   let input = $state("");
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); stream.send(input); input = ""; }}>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    stream.send(input);
+    input = "";
+  }}
+>
   <input bind:value={input} placeholder="Ask something…" />
   <button>Send</button>
 </form>
@@ -75,7 +81,13 @@ export default function ChatPage() {
 
   return (
     <>
-      <form onSubmit={(e) => { e.preventDefault(); send(input); setInput(""); }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+          setInput("");
+        }}
+      >
         <input value={input} onChange={(e) => setInput(e.target.value)} />
         <button>Send</button>
       </form>
@@ -97,7 +109,12 @@ onMounted(() => broadcast("my-chat-session"));
 </script>
 
 <template>
-  <form @submit.prevent="send(input); input = ''">
+  <form
+    @submit.prevent="
+      send(input);
+      input = '';
+    "
+  >
     <input v-model="input" placeholder="Ask something…" />
     <button>Send</button>
   </form>
@@ -117,8 +134,17 @@ export default function ChatPage() {
 
   return (
     <>
-      <form onSubmit={(e) => { e.preventDefault(); send(input()); setInput(""); }}>
-        <input value={input()} onInput={(e) => setInput(e.currentTarget.value)} />
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input());
+          setInput("");
+        }}
+      >
+        <input
+          value={input()}
+          onInput={(e) => setInput(e.currentTarget.value)}
+        />
         <button>Send</button>
       </form>
       <p>{text()}</p>
@@ -200,13 +226,12 @@ export default function ReaderPage() {
 The mirror exposes the same reactive fields as the source for display:
 
 ```ts
-mirror.text     // string — accumulates as source streams
-mirror.status   // StreamStatus — "idle" | "streaming" | "done" | "error" | …
-mirror.loading  // boolean
-mirror.done     // boolean
-mirror.error    // string | null
+mirror.text; // string — accumulates as source streams
+mirror.status; // StreamStatus — "idle" | "streaming" | "done" | "error" | …
+mirror.loading; // boolean
+mirror.done; // boolean
+mirror.error; // string | null
 ```
-
 
 ## Recipes
 

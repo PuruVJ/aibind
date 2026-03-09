@@ -2,7 +2,8 @@
   import { Completion } from "@aibind/sveltekit";
 
   const completion = new Completion({
-    system: "Complete the text naturally. Output only the continuation — no extra commentary.",
+    system:
+      "Complete the text naturally. Output only the continuation — no extra commentary.",
     model: "gpt",
     debounce: 400,
     minLength: 4,
@@ -24,13 +25,15 @@
 <div class="container">
   <h1>Inline Completion Demo</h1>
   <p class="subtitle">
-    Type at least 4 characters. The model will suggest a continuation as ghost text.
-    Press <kbd>Tab</kbd> to accept, <kbd>Esc</kbd> to dismiss.
+    Type at least 4 characters. The model will suggest a continuation as ghost
+    text. Press <kbd>Tab</kbd> to accept, <kbd>Esc</kbd> to dismiss.
   </p>
 
   <div class="editor-wrapper">
     <div class="ghost-layer" aria-hidden="true">
-      <span class="typed">{input}</span><span class="ghost">{completion.suggestion}</span>
+      <span class="typed">{input}</span><span class="ghost"
+        >{completion.suggestion}</span
+      >
     </div>
     <textarea
       bind:value={input}
@@ -46,7 +49,9 @@
     {#if completion.loading}
       <span class="loading-hint">Fetching suggestion…</span>
     {:else if completion.suggestion}
-      <span class="tab-hint"><kbd>Tab</kbd> to accept · <kbd>Esc</kbd> to dismiss</span>
+      <span class="tab-hint"
+        ><kbd>Tab</kbd> to accept · <kbd>Esc</kbd> to dismiss</span
+      >
     {/if}
   </div>
 
@@ -56,9 +61,14 @@
 </div>
 
 <style>
-  .container { max-width: 38rem; }
+  .container {
+    max-width: 38rem;
+  }
 
-  h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+  }
 
   .subtitle {
     color: #6b7280;
@@ -105,7 +115,9 @@
     color: transparent;
   }
 
-  .typed { color: transparent; }
+  .typed {
+    color: transparent;
+  }
 
   .ghost {
     color: #9ca3af;

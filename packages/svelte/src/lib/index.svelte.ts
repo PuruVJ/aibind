@@ -356,9 +356,7 @@ export class Stream<M extends string = string> {
     onDestroy(cleanup);
     return cleanup;
   }
-
 }
-
 
 // --- StructuredStream ---
 
@@ -595,4 +593,9 @@ export class Chat {
   }
 }
 
-export type { Attachment, ChatMessage, ChatSendOptions, StagedMessage } from "@aibind/core";
+export type {
+  Attachment,
+  ChatMessage,
+  ChatSendOptions,
+  StagedMessage,
+} from "@aibind/core";

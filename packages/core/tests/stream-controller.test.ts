@@ -1053,7 +1053,7 @@ describe("StreamController", () => {
 
     it("does not fire onArtifacts when no detector is provided", async () => {
       fetchMock.mockResolvedValue(
-        createTextResponse(["<artifact lang=\"ts\">\ncode\n</artifact>\n"]),
+        createTextResponse(['<artifact lang="ts">\ncode\n</artifact>\n']),
       );
 
       const artifactCb = vi.fn();
@@ -1074,7 +1074,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1102,7 +1106,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1117,7 +1125,7 @@ describe("StreamController", () => {
       // The open tag is split: first chunk has no newline so nothing is scanned yet
       fetchMock.mockResolvedValue(
         createTextResponse([
-          "<artifact lang=",      // no newline — partial line, nothing scanned
+          "<artifact lang=", // no newline — partial line, nothing scanned
           '"py">\nprint("hi")\n', // newline present — now the open tag line is complete
           "</artifact>\n",
         ]),
@@ -1125,7 +1133,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1145,7 +1157,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1169,7 +1185,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1192,7 +1212,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
 
@@ -1216,7 +1240,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: claudeDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: claudeDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1235,7 +1263,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1261,7 +1293,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1281,7 +1317,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1303,7 +1343,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: trackingDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: trackingDetector },
+        },
         acb,
       );
       ctrl.send("hi");
@@ -1329,7 +1373,11 @@ describe("StreamController", () => {
 
       const acb = makeArtifactCb();
       const ctrl = new StreamController(
-        { endpoint: "/api/stream", fetch: fetchMock, artifact: { detector: standardDetector } },
+        {
+          endpoint: "/api/stream",
+          fetch: fetchMock,
+          artifact: { detector: standardDetector },
+        },
         acb,
       );
       ctrl.send("hi");

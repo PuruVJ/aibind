@@ -28,7 +28,10 @@ bun add @aibind/postgres
 
 ```ts
 import { Pool } from "pg";
-import { PostgresStreamStore, PostgresConversationStore } from "@aibind/postgres";
+import {
+  PostgresStreamStore,
+  PostgresConversationStore,
+} from "@aibind/postgres";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -40,7 +43,11 @@ const conversationStore = new PostgresConversationStore(pool);
 
 ```ts
 import { neon } from "@neondatabase/serverless";
-import { wrapNeon, PostgresStreamStore, PostgresConversationStore } from "@aibind/postgres";
+import {
+  wrapNeon,
+  PostgresStreamStore,
+  PostgresConversationStore,
+} from "@aibind/postgres";
 
 const db = wrapNeon(neon(process.env.DATABASE_URL!));
 
@@ -156,10 +163,13 @@ export const handle = createStreamHandler({
 Call periodically (e.g., cron job) to remove expired records:
 
 ```ts
-setInterval(async () => {
-  await streamStore.cleanup();
-  await conversationStore.cleanup();
-}, 10 * 60 * 1000);
+setInterval(
+  async () => {
+    await streamStore.cleanup();
+    await conversationStore.cleanup();
+  },
+  10 * 60 * 1000,
+);
 ```
 
 `PostgresStreamStore.cleanup()` uses `DELETE ... RETURNING id` + `ANY($1::text[])` to remove all expired chunks in two queries, regardless of how many streams expired.
@@ -168,19 +178,19 @@ setInterval(async () => {
 
 **`PostgresStreamStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `chunksTable` | `string` | `"aibind_stream_chunks"` | Name of the chunks table |
-| `statusTable` | `string` | `"aibind_stream_status"` | Name of the status table |
-| `pollIntervalMs` | `number` | `100` | How often to poll for new chunks in `readFrom()` |
-| `ttlMs` | `number` | `300_000` | TTL for completed streams before cleanup |
+| Option           | Type     | Default                  | Description                                      |
+| ---------------- | -------- | ------------------------ | ------------------------------------------------ |
+| `chunksTable`    | `string` | `"aibind_stream_chunks"` | Name of the chunks table                         |
+| `statusTable`    | `string` | `"aibind_stream_status"` | Name of the status table                         |
+| `pollIntervalMs` | `number` | `100`                    | How often to poll for new chunks in `readFrom()` |
+| `ttlMs`          | `number` | `300_000`                | TTL for completed streams before cleanup         |
 
 **`PostgresConversationStore`**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `table` | `string` | `"aibind_conversations"` | Name of the conversations table |
-| `ttlMs` | `number` | `1_800_000` | TTL for idle conversations before cleanup |
+| Option  | Type     | Default                  | Description                               |
+| ------- | -------- | ------------------------ | ----------------------------------------- |
+| `table` | `string` | `"aibind_conversations"` | Name of the conversations table           |
+| `ttlMs` | `number` | `1_800_000`              | TTL for idle conversations before cleanup |
 
 ## PostgresClient interface
 
@@ -188,6 +198,9 @@ setInterval(async () => {
 
 ```ts
 export interface PostgresClient {
-  query(sql: string, params?: unknown[]): Promise<{ rows: Array<Record<string, unknown>> }>;
+  query(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ rows: Array<Record<string, unknown>> }>;
 }
 ```

@@ -104,7 +104,11 @@ export interface CompleteRequestBody {
 }
 
 export interface ChatRequestBody {
-  messages: Array<{ role: "user" | "assistant"; content: string; attachments?: Attachment[] }>;
+  messages: Array<{
+    role: "user" | "assistant";
+    content: string;
+    attachments?: Attachment[];
+  }>;
   system?: string;
   model?: string;
 }
@@ -434,7 +438,11 @@ export class StreamHandler {
       return Response.json({ error: message }, { status: 400 });
     }
 
-    const result = streamText({ model, system, messages: messages.map((m) => this.#toAiSdkMessage(m)) });
+    const result = streamText({
+      model,
+      system,
+      messages: messages.map((m) => this.#toAiSdkMessage(m)),
+    });
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
