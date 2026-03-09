@@ -1,5 +1,12 @@
 # @aibind/sqlite
 
+## 3.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`59c2d0d`](https://github.com/PuruVJ/aibind/commit/59c2d0d86f6422e8de1345bc1aa6ec3ece342491)]:
+  - @aibind/core@0.7.0
+
 ## 2.0.0
 
 ### Patch Changes
