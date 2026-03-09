@@ -1,7 +1,7 @@
 {
   "name": "@aibind/solidstart",
   "version": "0.6.2",
-  "description": "AI SDK bindings for SolidStart — reactive hooks with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for SolidStart \u2014 reactive hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "solid",
@@ -57,7 +57,6 @@
     "README.md"
   ],
   "scripts": {
-    "prepublishOnly": "pnpm package",
     "test": "vitest run",
     "test:watch": "vitest",
     "package": "tsup"

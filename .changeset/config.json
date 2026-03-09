@@ -7,5 +7,11 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": [
+    "@aibind/postgres",
+    "@aibind/redis",
+    "@aibind/cloudflare",
+    "@aibind/service-worker",
+    "@aibind/sqlite"
+  ]
 }

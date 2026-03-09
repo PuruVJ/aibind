@@ -1,7 +1,7 @@
 {
   "name": "@aibind/react-router",
   "version": "0.6.2",
-  "description": "AI SDK bindings for React Router v7 — hooks with defaults, server handlers, and agents",
+  "description": "AI SDK bindings for React Router v7 \u2014 hooks with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [
     "react-router",
@@ -57,7 +57,6 @@
     "README.md"
   ],
   "scripts": {
-    "prepublishOnly": "pnpm package",
     "test": "vitest run",
     "test:watch": "vitest",
     "package": "tsup"

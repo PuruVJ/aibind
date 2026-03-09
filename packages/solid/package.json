@@ -1,7 +1,7 @@
 {
   "name": "@aibind/solid",
   "version": "0.8.0",
-  "description": "AI SDK bindings for SolidJS — reactive hooks for streaming, structured output, and agents",
+  "description": "AI SDK bindings for SolidJS \u2014 reactive hooks for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
     "solid",
@@ -71,7 +71,6 @@
     "README.md"
   ],
   "scripts": {
-    "prepublishOnly": "pnpm package",
     "test": "vitest run",
     "test:watch": "vitest",
     "package": "tsup"

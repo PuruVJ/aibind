@@ -1,7 +1,7 @@
 {
   "name": "@aibind/sqlite",
-  "version": "4.0.0",
-  "description": "SQLite-backed StreamStore and ConversationStore for @aibind — works with Turso, libsql, and better-sqlite3",
+  "version": "0.4.0",
+  "description": "SQLite-backed StreamStore and ConversationStore for @aibind \u2014 works with Turso, libsql, and better-sqlite3",
   "license": "MIT",
   "keywords": [
     "sqlite",

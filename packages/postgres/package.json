@@ -1,7 +1,7 @@
 {
   "name": "@aibind/postgres",
-  "version": "4.0.0",
-  "description": "PostgreSQL-backed StreamStore and ConversationStore for @aibind — works with pg, postgres.js, Neon, Supabase, and more",
+  "version": "0.4.0",
+  "description": "PostgreSQL-backed StreamStore and ConversationStore for @aibind \u2014 works with pg, postgres.js, Neon, Supabase, and more",
   "license": "MIT",
   "keywords": [
     "postgres",

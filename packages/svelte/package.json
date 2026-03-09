@@ -1,7 +1,7 @@
 {
   "name": "@aibind/svelte",
   "version": "0.8.0",
-  "description": "AI SDK bindings for Svelte 5 — reactive streaming, structured output, and agents",
+  "description": "AI SDK bindings for Svelte 5 \u2014 reactive streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
     "svelte",
@@ -95,7 +95,6 @@
     "dev": "vite dev",
     "package": "vite build && svelte-package -o dist",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "prepublishOnly": "pnpm package",
     "test": "vitest run",
     "test:watch": "vitest"
   },
