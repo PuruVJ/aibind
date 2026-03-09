@@ -1,5 +1,16 @@
 # @aibind/vue
 
+## 0.10.0
+
+### Minor Changes
+
+- [#15](https://github.com/PuruVJ/aibind/pull/15) [`7322ed9`](https://github.com/PuruVJ/aibind/commit/7322ed996363cc8c9629871e1a802feefc8ba9a6) Thanks [@PuruVJ](https://github.com/PuruVJ)! - Add toolset-based tool calling to chat: register named tool collections on the server via `createStreamHandler({ toolsets: { ... } })`, select them per chat instance via `useChat({ toolset, maxSteps, onToolCall })`. Upgrades the `/chat` wire protocol from plain text to SSE (same as `/stream`) to support `tool_call` events for real-time UI feedback.
+
+### Patch Changes
+
+- Updated dependencies [[`7322ed9`](https://github.com/PuruVJ/aibind/commit/7322ed996363cc8c9629871e1a802feefc8ba9a6)]:
+  - @aibind/core@0.10.0
+
 ## 0.9.1
 
 ### Patch Changes
