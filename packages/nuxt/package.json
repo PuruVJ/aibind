@@ -1,6 +1,6 @@
 {
   "name": "@aibind/nuxt",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "AI SDK bindings for Nuxt — composables with defaults, server handlers, and agents",
   "license": "MIT",
   "keywords": [

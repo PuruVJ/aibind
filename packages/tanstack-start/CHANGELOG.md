@@ -1,5 +1,13 @@
 # @aibind/tanstack-start
 
+## 0.11.2
+
+### Patch Changes
+
+- Updated dependencies [[`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827), [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827), [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827), [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827)]:
+  - @aibind/core@0.13.0
+  - @aibind/react@0.11.2
+
 ## 0.11.1
 
 ### Patch Changes
