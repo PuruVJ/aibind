@@ -35,7 +35,7 @@ export { defaultDiff } from "./diff";
 
 export { ServerAgent } from "./server-agent";
 export type { AgentConfig, RunOptions } from "./server-agent";
-export { consumeTextStream, parsePartialJSON } from "./stream-utils";
+export { consumeTextStream } from "./stream-utils";
 export { MessageTree } from "./message-tree";
 export type {
   TreeNode,
@@ -77,6 +77,11 @@ export type {
 } from "./race-controller";
 
 // Stream controllers (framework-agnostic)
+export { BaseStreamController } from "./base-stream-controller";
+export type {
+  BaseStreamCallbacks,
+  BaseStreamControllerOptions,
+} from "./base-stream-controller";
 export { StreamController } from "./stream-controller";
 export type {
   StreamCallbacks,

@@ -221,11 +221,8 @@ export class StreamHandler {
     return model as import("ai").LanguageModel;
   }
 
-  async #handleStream(
-    body: StructuredStreamRequestBody,
-    structured: boolean,
-  ): Promise<Response> {
-    const { prompt, system, model: requestedModel, sessionId, schema } = body;
+  async #handleStream(body: StreamRequestBody): Promise<Response> {
+    const { prompt, system, model: requestedModel, sessionId } = body;
 
     if (typeof prompt !== "string" || !prompt.trim()) {
       return Response.json({ error: "prompt is required" }, { status: 400 });
@@ -238,12 +235,6 @@ export class StreamHandler {
       const message = e instanceof Error ? e.message : String(e);
       return Response.json({ error: message }, { status: 400 });
     }
-
-    const output = structured
-      ? schema
-        ? Output.object({ schema: jsonSchema(schema as never) })
-        : Output.json()
-      : undefined;
 
     // Conversation history (server-side sessions)
     const convConfig = this.#config.conversation;
@@ -285,7 +276,6 @@ export class StreamHandler {
         ? { messages: [...history, userMsg] }
         : { prompt }),
       system,
-      ...(output && { output }),
       ...(onFinish && { onFinish }),
       ...(shouldCachePrompt && {
         experimental_providerMetadata: {
@@ -306,6 +296,82 @@ export class StreamHandler {
     });
     this.#activeStreams.set(durableStream.id, durableStream);
     return durableStream.response;
+  }
+
+  async #handleStructuredStream(
+    body: StructuredStreamRequestBody,
+  ): Promise<Response> {
+    const { prompt, system, model: requestedModel, schema } = body;
+
+    if (typeof prompt !== "string" || !prompt.trim()) {
+      return Response.json({ error: "prompt is required" }, { status: 400 });
+    }
+
+    let model: import("ai").LanguageModel;
+    try {
+      model = this.#resolveModel(requestedModel);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return Response.json({ error: message }, { status: 400 });
+    }
+
+    const output = schema
+      ? Output.object({ schema: jsonSchema(schema as never) })
+      : Output.json();
+
+    const result = streamText({
+      model,
+      system,
+      prompt,
+      output,
+    });
+
+    const source = StreamHandler.#objectStreamSource(result);
+
+    if (!this.#store) {
+      return StreamHandler.#buildSSEFromSource(source);
+    }
+
+    const durableStream = await DurableStream.create({
+      store: this.#store,
+      source,
+    });
+    this.#activeStreams.set(durableStream.id, durableStream);
+    return durableStream.response;
+  }
+
+  /**
+   * Convert a structured streamText result (with `output` set) into the
+   * `{ event, data }` source format consumed by `#buildSSEFromSource`.
+   *
+   * - `partial` events carry incrementally parsed partial objects
+   * - `data` event carries the final validated object
+   * - `usage` event carries token counts
+   */
+  static async *#objectStreamSource(
+    result: ReturnType<typeof streamText>,
+  ): AsyncGenerator<{ event: string; data: string }> {
+    for await (const partial of result.partialOutputStream) {
+      yield { event: "partial", data: JSON.stringify(partial) };
+    }
+    try {
+      const obj = await result.output;
+      yield { event: "data", data: JSON.stringify(obj) };
+    } catch {
+      // output unavailable — client receives no data event
+    }
+    try {
+      const usage = await result.totalUsage;
+      yield {
+        event: "usage",
+        data: JSON.stringify({
+          inputTokens: usage.inputTokens ?? 0,
+          outputTokens: usage.outputTokens ?? 0,
+        }),
+      };
+    } catch {
+      // usage unavailable
+    }
   }
 
   /**
@@ -383,12 +449,12 @@ export class StreamHandler {
 
   /** Handle a plain text streaming request. */
   stream(body: StreamRequestBody): Promise<Response> {
-    return this.#handleStream(body, false);
+    return this.#handleStream(body);
   }
 
   /** Handle a structured (JSON) streaming request. */
   structuredStream(body: StructuredStreamRequestBody): Promise<Response> {
-    return this.#handleStream(body, true);
+    return this.#handleStructuredStream(body);
   }
 
   /**

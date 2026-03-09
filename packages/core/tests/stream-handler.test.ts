@@ -21,6 +21,8 @@ function makeStreamResult(
   events: Array<{ type: string; [key: string]: unknown }> = [
     { type: "text-delta", text: "hello" },
   ],
+  partials: unknown[] = [],
+  finalObject: unknown = null,
 ) {
   const finish = {
     type: "finish",
@@ -34,9 +36,14 @@ function makeStreamResult(
       }
     })(),
     usage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
+    totalUsage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
     fullStream: (async function* () {
       for (const e of allEvents) yield e;
     })(),
+    partialOutputStream: (async function* () {
+      for (const p of partials) yield p;
+    })(),
+    output: Promise.resolve(finalObject),
   };
 }
 
@@ -213,6 +220,8 @@ describe("createStreamHandler", () => {
       await handler(makeRequest("/structured", { prompt: "hello" }));
 
       expect(Output.json).toHaveBeenCalled();
+      const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+      expect(call.output).toBeDefined();
     });
 
     it("uses Output.object with schema when provided", async () => {
@@ -226,6 +235,8 @@ describe("createStreamHandler", () => {
 
       expect(Output.object).toHaveBeenCalled();
       expect(jsonSchema).toHaveBeenCalled();
+      const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+      expect(call.output).toBeDefined();
     });
 
     it("passes system prompt to streamText", async () => {
@@ -317,6 +328,7 @@ describe("createStreamHandler", () => {
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
       expect(res3.status).toBe(200);
+      // All three endpoints use streamText (structured uses it with output option)
       expect(mockStreamText).toHaveBeenCalledTimes(3);
     });
 
@@ -342,7 +354,10 @@ describe("createStreamHandler", () => {
       );
 
       expect(mockStreamText).toHaveBeenCalledWith(
-        expect.objectContaining({ model: "model-smart" }),
+        expect.objectContaining({
+          model: "model-smart",
+          output: expect.anything(),
+        }),
       );
       expect(Output.object).toHaveBeenCalled();
     });
@@ -731,5 +746,85 @@ describe("StreamHandler.chat - toolset wiring", () => {
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({ system: "Be helpful" }),
     );
+  });
+});
+
+describe("StreamHandler SSE wire protocol - /structured endpoint", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("emits partial events for each partial object", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([], [{ name: "Al" }, { name: "Alice", age: 30 }], {
+        name: "Alice",
+        age: 30,
+      }),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/structured", { prompt: "hello" }));
+    const events = await readSse(res);
+
+    const partialEvents = events.filter((e) => e.event === "partial");
+    expect(partialEvents).toHaveLength(2);
+    expect(JSON.parse(partialEvents[0]!.data)).toEqual({ name: "Al" });
+    expect(JSON.parse(partialEvents[1]!.data)).toEqual({
+      name: "Alice",
+      age: 30,
+    });
+  });
+
+  it("emits a data event with the final object", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([], [], { name: "Alice", age: 30 }),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/structured", { prompt: "hello" }));
+    const events = await readSse(res);
+
+    const dataEvent = events.find((e) => e.event === "data");
+    expect(dataEvent).toBeDefined();
+    expect(JSON.parse(dataEvent!.data)).toEqual({ name: "Alice", age: 30 });
+  });
+
+  it("emits usage and done events after data", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([], [], { result: true }),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/structured", { prompt: "hello" }));
+    const events = await readSse(res);
+
+    const namedEvents = events.filter((e) => e.event);
+    const names = namedEvents.map((e) => e.event);
+    expect(names).toContain("data");
+    expect(names).toContain("usage");
+    expect(names[names.length - 1]).toBe("done");
+  });
+
+  it("emits no partial events when partialOutputStream is empty", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([], [], { x: 1 }),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/structured", { prompt: "hello" }));
+    const events = await readSse(res);
+
+    const partialEvents = events.filter((e) => e.event === "partial");
+    expect(partialEvents).toHaveLength(0);
+  });
+
+  it("passes output option to streamText", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    await handler(
+      makeRequest("/structured", {
+        prompt: "hello",
+        schema: { type: "object" },
+      }),
+    );
+
+    const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+    expect(call.output).toBeDefined();
+    expect(call.prompt).toBe("hello");
   });
 });

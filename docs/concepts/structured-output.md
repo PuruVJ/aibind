@@ -6,8 +6,8 @@ Stream typed JSON with real-time partial updates. The AI generates JSON matching
 
 1. Define a schema with Zod, Valibot, or any [Standard Schema](https://github.com/standard-schema/standard-schema) library
 2. aibind resolves the JSON schema and sends it to the server
-3. The AI streams JSON tokens
-4. aibind parses partial JSON and provides both `partial` (in-progress) and `data` (validated final result)
+3. The AI streams JSON tokens via AI SDK's `streamText` with structured output
+4. The server emits typed partial objects via `partialOutputStream` — you get `partial` (in-progress) and `data` (validated final result)
 
 ## Client API
 
@@ -176,7 +176,6 @@ function Analysis() {
 | --------- | ------------------------ | -------------------------------- |
 | `data`    | `T \| null`              | Validated final result           |
 | `partial` | `DeepPartial<T> \| null` | Partial data as it streams       |
-| `raw`     | `string`                 | Raw JSON string                  |
 | `loading` | `boolean`                | Whether streaming is in progress |
 | `done`    | `boolean`                | Whether streaming finished       |
 | `error`   | `Error \| null`          | Validation or network errors     |
