@@ -10,7 +10,9 @@ import {
 
 export { useStreamMirror, useChat, useRace, useCompletion } from "@aibind/react";
 export type {
+  Attachment,
   ChatMessage,
+  ChatSendOptions,
   StagedMessage,
   ChatOptions,
   DeepPartial,
