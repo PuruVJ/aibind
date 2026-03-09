@@ -461,7 +461,10 @@ describe("StreamHandler SSE wire protocol - /stream endpoint", () => {
     const events = await readSse(res);
     const ids = events.filter((e) => e.id).map((e) => parseInt(e.id));
     expect(ids).toEqual([0, 1, 2]);
-    const text = events.filter((e) => !e.event && e.id).map((e) => e.data).join("");
+    const text = events
+      .filter((e) => !e.event && e.id)
+      .map((e) => e.data)
+      .join("");
     expect(text).toBe("ABC");
     const namedEvents = events.filter((e) => e.event);
     expect(namedEvents.map((e) => e.event)).toEqual(["usage", "done"]);
@@ -577,12 +580,16 @@ describe("StreamHandler SSE wire protocol - /chat endpoint", () => {
     );
     const events = await readSse(res);
     const namedEvents = events.filter((e) => e.event);
-    expect(namedEvents.map((e) => e.event)).toEqual(["tool_call", "usage", "done"]);
+    expect(namedEvents.map((e) => e.event)).toEqual([
+      "tool_call",
+      "usage",
+      "done",
+    ]);
   });
 });
 
 describe("StreamHandler.chat - toolset wiring", () => {
-  it("passes tools from the default toolset to streamText when no toolset specified", async () => {
+  it("passes NO tools when no toolset specified in body (opt-in only)", async () => {
     const myTool = {
       description: "test",
       parameters: {} as any,
@@ -590,16 +597,16 @@ describe("StreamHandler.chat - toolset wiring", () => {
     };
     const handler = createStreamHandler({
       model: "test" as any,
-      toolsets: { default: { myTool } },
+      toolsets: { assistant: { myTool } },
     });
     await handler(
       makeRequest("/chat", {
         messages: [{ role: "user", content: "hi" }],
+        // no toolset key — tools must NOT activate
       }),
     );
-    expect(mockStreamText).toHaveBeenCalledWith(
-      expect.objectContaining({ tools: { myTool } }),
-    );
+    const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+    expect(call.tools).toBeUndefined();
   });
 
   it("passes tools from named toolset when toolset key specified in body", async () => {
@@ -652,11 +659,20 @@ describe("StreamHandler.chat - toolset wiring", () => {
   it("passes maxSteps to streamText when toolset is active and maxSteps provided", async () => {
     const handler = createStreamHandler({
       model: "test" as any,
-      toolsets: { default: { t: { description: "", parameters: {} as any, execute: async () => ({}) } } },
+      toolsets: {
+        assistant: {
+          t: {
+            description: "",
+            parameters: {} as any,
+            execute: async () => ({}),
+          },
+        },
+      },
     });
     await handler(
       makeRequest("/chat", {
         messages: [{ role: "user", content: "hi" }],
+        toolset: "assistant",
         maxSteps: 3,
       }),
     );
@@ -679,9 +695,7 @@ describe("StreamHandler.chat - toolset wiring", () => {
 
   it("returns 400 when messages array is empty", async () => {
     const handler = createStreamHandler({ model: "test" as any });
-    const res = await handler(
-      makeRequest("/chat", { messages: [] }),
-    );
+    const res = await handler(makeRequest("/chat", { messages: [] }));
     expect(res.status).toBe(400);
   });
 

@@ -42,35 +42,61 @@ export default defineConfig({
         ],
       },
       {
-        text: "Concepts",
+        text: "Streaming",
+        collapsed: false,
         items: [
-          // Core
           { text: "Streaming", link: "/concepts/streaming" },
           { text: "Structured Output", link: "/concepts/structured-output" },
-          { text: "Markdown Rendering", link: "/concepts/markdown" },
-          // Conversations
+          { text: "Durable Streams", link: "/concepts/durable-streams" },
+          { text: "Streaming Artifacts", link: "/concepts/artifacts" },
+          { text: "Streaming Diff", link: "/concepts/streaming-diff" },
+        ],
+      },
+      {
+        text: "Chat",
+        collapsed: false,
+        items: [
           { text: "Chat", link: "/concepts/chat" },
+          { text: "Tool Calling", link: "/concepts/tool-calling" },
+          { text: "Agents", link: "/concepts/agents" },
+          { text: "Inline Completions", link: "/concepts/completions" },
+          { text: "Attachments", link: "/concepts/attachments" },
+        ],
+      },
+      {
+        text: "Conversation Management",
+        collapsed: false,
+        items: [
           { text: "Conversation Store", link: "/concepts/conversation-store" },
           { text: "Chat History", link: "/concepts/chat-history" },
           { text: "Message Trees", link: "/concepts/message-trees" },
           { text: "Compacting", link: "/concepts/compacting" },
           { text: "Projects", link: "/concepts/projects" },
-          // Models
+        ],
+      },
+      {
+        text: "Models",
+        collapsed: false,
+        items: [
           { text: "Model Switching", link: "/concepts/model-switching" },
           { text: "Model Racing", link: "/concepts/model-racing" },
-          // Intelligence
-          { text: "Agents", link: "/concepts/agents" },
-          { text: "Inline Completions", link: "/concepts/completions" },
-          // Resilience & polish
-          { text: "Durable Streams", link: "/concepts/durable-streams" },
-          { text: "Streaming Artifacts", link: "/concepts/artifacts" },
-          { text: "Streaming Diff", link: "/concepts/streaming-diff" },
+        ],
+      },
+      {
+        text: "UI",
+        collapsed: false,
+        items: [
+          { text: "Markdown Rendering", link: "/concepts/markdown" },
           { text: "Cross-tab Sync", link: "/concepts/broadcast" },
-          // Production
+          { text: "Service Worker Mode", link: "/integrations/service-worker" },
+        ],
+      },
+      {
+        text: "Production",
+        collapsed: true,
+        items: [
           { text: "Token Tracking", link: "/concepts/token-tracking" },
           { text: "Prompt Caching", link: "/concepts/prompt-caching" },
-          // Zero-server
-          { text: "Service Worker Mode", link: "/integrations/service-worker" },
         ],
       },
       {

@@ -4,7 +4,16 @@ import type { LanguageModel } from "./types";
 export interface AgentConfig {
   model?: LanguageModel;
   system: string;
-  tools?: Record<string, import("ai").Tool>;
+  /**
+   * Named toolsets available to this agent.
+   * The client (or `toolset` default) selects which one to activate per request.
+   */
+  toolsets?: Record<string, Record<string, unknown>>;
+  /**
+   * Server-side default toolset. Used when the client sends no `toolset` key.
+   * Omitting this means no tools are active unless the client explicitly requests one.
+   */
+  toolset?: string;
   /** When to stop the tool loop. Use AI SDK helpers like `stepCountIs(5)`. */
   stopWhen?:
     | import("ai").StopCondition<any>
@@ -13,15 +22,17 @@ export interface AgentConfig {
 
 export interface RunOptions {
   messages?: Array<{ role: string; content: string }>;
+  /** Override the toolset for this call. Resolved against `config.toolsets`. */
+  toolset?: string;
 }
 
 /**
- * Server-side agent with tools and a system prompt.
+ * Server-side agent with toolsets and a system prompt.
  * Uses AI SDK's generateText/streamText with stopWhen for multi-step tool loops.
  */
 export class ServerAgent {
-  #config: Required<Pick<AgentConfig, "model" | "system">> &
-    Pick<AgentConfig, "tools" | "stopWhen">;
+  #config: Required<Pick<AgentConfig, "model" | "system" | "stopWhen">> &
+    Pick<AgentConfig, "toolsets" | "toolset">;
 
   constructor(config: AgentConfig) {
     if (!config.model) {
@@ -30,16 +41,24 @@ export class ServerAgent {
     this.#config = {
       model: config.model,
       system: config.system,
-      tools: config.tools,
+      toolsets: config.toolsets,
+      toolset: config.toolset,
       stopWhen: config.stopWhen ?? stepCountIs(10),
     };
   }
 
-  #baseOpts() {
+  #resolveTools(toolsetKey?: string): Record<string, unknown> | undefined {
+    const key = toolsetKey ?? this.#config.toolset ?? null;
+    if (key == null || !this.#config.toolsets) return undefined;
+    return this.#config.toolsets[key] ?? undefined;
+  }
+
+  #baseOpts(toolsetKey?: string) {
+    const tools = this.#resolveTools(toolsetKey);
     return {
       model: this.#config.model as import("ai").LanguageModel,
       system: this.#config.system,
-      tools: this.#config.tools,
+      ...(tools && { tools: tools as import("ai").ToolSet }),
       stopWhen: this.#config.stopWhen,
     };
   }
@@ -64,7 +83,7 @@ export class ServerAgent {
   ): import("ai").StreamTextResult<any, any> {
     const messages = this.#buildMessages(prompt, options?.messages);
     return streamText({
-      ...this.#baseOpts(),
+      ...this.#baseOpts(options?.toolset),
       ...(messages ? { messages } : { prompt }),
     });
   }
@@ -76,8 +95,34 @@ export class ServerAgent {
   ): Promise<import("ai").GenerateTextResult<any, any>> {
     const messages = this.#buildMessages(prompt, options?.messages);
     return generateText({
-      ...this.#baseOpts(),
+      ...this.#baseOpts(options?.toolset),
       ...(messages ? { messages } : { prompt }),
     });
+  }
+
+  /**
+   * Web Request → Response handler for use as a route export.
+   * Reads `{ messages, toolset? }` from the JSON body and streams a response.
+   *
+   * ```ts
+   * // SvelteKit
+   * export const POST = ({ request }) => agent.handle(request);
+   *
+   * // Next.js App Router
+   * export const POST = agent.handle.bind(agent);
+   * ```
+   */
+  async handle(request: Request): Promise<Response> {
+    const body = (await request.json()) as {
+      messages: Array<{ role: string; content: string }>;
+      toolset?: string;
+    };
+    const { messages, toolset } = body;
+    const lastMessage = messages[messages.length - 1];
+    const result = this.stream(lastMessage.content, {
+      messages: messages.slice(0, -1),
+      toolset,
+    });
+    return result.toTextStreamResponse();
   }
 }

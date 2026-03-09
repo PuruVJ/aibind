@@ -78,6 +78,7 @@ export class AgentController {
             role: m.role,
             content: m.content,
           })),
+          ...(this._opts.toolset != null && { toolset: this._opts.toolset }),
         }),
         signal: controller.signal,
       });
