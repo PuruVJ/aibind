@@ -1,6 +1,6 @@
 {
   "name": "@aibind/react",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "AI SDK bindings for React — hooks for streaming, structured output, and agents",
   "license": "MIT",
   "keywords": [
