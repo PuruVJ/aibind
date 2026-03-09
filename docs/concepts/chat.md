@@ -187,12 +187,28 @@ interface ChatOptions {
 
 ```ts
 interface ChatMessage {
-  id: string; // stable UUID, assigned on creation
-  role: "user" | "assistant";
-  content: string; // accumulates during streaming
+  id: string;           // stable UUID, assigned on creation
+  role: "user" | "assistant" | "tool";
+  content: string;      // accumulates during streaming
   optimistic?: boolean; // true until the request is confirmed
   attachments?: Attachment[]; // images/files attached to this message
+  toolName?: string;    // present on role: "tool" messages
+  toolArgs?: unknown;   // present on role: "tool" messages
 }
+```
+
+When `toolset` is active, `chat.messages` includes `role: "tool"` entries for each tool invocation, inserted before the final assistant response. These are UI-only — they are filtered out before the conversation history is sent to the server.
+
+```svelte
+{#each chat.messages as msg}
+  {#if msg.role === "tool"}
+    <div class="tool-call">Called {msg.toolName}</div>
+  {:else if msg.role === "assistant"}
+    <div class="assistant">{msg.content}</div>
+  {:else}
+    <div class="user">{msg.content}</div>
+  {/if}
+{/each}
 ```
 
 ### `ChatSendOptions` type

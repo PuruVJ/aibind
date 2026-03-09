@@ -124,25 +124,55 @@ function Chat() {
 
 ## Methods
 
-| Method                | Description                           |
-| --------------------- | ------------------------------------- |
-| `send(prompt, opts?)` | Start streaming with the given prompt |
-| `abort()`             | Cancel the current stream             |
-| `retry()`             | Re-send the last prompt               |
-| `stop()`              | Stop and save stream for later resume |
-| `resume()`            | Resume a stopped stream               |
+| Method                | Description                                             |
+| --------------------- | ------------------------------------------------------- |
+| `send(prompt, opts?)` | Start streaming with the given prompt                   |
+| `abort()`             | Cancel the current stream                               |
+| `retry()`             | Re-send the last prompt                                 |
+| `stop()`              | Stop and save stream for later resume                   |
+| `resume()`            | Resume a stopped stream                                 |
+| `speak()`             | Pipe stream to Web Speech API; returns cleanup function |
+| `broadcast(name)`     | Sync stream state to other tabs via BroadcastChannel    |
+| `destroy()`           | Remove event listeners (call when controller is done)   |
 
 ## Options
 
-| Option      | Type                     | Description                                                          |
-| ----------- | ------------------------ | -------------------------------------------------------------------- |
-| `model`     | `string`                 | Named model key (from `defineModels`)                                |
-| `system`    | `string`                 | System prompt                                                        |
-| `endpoint`  | `string`                 | Custom endpoint (fullstack packages default to `/__aibind__/stream`) |
-| `fetch`     | `typeof fetch`           | Custom fetch function                                                |
-| `onFinish`  | `(text: string) => void` | Called when stream completes                                         |
-| `onError`   | `(error: Error) => void` | Called on error                                                      |
-| `sessionId` | `string`                 | Enable server-side conversation history (see [Conversation Store])   |
+| Option        | Type                     | Description                                                          |
+| ------------- | ------------------------ | -------------------------------------------------------------------- |
+| `model`       | `string`                 | Named model key (from `defineModels`)                                |
+| `system`      | `string`                 | System prompt                                                        |
+| `endpoint`    | `string`                 | Custom endpoint (fullstack packages default to `/__aibind__/stream`) |
+| `fetch`       | `typeof fetch`           | Custom fetch function                                                |
+| `onFinish`    | `(text: string) => void` | Called when stream completes                                         |
+| `onError`     | `(error: Error) => void` | Called on error                                                      |
+| `sessionId`   | `string`                 | Enable server-side conversation history (see [Conversation Store])   |
+| `autoResume`  | `boolean`                | Auto-suspend on tab hide, auto-resume on tab focus (requires durable streams) |
+
+## `stream.speak()`
+
+Pipe the streaming response into the browser's [`SpeechSynthesis`](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) API. Audio playback starts after the first complete sentence — no waiting for the full response to finish. Returns a cleanup function.
+
+```ts
+const stream = new Stream({ endpoint: "..." });
+const stopSpeaking = stream.speak();
+
+stream.send("Explain the water cycle");
+// sentences play back as they arrive
+
+stopSpeaking(); // cancel at any time
+```
+
+No-op in non-browser environments. Zero dependencies — uses `window.speechSynthesis`.
+
+## Tab-switch Auto-resume
+
+Set `autoResume: true` to automatically suspend the stream when the tab becomes hidden and resume when it regains focus — backed by the existing durable stream infrastructure.
+
+```ts
+const stream = new Stream({ endpoint: "...", autoResume: true });
+```
+
+Requires `resumable: true` on the server handler. Call `stream.destroy()` when the controller is no longer needed to remove the `visibilitychange` listener.
 
 [Conversation Store]: /concepts/conversation-store
 
