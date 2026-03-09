@@ -72,6 +72,30 @@ export interface StreamHandlerConfig {
    * Requires `@ai-sdk/anthropic` as the model provider (not OpenRouter).
    */
   cacheSystemPrompt?: boolean;
+  /**
+   * Named toolsets available to the chat endpoint.
+   * Each toolset is a plain map of tool name → AI SDK `Tool`.
+   * Clients select a toolset via `useChat({ toolset: "name" })`.
+   * The `"default"` toolset is used when no toolset is specified by the client.
+   *
+   * @example
+   * ```ts
+   * import { tool } from "ai";
+   * import { z } from "zod";
+   *
+   * toolsets: {
+   *   default: {
+   *     searchDocs: tool({
+   *       description: "Search documentation",
+   *       parameters: z.object({ query: z.string() }),
+   *       execute: async ({ query }) => vectorSearch(query),
+   *     }),
+   *   },
+   *   billing: { getOrder, refund },
+   * }
+   * ```
+   */
+  toolsets?: Record<string, Record<string, import("ai").Tool>>;
 }
 
 // --- Typed request body interfaces ---
@@ -111,6 +135,13 @@ export interface ChatRequestBody {
   }>;
   system?: string;
   model?: string;
+  /** Name of the toolset to activate for this request. */
+  toolset?: string;
+  /**
+   * Maximum tool-call → result → LLM rounds per turn.
+   * Only applied when a toolset is active. Defaults to 5.
+   */
+  maxSteps?: number;
 }
 
 /**
@@ -264,43 +295,74 @@ export class StreamHandler {
     });
 
     if (!this.#store) {
-      return StreamHandler.#buildSSEResponse(result);
+      return StreamHandler.#buildSSEFromSource(
+        StreamHandler.#streamSource(result.fullStream),
+      );
     }
 
     const durableStream = await DurableStream.create({
       store: this.#store,
-      source: result.textStream,
+      source: StreamHandler.#streamSource(result.fullStream),
     });
     this.#activeStreams.set(durableStream.id, durableStream);
     return durableStream.response;
   }
 
   /**
-   * Build an SSE response that streams text chunks then emits a trailing
-   * `usage` event with token counts before the terminal `done` event.
+   * Convert an AI SDK fullStream into the uniform `{ event, data }` source format.
+   * Used by all durable streaming endpoints — both plain stream and chat.
+   *
+   * - `text-delta` → plain text chunk (`event: ""`)
+   * - `tool-call`  → named `tool_call` event (chat with toolsets)
+   * - `finish`     → named `usage` event (buffered in store, replays on resume)
    */
-  static #buildSSEResponse(result: ReturnType<typeof streamText>): Response {
+  static async *#streamSource(
+    fullStream: ReturnType<typeof streamText>["fullStream"],
+  ): AsyncGenerator<{ event: string; data: string }> {
+    for await (const event of fullStream) {
+      if (event.type === "text-delta") {
+        yield { event: "", data: event.text };
+      } else if (event.type === "tool-call") {
+        yield {
+          event: "tool_call",
+          data: JSON.stringify({ name: event.toolName, args: event.input }),
+        };
+      } else if (event.type === "finish") {
+        yield {
+          event: "usage",
+          data: JSON.stringify({
+            inputTokens: event.totalUsage.inputTokens ?? 0,
+            outputTokens: event.totalUsage.outputTokens ?? 0,
+          }),
+        };
+      }
+    }
+  }
+
+  /**
+   * Build a non-durable SSE Response from a `{ event, data }` source.
+   * Plain chunks (`event: ""`) are emitted as numbered `data:` lines.
+   * Named events are emitted as SSE events with no id.
+   * Appends a terminal `done` event after the source is exhausted.
+   */
+  static #buildSSEFromSource(
+    source: AsyncIterable<{ event: string; data: string }>,
+  ): Response {
     const encoder = new TextEncoder();
     let seq = 0;
 
     const readable = new ReadableStream({
       async start(ctrl) {
         try {
-          for await (const chunk of result.textStream) {
-            ctrl.enqueue(encoder.encode(SSE.format(seq++, chunk)));
+          for await (const chunk of source) {
+            if (chunk.event) {
+              ctrl.enqueue(
+                encoder.encode(SSE.formatEvent(chunk.event, chunk.data)),
+              );
+            } else {
+              ctrl.enqueue(encoder.encode(SSE.format(seq++, chunk.data)));
+            }
           }
-          const usage = await result.usage;
-          ctrl.enqueue(
-            encoder.encode(
-              SSE.formatEvent(
-                "usage",
-                JSON.stringify({
-                  inputTokens: usage.inputTokens ?? 0,
-                  outputTokens: usage.outputTokens ?? 0,
-                }),
-              ),
-            ),
-          );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           ctrl.enqueue(encoder.encode(SSE.formatEvent("error", msg)));
@@ -419,12 +481,18 @@ export class StreamHandler {
   }
 
   /**
-   * Stream a multi-turn chat response.
-   * Accepts a messages array and returns a plain text streaming response.
-   * The client-side `ChatController` consumes this with `consumeTextStream`.
+   * Stream a multi-turn chat response over SSE.
+   * Emits `tool_call` events when tools are invoked, then streams the final
+   * text as numbered data chunks, and finishes with a `done` event.
+   * The client-side `ChatController` consumes this with `SSE.consume()`.
    */
   async chat(body: ChatRequestBody): Promise<Response> {
-    const { messages, system, model: requestedModel } = body;
+    const {
+      messages,
+      system,
+      model: requestedModel,
+      toolset: toolsetKey,
+    } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return Response.json({ error: "messages is required" }, { status: 400 });
@@ -438,29 +506,31 @@ export class StreamHandler {
       return Response.json({ error: message }, { status: 400 });
     }
 
+    const tools =
+      toolsetKey != null
+        ? (this.#config.toolsets?.[toolsetKey] ?? null)
+        : (this.#config.toolsets?.["default"] ?? null);
+
     const result = streamText({
       model,
       system,
       messages: messages.map((m) => this.#toAiSdkMessage(m)),
+      ...(tools && { tools }),
+      ...(tools && body.maxSteps != null && { maxSteps: body.maxSteps }),
     });
 
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(ctrl) {
-        try {
-          for await (const chunk of result.textStream) {
-            ctrl.enqueue(encoder.encode(chunk));
-          }
-        } catch {
-          // Ignore — client will see a truncated stream
-        }
-        ctrl.close();
-      },
-    });
+    const source = StreamHandler.#streamSource(result.fullStream);
 
-    return new Response(readable, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+    if (this.#store) {
+      const durableStream = await DurableStream.create({
+        store: this.#store,
+        source,
+      });
+      this.#activeStreams.set(durableStream.id, durableStream);
+      return durableStream.response;
+    }
+
+    return StreamHandler.#buildSSEFromSource(source);
   }
 
   /** Stop a durable stream by ID (requires `resumable: true`). */

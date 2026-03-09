@@ -138,6 +138,10 @@ interface ChatOptions {
   fetch?: typeof fetch; // custom fetch implementation
   onFinish?: (messages: ChatMessage[]) => void;
   onError?: (error: Error) => void;
+  // Tool calling
+  toolset?: string; // named toolset registered on the server (defaults to "default")
+  maxSteps?: number; // max tool-call → result → LLM rounds per turn (default: 5)
+  onToolCall?: (name: string, args: unknown) => void; // fired when a tool is invoked
 }
 ```
 
@@ -218,6 +222,163 @@ export const POST = handler.handle;
 ```
 
 :::
+
+## Tool calling
+
+Register named tool collections on the server, then select them per chat instance on the client. The `"default"` toolset is used automatically when no `toolset` is specified.
+
+### 1. Register toolsets on the server
+
+```ts
+// SvelteKit: src/hooks.server.ts
+import { createStreamHandler } from "@aibind/sveltekit/server";
+import { tool } from "ai";
+import { z } from "zod";
+import { models } from "./models.server";
+
+export const handle = createStreamHandler({
+  models,
+  toolsets: {
+    default: {
+      get_weather: tool({
+        description: "Get current weather for a city",
+        parameters: z.object({ city: z.string() }),
+        execute: async ({ city }) => fetchWeather(city),
+      }),
+      get_time: tool({
+        description: "Get the current date and time",
+        parameters: z.object({}),
+        execute: async () => ({ time: new Date().toLocaleTimeString() }),
+      }),
+    },
+    billing: {
+      get_invoice: tool({
+        description: "Look up an invoice by ID",
+        parameters: z.object({ id: z.string() }),
+        execute: async ({ id }) => getInvoice(id),
+      }),
+    },
+  },
+});
+```
+
+Each toolset is a plain map of `toolName → AI SDK tool`. The `execute` function runs server-side — the client never sees your implementation.
+
+### 2. Enable tool calling on the client
+
+::: code-group
+
+```svelte [SvelteKit]
+<script lang="ts">
+  import { Chat } from "@aibind/sveltekit";
+
+  let toolStatus = $state("");
+
+  const chat = new Chat({
+    model: "smart",
+    toolset: "default",   // select a toolset (omit to use "default")
+    maxSteps: 5,          // max tool-call → result → LLM rounds (default 5)
+    onToolCall(name, args) {
+      toolStatus = `Calling ${name}…`;
+    },
+    onFinish() {
+      toolStatus = "";
+    },
+  });
+
+  let input = $state("");
+</script>
+
+{#if toolStatus}
+  <p class="tool-indicator">{toolStatus}</p>
+{/if}
+
+{#each chat.messages as msg (msg.id)}
+  <div class={msg.role}>{msg.content}</div>
+{/each}
+
+<form onsubmit={(e) => { e.preventDefault(); chat.send(input); input = ""; }}>
+  <input bind:value={input} placeholder="Ask something…" />
+  <button disabled={chat.loading}>Send</button>
+</form>
+```
+
+```tsx [Next.js / React]
+"use client";
+import { useChat } from "@aibind/nextjs";
+import { useState } from "react";
+
+export default function ChatPage() {
+  const [toolStatus, setToolStatus] = useState("");
+
+  const { messages, send, loading } = useChat({
+    model: "smart",
+    toolset: "default",
+    maxSteps: 5,
+    onToolCall(name) {
+      setToolStatus(`Calling ${name}…`);
+    },
+    onFinish() {
+      setToolStatus("");
+    },
+  });
+
+  const [input, setInput] = useState("");
+
+  return (
+    <>
+      {toolStatus && <p className="tool-indicator">{toolStatus}</p>}
+      {messages.map((msg) => (
+        <div key={msg.id} className={msg.role}>{msg.content}</div>
+      ))}
+      <form onSubmit={(e) => { e.preventDefault(); send(input); setInput(""); }}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} />
+        <button disabled={loading}>Send</button>
+      </form>
+    </>
+  );
+}
+```
+
+```vue [Nuxt / Vue]
+<script setup lang="ts">
+import { useChat } from "@aibind/nuxt";
+import { ref } from "vue";
+
+const toolStatus = ref("");
+
+const { messages, send, loading } = useChat({
+  model: "smart",
+  toolset: "default",
+  maxSteps: 5,
+  onToolCall(name) { toolStatus.value = `Calling ${name}…`; },
+  onFinish() { toolStatus.value = ""; },
+});
+
+const input = ref("");
+</script>
+
+<template>
+  <p v-if="toolStatus" class="tool-indicator">{{ toolStatus }}</p>
+  <div v-for="msg in messages" :key="msg.id" :class="msg.role">{{ msg.content }}</div>
+  <form @submit.prevent="send(input); input = ''">
+    <input v-model="input" />
+    <button :disabled="loading">Send</button>
+  </form>
+</template>
+```
+
+:::
+
+### How it works
+
+1. The client sends `{ toolset: "default", maxSteps: 5 }` alongside the message history.
+2. The server selects the matching toolset and calls `streamText` with those tools.
+3. When the model invokes a tool, the server executes it and sends a `tool_call` SSE event before streaming the final text response.
+4. `onToolCall` fires on the client for each invocation — use it for "Searching…" or progress indicators.
+5. After all tool rounds complete, the text response streams normally.
+
+`maxSteps` limits the number of tool-call → result → LLM cycles per turn to prevent runaway loops. It only applies when a toolset is active.
 
 ## Edit and regenerate
 

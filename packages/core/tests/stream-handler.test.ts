@@ -1,12 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("ai", () => ({
-  streamText: vi.fn(() => ({
-    textStream: (async function* () {
-      yield "hello";
-    })(),
-    usage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
-  })),
+  streamText: vi.fn(),
   Output: {
     json: vi.fn(() => "json-output"),
     object: vi.fn((opts: unknown) => ({ type: "object", ...(opts as object) })),
@@ -16,10 +11,44 @@ vi.mock("ai", () => ({
 
 import { createStreamHandler } from "../src/stream-handler";
 import { streamText, Output, jsonSchema } from "ai";
+import { SSE } from "../src/sse";
 
 const mockStreamText = vi.mocked(streamText);
 
 // --- Helpers ---
+
+function makeStreamResult(
+  events: Array<{ type: string; [key: string]: unknown }> = [
+    { type: "text-delta", text: "hello" },
+  ],
+) {
+  const finish = {
+    type: "finish",
+    totalUsage: { inputTokens: 10, outputTokens: 5 },
+  };
+  const allEvents = [...events, finish];
+  return {
+    textStream: (async function* () {
+      for (const e of events) {
+        if (e.type === "text-delta") yield e.text as string;
+      }
+    })(),
+    usage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
+    fullStream: (async function* () {
+      for (const e of allEvents) yield e;
+    })(),
+  };
+}
+
+async function readSse(
+  response: Response,
+): Promise<Array<{ event: string; data: string; id: string }>> {
+  const msgs: Array<{ event: string; data: string; id: string }> = [];
+  for await (const msg of SSE.consume(response)) {
+    msgs.push(msg);
+  }
+  return msgs;
+}
 
 function makeRequest(
   pathname: string,
@@ -49,12 +78,9 @@ function makeGetRequest(pathname: string, prefix = "/__aibind__"): Request {
 describe("createStreamHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStreamText.mockReturnValue({
-      textStream: (async function* () {
-        yield "hello";
-      })(),
-      usage: Promise.resolve({ inputTokens: 10, outputTokens: 5 }),
-    } as never);
+    mockStreamText.mockImplementation(() =>
+      makeStreamResult([{ type: "text-delta", text: "hello" }]),
+    );
   });
 
   // --- Route handling ---
@@ -386,5 +412,310 @@ describe("createStreamHandler", () => {
       const res = await handler(makeRequest("/stream", { prompt: "\t \n" }));
       expect(res.status).toBe(400);
     });
+  });
+});
+
+describe("StreamHandler SSE wire protocol - /stream endpoint", () => {
+  it("text-delta events emit numbered data chunks", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([
+        { type: "text-delta", text: "He" },
+        { type: "text-delta", text: "llo" },
+      ]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/stream", { prompt: "hi" }));
+    const events = await readSse(res);
+    const textChunks = events.filter((e) => e.id && !e.event);
+    expect(textChunks.map((e) => e.data).join("")).toBe("Hello");
+  });
+
+  it("finish event emits usage SSE event", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/stream", { prompt: "hi" }));
+    const events = await readSse(res);
+    const usageEvent = events.find((e) => e.event === "usage");
+    expect(usageEvent).toBeDefined();
+    const usage = JSON.parse(usageEvent!.data);
+    expect(usage.inputTokens).toBe(10);
+    expect(usage.outputTokens).toBe(5);
+  });
+
+  it("stream always ends with a done event", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/stream", { prompt: "hi" }));
+    const events = await readSse(res);
+    expect(events.at(-1)?.event).toBe("done");
+  });
+
+  it("all text before usage and done is preserved in order", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([
+        { type: "text-delta", text: "A" },
+        { type: "text-delta", text: "B" },
+        { type: "text-delta", text: "C" },
+      ]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/stream", { prompt: "hi" }));
+    const events = await readSse(res);
+    const ids = events.filter((e) => e.id).map((e) => parseInt(e.id));
+    expect(ids).toEqual([0, 1, 2]);
+    const text = events.filter((e) => !e.event && e.id).map((e) => e.data).join("");
+    expect(text).toBe("ABC");
+    const namedEvents = events.filter((e) => e.event);
+    expect(namedEvents.map((e) => e.event)).toEqual(["usage", "done"]);
+  });
+});
+
+describe("StreamHandler SSE wire protocol - /chat endpoint", () => {
+  it("text-delta events emit numbered data chunks", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([
+        { type: "text-delta", text: "Hi" },
+        { type: "text-delta", text: " there" },
+      ]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hello" }],
+      }),
+    );
+    const events = await readSse(res);
+    const textChunks = events.filter((e) => !e.event && e.id);
+    expect(textChunks.map((e) => e.data).join("")).toBe("Hi there");
+  });
+
+  it("tool-call event emits SSE event named tool_call with correct JSON", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([
+        {
+          type: "tool-call",
+          toolName: "search",
+          input: { query: "cats" },
+        },
+        { type: "text-delta", text: "Found it" },
+      ]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "find cats" }],
+      }),
+    );
+    const events = await readSse(res);
+    const toolCallEvent = events.find((e) => e.event === "tool_call");
+    expect(toolCallEvent).toBeDefined();
+    const payload = JSON.parse(toolCallEvent!.data);
+    expect(payload.name).toBe("search");
+    expect(payload.args).toEqual({ query: "cats" });
+  });
+
+  it("finish event emits SSE usage event with token counts", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([{ type: "text-delta", text: "ok" }]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    const events = await readSse(res);
+    const usageEvent = events.find((e) => e.event === "usage");
+    expect(usageEvent).toBeDefined();
+    const usage = JSON.parse(usageEvent!.data);
+    expect(usage.inputTokens).toBe(10);
+    expect(usage.outputTokens).toBe(5);
+  });
+
+  it("chat stream ends with done event", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    const events = await readSse(res);
+    expect(events.at(-1)?.event).toBe("done");
+  });
+
+  it("multiple tool-calls all emitted as tool_call events in order", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([
+        { type: "tool-call", toolName: "a", input: {} },
+        { type: "tool-call", toolName: "b", input: { x: 1 } },
+        { type: "text-delta", text: "final" },
+      ]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    const events = await readSse(res);
+    const toolCalls = events.filter((e) => e.event === "tool_call");
+    expect(toolCalls).toHaveLength(2);
+    expect(JSON.parse(toolCalls[0]!.data).name).toBe("a");
+    expect(JSON.parse(toolCalls[1]!.data).name).toBe("b");
+  });
+
+  it("event order is: tool_call(s) → text chunks → usage → done", async () => {
+    mockStreamText.mockImplementationOnce(() =>
+      makeStreamResult([
+        { type: "tool-call", toolName: "search", input: {} },
+        { type: "text-delta", text: "result" },
+      ]),
+    );
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    const events = await readSse(res);
+    const namedEvents = events.filter((e) => e.event);
+    expect(namedEvents.map((e) => e.event)).toEqual(["tool_call", "usage", "done"]);
+  });
+});
+
+describe("StreamHandler.chat - toolset wiring", () => {
+  it("passes tools from the default toolset to streamText when no toolset specified", async () => {
+    const myTool = {
+      description: "test",
+      parameters: {} as any,
+      execute: async () => ({}),
+    };
+    const handler = createStreamHandler({
+      model: "test" as any,
+      toolsets: { default: { myTool } },
+    });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({ tools: { myTool } }),
+    );
+  });
+
+  it("passes tools from named toolset when toolset key specified in body", async () => {
+    const searchTool = {
+      description: "search",
+      parameters: {} as any,
+      execute: async () => ({}),
+    };
+    const handler = createStreamHandler({
+      model: "test" as any,
+      toolsets: { search: { searchTool }, billing: {} },
+    });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+        toolset: "search",
+      }),
+    );
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({ tools: { searchTool } }),
+    );
+  });
+
+  it("passes no tools when toolset key does not exist in config", async () => {
+    const handler = createStreamHandler({
+      model: "test" as any,
+      toolsets: { default: {} },
+    });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+        toolset: "nonexistent",
+      }),
+    );
+    const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+    expect(call.tools).toBeUndefined();
+  });
+
+  it("passes no tools when no toolsets configured", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+    expect(call.tools).toBeUndefined();
+  });
+
+  it("passes maxSteps to streamText when toolset is active and maxSteps provided", async () => {
+    const handler = createStreamHandler({
+      model: "test" as any,
+      toolsets: { default: { t: { description: "", parameters: {} as any, execute: async () => ({}) } } },
+    });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+        maxSteps: 3,
+      }),
+    );
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({ maxSteps: 3 }),
+    );
+  });
+
+  it("does NOT pass maxSteps when no toolset is active (even if maxSteps provided)", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+        maxSteps: 10,
+      }),
+    );
+    const call = mockStreamText.mock.calls[0][0] as Record<string, unknown>;
+    expect(call.maxSteps).toBeUndefined();
+  });
+
+  it("returns 400 when messages array is empty", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(
+      makeRequest("/chat", { messages: [] }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when messages is missing", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    const res = await handler(makeRequest("/chat", {}));
+    expect(res.status).toBe(400);
+  });
+
+  it("resolves model from request body for chat", async () => {
+    const handler = createStreamHandler({
+      models: { fast: "model-fast" as any, smart: "model-smart" as any },
+    });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+        model: "smart",
+      }),
+    );
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "model-smart" }),
+    );
+  });
+
+  it("passes system prompt to streamText for chat", async () => {
+    const handler = createStreamHandler({ model: "test" as any });
+    await handler(
+      makeRequest("/chat", {
+        messages: [{ role: "user", content: "hi" }],
+        system: "Be helpful",
+      }),
+    );
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({ system: "Be helpful" }),
+    );
   });
 });

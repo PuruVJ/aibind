@@ -1,13 +1,19 @@
 import type { StreamStore } from "./stream-store";
 import { SSE } from "./sse";
 
+// Storage encoding: "${event}\x01${data}"
+// Plain text chunks use event = "" → stored as "\x01{text}"
+// Named events use event = "tool_call" etc → stored as "tool_call\x01{data}"
+const CHUNK_SEP = "\x01";
+
 export interface DurableStreamOptions {
   store: StreamStore;
   /**
-   * An async iterable of string chunks (e.g. from AI SDK's `streamText().textStream`).
-   * The durable stream will pipe these chunks through the store.
+   * Source chunks to pipe through the store.
+   * - `event: ""` — plain text chunk streamed as SSE data.
+   * - `event: "tool_call"` etc — named SSE event, buffered and replayed on resume.
    */
-  source: AsyncIterable<string>;
+  source: AsyncIterable<{ event: string; data: string }>;
   /**
    * Optional AbortSignal. When the stop endpoint fires, this signal is aborted
    * to terminate the LLM generation.
@@ -24,19 +30,20 @@ export interface ResumeOptions {
 /**
  * A resumable server-sent event stream backed by a {@link StreamStore}.
  *
- * Pipes an async iterable source (typically `streamText().textStream`) through
- * a store, and returns an SSE Response that delivers chunks to the client.
+ * Pipes an async iterable source through a store and returns an SSE Response.
  * The store buffers everything so clients can reconnect and resume from where
  * they left off.
+ *
+ * Each source chunk is `{ event, data }`. Plain text chunks use `event: ""`.
+ * Named events (e.g. `tool_call`) use their event name — both are stored and
+ * replayed correctly on reconnect.
  *
  * @example
  * ```ts
  * const stream = await DurableStream.create({
  *   store,
- *   source: streamText({ model, prompt }).textStream,
+ *   source: textSource(streamText({ model, prompt }).textStream),
  * });
- *
- * // Send the SSE response to the client
  * return stream.response;
  *
  * // Later, to stop generation:
@@ -82,7 +89,6 @@ export class DurableStream {
 
     await store.create(streamId);
 
-    // Start piping source → store in the background
     DurableStream.#pipeSource(source, store, streamId, signal).catch(() => {
       // Errors are captured via store.fail() inside #pipeSource
     });
@@ -109,11 +115,20 @@ export class DurableStream {
     this.controller.abort();
   }
 
-  // ─── Private Helpers ────────────────────────────────────────
+  // --- Private Helpers ---
 
-  /** Pipe source chunks into the store. Marks complete/stopped/failed on exit. */
+  static #encode(event: string, data: string): string {
+    return `${event}${CHUNK_SEP}${data}`;
+  }
+
+  static #decode(stored: string): { event: string; data: string } {
+    const sep = stored.indexOf(CHUNK_SEP);
+    if (sep === -1) return { event: "", data: stored }; // legacy plain-text fallback
+    return { event: stored.slice(0, sep), data: stored.slice(sep + 1) };
+  }
+
   static async #pipeSource(
-    source: AsyncIterable<string>,
+    source: AsyncIterable<{ event: string; data: string }>,
     store: StreamStore,
     streamId: string,
     signal: AbortSignal,
@@ -124,9 +139,8 @@ export class DurableStream {
           await store.stop(streamId);
           return;
         }
-        await store.append(streamId, chunk);
+        await store.append(streamId, DurableStream.#encode(chunk.event, chunk.data));
       }
-      // Check if stopped during final iteration
       const status = await store.getStatus(streamId);
       if (status?.state === "active") {
         await store.complete(streamId);
@@ -141,7 +155,6 @@ export class DurableStream {
     }
   }
 
-  /** Build an SSE Response that streams chunks from the store. */
   static #buildSSEResponse(
     store: StreamStore,
     streamId: string,
@@ -160,7 +173,12 @@ export class DurableStream {
 
         try {
           for await (const chunk of store.readFrom(streamId, afterSeq)) {
-            ctrl.enqueue(encoder.encode(SSE.format(chunk.seq, chunk.data)));
+            const { event, data } = DurableStream.#decode(chunk.data);
+            if (event) {
+              ctrl.enqueue(encoder.encode(SSE.formatEvent(event, data)));
+            } else {
+              ctrl.enqueue(encoder.encode(SSE.format(chunk.seq, data)));
+            }
           }
 
           const status = await store.getStatus(streamId);
