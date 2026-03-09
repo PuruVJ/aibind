@@ -14,6 +14,7 @@ export { defineModels, StreamMirror, Completion } from "@aibind/svelte";
 export type {
   BroadcastMessage,
   ChatMessage,
+  StagedMessage,
   ChatOptions,
   RaceOptions,
   CompletionOptions,

@@ -11,6 +11,7 @@ import {
 export { useStreamMirror, useChat, useRace, useCompletion } from "@aibind/react";
 export type {
   ChatMessage,
+  StagedMessage,
   ChatOptions,
   DeepPartial,
   LanguageModel,

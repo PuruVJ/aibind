@@ -9,6 +9,7 @@ import {
 export { defineModels, useStreamMirror, useChat, useRace, useCompletion } from "@aibind/vue";
 export type {
   ChatMessage,
+  StagedMessage,
   ChatOptions,
   DeepPartial,
   LanguageModel,

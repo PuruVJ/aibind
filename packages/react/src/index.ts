@@ -54,6 +54,8 @@ export type {
   DiffChunk,
   DiffFn,
   RaceStrategy,
+  ChatMessage,
+  StagedMessage,
 } from "@aibind/core";
 export { defaultDiff } from "@aibind/core";
 

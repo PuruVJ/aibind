@@ -10,6 +10,7 @@ import {
 export { defineModels, useStreamMirror, useChat, useRace, useCompletion } from "@aibind/solid";
 export type {
   ChatMessage,
+  StagedMessage,
   ChatOptions,
   DeepPartial,
   LanguageModel,
