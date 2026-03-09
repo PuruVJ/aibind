@@ -5,7 +5,7 @@
   let prompt = $state("");
 
   const chat = new Chat({
-    toolset: "default",
+    toolset: "assistant",
     maxSteps: 3,
     onToolCall: (name: string) => {
       _activeToolCall = name;

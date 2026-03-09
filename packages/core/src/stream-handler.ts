@@ -76,7 +76,7 @@ export interface StreamHandlerConfig {
    * Named toolsets available to the chat endpoint.
    * Each toolset is a plain map of tool name → AI SDK `Tool`.
    * Clients select a toolset via `useChat({ toolset: "name" })`.
-   * The `"default"` toolset is used when no toolset is specified by the client.
+   * Toolsets are opt-in — the client must explicitly select one via `toolset` in `ChatOptions`.
    *
    * @example
    * ```ts
@@ -95,7 +95,7 @@ export interface StreamHandlerConfig {
    * }
    * ```
    */
-  toolsets?: Record<string, Record<string, import("ai").Tool>>;
+  toolsets?: Record<string, Record<string, unknown>>;
 }
 
 // --- Typed request body interfaces ---
@@ -507,15 +507,13 @@ export class StreamHandler {
     }
 
     const tools =
-      toolsetKey != null
-        ? (this.#config.toolsets?.[toolsetKey] ?? null)
-        : (this.#config.toolsets?.["default"] ?? null);
+      toolsetKey != null ? (this.#config.toolsets?.[toolsetKey] ?? null) : null;
 
     const result = streamText({
       model,
       system,
       messages: messages.map((m) => this.#toAiSdkMessage(m)),
-      ...(tools && { tools }),
+      ...(tools && { tools: tools as import("ai").ToolSet }),
       ...(tools && body.maxSteps != null && { maxSteps: body.maxSteps }),
     });
 

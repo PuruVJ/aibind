@@ -631,76 +631,95 @@ describe("ChatController SSE named events", () => {
   }
 
   it("usage event is not appended to assistant message content", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "id: 0\ndata: Hello\n\n",
-        'event: usage\ndata: {"inputTokens":10,"outputTokens":5}\n\n',
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "id: 0\ndata: Hello\n\n",
+          'event: usage\ndata: {"inputTokens":10,"outputTokens":5}\n\n',
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");
     await flushPromises();
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("Hello");
     expect(assistant.content).not.toContain("inputTokens");
   });
 
   it("stream-id event is not appended to assistant message content", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "event: stream-id\ndata: abc-123\n\n",
-        "id: 0\ndata: World\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "event: stream-id\ndata: abc-123\n\n",
+          "id: 0\ndata: World\n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");
     await flushPromises();
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("World");
     expect(assistant.content).not.toContain("abc-123");
   });
 
   it("stopped event is not appended to assistant message content", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "id: 0\ndata: Partial\n\n",
-        "event: stopped\ndata: \n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "id: 0\ndata: Partial\n\n",
+          "event: stopped\ndata: \n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");
     await flushPromises();
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("Partial");
   });
 
   it("tool_call event fires onToolCall with name and args, not appended to content", async () => {
     const onToolCall = vi.fn();
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "id: 0\ndata: Searching\n\n",
-        'event: tool_call\ndata: {"name":"search","args":{"q":"cats"}}\n\n',
-        "id: 1\ndata: ...\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "id: 0\ndata: Searching\n\n",
+          'event: tool_call\ndata: {"name":"search","args":{"q":"cats"}}\n\n',
+          "id: 1\ndata: ...\n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks, onMessages } = makeCallbacks();
-    const ctrl = new ChatController(makeOpts(mockFetch, { onToolCall }), callbacks);
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { onToolCall }),
+      callbacks,
+    );
     ctrl.send("hi");
     await flushPromises();
     expect(onToolCall).toHaveBeenCalledOnce();
     expect(onToolCall).toHaveBeenCalledWith("search", { q: "cats" });
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("Searching...");
     expect(assistant.content).not.toContain("tool_call");
     expect(assistant.content).not.toContain("search");
@@ -708,17 +727,22 @@ describe("ChatController SSE named events", () => {
 
   it("multiple sequential tool_call events all fire onToolCall", async () => {
     const onToolCall = vi.fn();
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        'event: tool_call\ndata: {"name":"a","args":{}}\n\n',
-        'event: tool_call\ndata: {"name":"b","args":{"x":1}}\n\n',
-        'event: tool_call\ndata: {"name":"c","args":{}}\n\n',
-        "id: 0\ndata: Done\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          'event: tool_call\ndata: {"name":"a","args":{}}\n\n',
+          'event: tool_call\ndata: {"name":"b","args":{"x":1}}\n\n',
+          'event: tool_call\ndata: {"name":"c","args":{}}\n\n',
+          "id: 0\ndata: Done\n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks } = makeCallbacks();
-    const ctrl = new ChatController(makeOpts(mockFetch, { onToolCall }), callbacks);
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { onToolCall }),
+      callbacks,
+    );
     ctrl.send("hi");
     await flushPromises();
     expect(onToolCall).toHaveBeenCalledTimes(3);
@@ -728,13 +752,15 @@ describe("ChatController SSE named events", () => {
   });
 
   it("tool_call with no onToolCall option is silently ignored", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        'event: tool_call\ndata: {"name":"search","args":{}}\n\n',
-        "id: 0\ndata: ok\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          'event: tool_call\ndata: {"name":"search","args":{}}\n\n',
+          "id: 0\ndata: ok\n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks); // no onToolCall
     expect(() => {
@@ -745,32 +771,41 @@ describe("ChatController SSE named events", () => {
 
   it("malformed tool_call JSON does not throw and does not append to content", async () => {
     const onToolCall = vi.fn();
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "event: tool_call\ndata: NOT_VALID_JSON\n\n",
-        "id: 0\ndata: hi\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "event: tool_call\ndata: NOT_VALID_JSON\n\n",
+          "id: 0\ndata: hi\n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks, onMessages, onError } = makeCallbacks();
-    const ctrl = new ChatController(makeOpts(mockFetch, { onToolCall }), callbacks);
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { onToolCall }),
+      callbacks,
+    );
     ctrl.send("hi");
     await flushPromises();
     expect(onToolCall).not.toHaveBeenCalled();
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("hi");
     // No error thrown
     expect(onError.mock.calls.find((c) => c[0] !== null)).toBeUndefined();
   });
 
   it("error event in SSE stream fires onError", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "id: 0\ndata: partial\n\n",
-        "event: error\ndata: Model overloaded\n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "id: 0\ndata: partial\n\n",
+          "event: error\ndata: Model overloaded\n\n",
+        ),
+      );
     const { callbacks, onError, onStatus } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");
@@ -783,50 +818,57 @@ describe("ChatController SSE named events", () => {
   });
 
   it("done event stops processing — subsequent chunks are ignored", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "id: 0\ndata: first\n\n",
-        "event: done\ndata: \n\n",
-        "id: 1\ndata: after-done\n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "id: 0\ndata: first\n\n",
+          "event: done\ndata: \n\n",
+          "id: 1\ndata: after-done\n\n",
+        ),
+      );
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");
     await flushPromises();
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("first");
     expect(assistant.content).not.toContain("after-done");
   });
 
   it("all named events before any text chunk do not corrupt the first-chunk confirmation", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "event: stream-id\ndata: xyz\n\n",
-        'event: tool_call\ndata: {"name":"t","args":{}}\n\n',
-        "event: usage\ndata: {}\n\n",
-        "id: 0\ndata: real text\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf(
+          "event: stream-id\ndata: xyz\n\n",
+          'event: tool_call\ndata: {"name":"t","args":{}}\n\n',
+          "event: usage\ndata: {}\n\n",
+          "id: 0\ndata: real text\n\n",
+          "event: done\ndata: \n\n",
+        ),
+      );
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");
     await flushPromises();
     const last = onMessages.mock.calls.at(-1)![0];
-    const assistant = last.find((m: { role: string }) => m.role === "assistant");
+    const assistant = last.find(
+      (m: { role: string }) => m.role === "assistant",
+    );
     expect(assistant.content).toBe("real text");
     expect(assistant.optimistic).toBeFalsy();
   });
 
   it("stream with only named events and no text chunks confirms optimistic messages", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      sseOf(
-        "event: usage\ndata: {}\n\n",
-        "event: done\ndata: \n\n",
-      ),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        sseOf("event: usage\ndata: {}\n\n", "event: done\ndata: \n\n"),
+      );
     const { callbacks, onMessages } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
     ctrl.send("hi");

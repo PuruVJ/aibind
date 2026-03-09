@@ -104,6 +104,11 @@ export interface AgentOptions {
   endpoint: string;
   /** Custom fetch implementation. Defaults to globalThis.fetch. */
   fetch?: typeof globalThis.fetch;
+  /**
+   * Named toolset to activate. Must match a key in the server agent's `toolsets`.
+   * Omitting this uses the server's configured default (if any), or no tools.
+   */
+  toolset?: string;
   onMessage?: (message: AgentMessage) => void;
   onError?: (error: Error) => void;
 }
@@ -227,7 +232,7 @@ export interface BaseChatOptions {
   /**
    * Named toolset to activate for this chat instance.
    * Must match a key registered in `createStreamHandler({ toolsets: { ... } })`.
-   * Falls back to the `"default"` toolset if omitted.
+   * Omitting this option disables tool calling entirely for this instance.
    */
   toolset?: string;
   /**
