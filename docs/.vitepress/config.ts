@@ -59,6 +59,7 @@ export default defineConfig({
           { text: "Chat", link: "/concepts/chat" },
           { text: "Tool Calling", link: "/concepts/tool-calling" },
           { text: "Agents", link: "/concepts/agents" },
+          { text: "Graph Agents", link: "/concepts/graph-agents" },
           { text: "Inline Completions", link: "/concepts/completions" },
           { text: "Attachments", link: "/concepts/attachments" },
         ],

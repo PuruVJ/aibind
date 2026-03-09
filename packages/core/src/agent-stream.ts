@@ -35,6 +35,10 @@ export type AgentStreamEvent =
       args: unknown;
     }
   | { type: "step-finish"; stepNumber: number }
+  /** Emitted by graph agents when execution enters a named node. */
+  | { type: "node-enter"; node: string }
+  /** Emitted by graph agents when execution exits a named node. */
+  | { type: "node-exit"; node: string }
   | { type: "error"; error: string }
   | { type: "done" };
 
@@ -68,7 +72,7 @@ export class AgentStream {
       async start(controller) {
         try {
           for await (const part of fullStream) {
-            const event = AgentStream.#mapStreamPart(part);
+            const event = AgentStream.mapPart(part);
             if (event) {
               controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
             }
@@ -149,10 +153,39 @@ export class AgentStream {
     }
   }
 
-  // ─── Private Helpers ────────────────────────────────────────
+  /**
+   * Wrap a pre-built `ReadableStream<Uint8Array>` as an NDJSON `Response`.
+   * Used by `ServerAgent` graph execution, which builds the stream manually
+   * and interleaves node-enter/exit events between AI SDK fullStream events.
+   */
+  static createGraphResponse(stream: ReadableStream<Uint8Array>): Response {
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  }
 
-  /** Map an AI SDK TextStreamPart to our AgentStreamEvent. Returns null for events we skip. */
-  static #mapStreamPart(
+  /**
+   * Encode a single `AgentStreamEvent` as a UTF-8 NDJSON line.
+   * Used by `ServerAgent` to manually enqueue graph lifecycle events.
+   */
+  static encodeEvent(event: AgentStreamEvent): Uint8Array {
+    return new TextEncoder().encode(JSON.stringify(event) + "\n");
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────
+
+  /**
+   * Map a single AI SDK `TextStreamPart` to an `AgentStreamEvent`.
+   * Returns `null` for event types that are not surfaced to clients.
+   *
+   * Exposed as a public static so graph runners (e.g. `ServerAgent#runGraph`)
+   * can reuse the mapping logic when manually piping individual stream parts.
+   */
+  static mapPart(
     part: Record<string, unknown>,
   ): AgentStreamEvent | null {
     switch (part.type) {

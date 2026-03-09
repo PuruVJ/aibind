@@ -35,6 +35,8 @@ export { defaultDiff } from "./diff";
 
 export { ServerAgent } from "./server-agent";
 export type { AgentConfig, RunOptions } from "./server-agent";
+export { AgentGraph } from "./agent-graph";
+export type { AgentNodeConfig, RouterFn } from "./agent-graph";
 export { consumeTextStream } from "./stream-utils";
 export { MessageTree } from "./message-tree";
 export type {

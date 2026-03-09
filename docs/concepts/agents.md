@@ -264,3 +264,7 @@ const agent = new ServerAgent({
 ```
 
 The client receives a `pendingApproval` event and must call `approve()` or `deny()` to continue.
+
+## Next steps
+
+For multi-stage pipelines with named steps, conditional routing, and per-node system prompts, see [Graph Agents](/concepts/graph-agents).

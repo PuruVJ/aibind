@@ -1,5 +1,7 @@
 import { generateText, streamText, stepCountIs, jsonSchema } from "ai";
 import type { LanguageModel } from "./types";
+import { AgentGraph } from "./agent-graph";
+import { AgentStream } from "./agent-stream";
 
 export interface AgentConfig {
   model?: LanguageModel;
@@ -18,6 +20,26 @@ export interface AgentConfig {
   stopWhen?:
     | import("ai").StopCondition<any>
     | Array<import("ai").StopCondition<any>>;
+  /**
+   * LangGraph-style state machine graph.
+   * When set, `handle()` executes each node in sequence, routing between them
+   * via edges and conditional routers. Overrides `toolsets` / `stopWhen` for
+   * the handle() path (run() and stream() are unaffected).
+   *
+   * @example
+   * ```ts
+   * const graph = new AgentGraph()
+   *   .addNode("search",    { tools: { web_search }, system: "Search the web." })
+   *   .addNode("summarize", { system: "Summarize findings." })
+   *   .addEdge("__start__", "search")
+   *   .addConditionalEdges("search", (ctx) => ctx.hasResults ? "summarize" : "__end__")
+   *   .addEdge("summarize", "__end__");
+   *
+   * const agent = new ServerAgent({ model, system: "Research assistant.", graph });
+   * export const POST = ({ request }) => agent.handle(request);
+   * ```
+   */
+  graph?: AgentGraph;
 }
 
 export interface RunOptions {
@@ -32,7 +54,7 @@ export interface RunOptions {
  */
 export class ServerAgent {
   #config: Required<Pick<AgentConfig, "model" | "system" | "stopWhen">> &
-    Pick<AgentConfig, "toolsets" | "toolset">;
+    Pick<AgentConfig, "toolsets" | "toolset" | "graph">;
 
   constructor(config: AgentConfig) {
     if (!config.model) {
@@ -44,6 +66,7 @@ export class ServerAgent {
       toolsets: config.toolsets,
       toolset: config.toolset,
       stopWhen: config.stopWhen ?? stepCountIs(10),
+      graph: config.graph,
     };
   }
 
@@ -148,6 +171,10 @@ export class ServerAgent {
    * Web Request → Response handler for use as a route export.
    * Reads `{ messages, toolset? }` from the JSON body and streams a response.
    *
+   * When a `graph` is configured on this agent, the request is routed through
+   * the state machine graph instead, streaming NDJSON events with `node-enter`
+   * and `node-exit` lifecycle events between each node's output.
+   *
    * ```ts
    * // SvelteKit
    * export const POST = ({ request }) => agent.handle(request);
@@ -157,6 +184,8 @@ export class ServerAgent {
    * ```
    */
   async handle(request: Request): Promise<Response> {
+    if (this.#config.graph) return this.#runGraph(request);
+
     const body = (await request.json()) as {
       messages: Array<{ role: string; content: string }>;
       toolset?: string;
@@ -168,5 +197,124 @@ export class ServerAgent {
       toolset,
     });
     return result.toTextStreamResponse();
+  }
+
+  /**
+   * Execute the configured graph, streaming NDJSON events for each node.
+   * Each node runs its own `streamText()` tool loop; node-enter / node-exit
+   * events bracket each node's output in the stream.
+   */
+  async #runGraph(request: Request): Promise<Response> {
+    const body = (await request.json()) as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    const graph = this.#config.graph!;
+    const agentModel = this.#config.model as import("ai").LanguageModel;
+    const agentSystem = this.#config.system;
+
+    const readable = new ReadableStream<Uint8Array>({
+      start: async (controller) => {
+        try {
+          let ctx: Record<string, unknown> = {};
+          // Accumulate the full message history across all nodes so each node
+          // sees prior nodes' outputs as conversation history.
+          let history: Array<{ role: "user" | "assistant"; content: string }> =
+            body.messages.map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }));
+
+          let current = graph.nextNode("__start__", ctx);
+
+          while (current !== "__end__") {
+            const nodeConfig = graph.nodes.get(current);
+            if (!nodeConfig) {
+              throw new Error(
+                `AgentGraph: node "${current}" is not registered.`,
+              );
+            }
+
+            controller.enqueue(
+              AgentStream.encodeEvent({ type: "node-enter", node: current }),
+            );
+
+            const nodeModel = nodeConfig.model
+              ? (nodeConfig.model as import("ai").LanguageModel)
+              : agentModel;
+            const nodeSystem = nodeConfig.system ?? agentSystem;
+            const nodeTools = nodeConfig.tools as
+              | import("ai").ToolSet
+              | undefined;
+            const nodeStopWhen = nodeConfig.stopWhen;
+
+            const result = streamText({
+              model: nodeModel,
+              system: nodeSystem,
+              messages: history,
+              ...(nodeTools ? { tools: nodeTools, stopWhen: nodeStopWhen } : {}),
+            });
+
+            let nodeText = "";
+
+            for await (const part of result.fullStream) {
+              // Accumulate text for history + context extraction
+              if (part.type === "text-delta") {
+                nodeText += (part as unknown as { text: string }).text ?? "";
+              }
+              // Re-serialize the part as an AgentStreamEvent and enqueue it
+              const event = AgentStream.mapPart(
+                part as Record<string, unknown>,
+              );
+              if (event) controller.enqueue(AgentStream.encodeEvent(event));
+            }
+
+            // Append this node's assistant turn to the shared history
+            history = [
+              ...history,
+              { role: "assistant" as const, content: nodeText },
+            ];
+
+            // Merge any extracted context for routing
+            const extracted =
+              nodeConfig.extractContext?.({ text: nodeText }) ?? {};
+            ctx = { ...ctx, ...extracted };
+
+            controller.enqueue(
+              AgentStream.encodeEvent({ type: "node-exit", node: current }),
+            );
+
+            // Human-in-the-loop pause: emit approval-request and stop.
+            // The client must re-invoke with an approval token to continue.
+            if (nodeConfig.requireApproval) {
+              const approvalId = crypto.randomUUID();
+              controller.enqueue(
+                AgentStream.encodeEvent({
+                  type: "approval-request",
+                  approvalId,
+                  toolCallId: "",
+                  toolName: current,
+                  args: { node: current, output: nodeText },
+                }),
+              );
+              break;
+            }
+
+            current = graph.nextNode(current, ctx);
+          }
+
+          controller.enqueue(AgentStream.encodeEvent({ type: "done" }));
+          controller.close();
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          controller.enqueue(
+            AgentStream.encodeEvent({ type: "error", error: message }),
+          );
+          controller.enqueue(AgentStream.encodeEvent({ type: "done" }));
+          controller.close();
+        }
+      },
+    });
+
+    return AgentStream.createGraphResponse(readable);
   }
 }

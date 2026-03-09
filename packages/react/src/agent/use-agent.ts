@@ -14,6 +14,8 @@ export interface UseAgentReturn {
   status: AgentStatus;
   error: Error | null;
   pendingApproval: { id: string; toolName: string; args: unknown } | null;
+  /** The name of the graph node currently executing, or `null` when idle. */
+  currentNode: string | null;
   send: (prompt: string) => Promise<void>;
   stop: () => void;
   approve: (id: string) => void;
@@ -37,6 +39,7 @@ export function useAgent(options: AgentOptions): UseAgentReturn {
     toolName: string;
     args: unknown;
   } | null>(null);
+  const [currentNode, setCurrentNode] = useState<string | null>(null);
 
   const ctrlRef = useRef<AgentController | null>(null);
 
@@ -46,6 +49,7 @@ export function useAgent(options: AgentOptions): UseAgentReturn {
       onStatus: setStatus,
       onError: setError,
       onPendingApproval: setPendingApproval,
+      onCurrentNode: setCurrentNode,
     } satisfies AgentCallbacks);
   }
 
@@ -60,6 +64,7 @@ export function useAgent(options: AgentOptions): UseAgentReturn {
     status,
     error,
     pendingApproval,
+    currentNode,
     send: (prompt: string) => ctrlRef.current!.send(prompt),
     stop: () => ctrlRef.current!.stop(),
     approve: (id: string) => {
