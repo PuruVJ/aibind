@@ -1,5 +1,81 @@
 # @aibind/core
 
+## 0.13.0
+
+### Minor Changes
+
+- [#21](https://github.com/PuruVJ/aibind/pull/21) [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827) Thanks [@PuruVJ](https://github.com/PuruVJ)! - ## Multi-agent composition — `ServerAgent.asTool()`
+
+  `ServerAgent` gains an `asTool(description)` method that wraps the agent as an AI SDK `Tool`. This enables orchestrator/sub-agent pipelines in pure TypeScript: pass sub-agents into another agent's `toolsets` and the outer model can invoke them like any other tool.
+
+  Because the returned tool is a plain AI SDK `Tool` object, it works in **both** `ServerAgent` toolsets and `createStreamHandler` toolsets — define once, share between Chat and Agent contexts.
+
+  ```ts
+  const researcher = new ServerAgent({
+    model,
+    system: "Research topics thoroughly.",
+  });
+  const writer = new ServerAgent({
+    model,
+    system: "Write compelling content.",
+  });
+
+  export const toolsets = {
+    default: {
+      researcher: researcher.asTool("Research a topic and return findings"),
+      writer: writer.asTool("Write an article given a brief"),
+    },
+  };
+
+  // Chat users with toolset: "default" can trigger sub-agents
+  export const handle = createStreamHandler({ models, toolsets });
+
+  // Orchestrator agent coordinates sub-agents
+  const orchestrator = new ServerAgent({
+    model,
+    system: "Coordinate.",
+    toolsets,
+    toolset: "default",
+  });
+  export const POST = ({ request }) => orchestrator.handle(request);
+  ```
+
+  Sub-agents run to completion (`generateText`) before returning their result to the outer loop, so the orchestrator receives the full output as a tool result.
+
+- [#21](https://github.com/PuruVJ/aibind/pull/21) [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827) Thanks [@PuruVJ](https://github.com/PuruVJ)! - ## Tool call history in Chat messages
+
+  `ChatMessage.role` now includes `"tool"`. When the model invokes a tool during a chat turn, a `{ role: "tool", toolName, toolArgs }` message is inserted into `chat.messages[]` before the assistant's final response. UIs can render these as collapsible "Searched the web…" or "Called get_weather…" indicators.
+
+  Tool messages are automatically filtered from the payload sent to the server — they are UI-only and never included in the conversation history sent to the model.
+
+- [#21](https://github.com/PuruVJ/aibind/pull/21) [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827) Thanks [@PuruVJ](https://github.com/PuruVJ)! - ## `stream.speak()` — streaming Web Speech API
+
+  `StreamController` gains a `speak()` method that pipes the streaming response into the browser's `SpeechSynthesis` API sentence by sentence. Audio playback starts after the first complete sentence — no waiting for the full response. Returns a cleanup function to cancel speech.
+
+  ```ts
+  const stream = new Stream({ endpoint: "..." });
+  const stopSpeaking = stream.speak();
+
+  stream.send("Explain quantum entanglement");
+  // Audio begins playing as sentences complete
+
+  stopSpeaking(); // cancel at any time
+  ```
+
+  No-op in non-browser environments (SSR, Node). Zero dependencies — uses `window.speechSynthesis`.
+
+- [#21](https://github.com/PuruVJ/aibind/pull/21) [`dfa2c92`](https://github.com/PuruVJ/aibind/commit/dfa2c9279040b647b26a74b7ac356095a089b827) Thanks [@PuruVJ](https://github.com/PuruVJ)! - ## Tab-switch auto-resume
+
+  `BaseStreamControllerOptions` gains an `autoResume` option. When `true`, the stream automatically suspends when the browser tab becomes hidden and resumes when the tab regains focus — powered by the existing durable stream infrastructure.
+
+  ```ts
+  const stream = new Stream({ endpoint: "...", autoResume: true });
+  ```
+
+  `BaseStreamController` also gains a `destroy()` method to remove the `visibilitychange` listener when the controller is no longer needed.
+
+  Requires `resumable: true` in `createStreamHandler` on the server.
+
 ## 0.12.0
 
 ### Minor Changes
