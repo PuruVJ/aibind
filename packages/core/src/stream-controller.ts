@@ -121,14 +121,20 @@ export class StreamController extends BaseStreamController {
    */
   speak(opts: SpeakOptions = {}): () => void {
     if (typeof speechSynthesis === "undefined") return () => {};
-    speechSynthesis.cancel();
+    this._cancelSpeech();
     this._speakEnabled = true;
     this._speakBuffer = "";
     this._speakOpts = opts;
     return () => {
       this._speakEnabled = false;
-      speechSynthesis.cancel();
+      this._cancelSpeech();
     };
+  }
+
+  /** Reliably stop speech — pause() first works around a Chrome bug where cancel() alone doesn't stop mid-utterance. */
+  private _cancelSpeech(): void {
+    speechSynthesis.pause();
+    speechSynthesis.cancel();
   }
 
   private _makeUtterance(text: string): SpeechSynthesisUtterance {
@@ -197,7 +203,7 @@ export class StreamController extends BaseStreamController {
     this._inArtifact = false;
     this._artifacts = [];
     this._speakBuffer = "";
-    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+    if (typeof speechSynthesis !== "undefined") this._cancelSpeech();
     this._cb.onText("");
     this._cb.onDiff?.(null);
     if (this._opts.artifact) this._cb.onArtifacts?.([]);

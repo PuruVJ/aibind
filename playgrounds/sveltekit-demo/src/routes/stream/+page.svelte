@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { Stream } from "@aibind/sveltekit";
 
   const stream = new Stream({
@@ -8,20 +9,53 @@
 
   let prompt = $state("");
 
+  // TTS state
   let speaking = $state(false);
-  let stopSpeak = $state<(() => void) | null>(null);
   let rate = $state(1.0);
-  let lang = $state("en-US");
+  let selectedVoice = $state<SpeechSynthesisVoice | null>(null);
+  let voices = $state<SpeechSynthesisVoice[]>([]);
+
+  // Not $state — functions must not be proxied by Svelte reactivity
+  let stopSpeak: (() => void) | null = null;
+
+  onMount(() => {
+    if (typeof speechSynthesis === "undefined") return;
+
+    function loadVoices() {
+      const all = speechSynthesis.getVoices();
+      // Prefer "enhanced" / "Google" / "Premium" voices — much better quality
+      voices = all.sort((a, b) => {
+        const quality = (v: SpeechSynthesisVoice) =>
+          v.name.includes("Enhanced") ||
+          v.name.includes("Premium") ||
+          v.name.includes("Google")
+            ? 0
+            : 1;
+        return quality(a) - quality(b);
+      });
+      if (!selectedVoice && voices.length > 0) {
+        selectedVoice = voices[0]!;
+      }
+    }
+
+    loadVoices();
+    speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    return () =>
+      speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+  });
 
   function startSpeaking() {
     speaking = true;
-    stopSpeak = stream.speak({ rate, lang });
+    stopSpeak = stream.speak({
+      rate,
+      voice: selectedVoice ?? undefined,
+    });
   }
 
   function stopSpeaking() {
     stopSpeak?.();
-    speaking = false;
     stopSpeak = null;
+    speaking = false;
   }
 </script>
 
@@ -44,19 +78,45 @@
 </form>
 
 <div class="tts-controls">
-  {#if !speaking}
-    <button type="button" class="tts-btn" onclick={startSpeaking}>
-      🔊 Speak
-    </button>
-  {:else}
-    <button type="button" class="tts-btn tts-btn--stop" onclick={stopSpeaking}>
-      🔇 Stop speaking
-    </button>
-  {/if}
+  <div class="tts-row">
+    {#if !speaking}
+      <button type="button" class="tts-btn" onclick={startSpeaking}>
+        🔊 Speak
+      </button>
+    {:else}
+      <button
+        type="button"
+        class="tts-btn tts-btn--stop"
+        onclick={stopSpeaking}
+      >
+        🔇 Stop speaking
+      </button>
+    {/if}
+  </div>
 
   <div class="tts-options">
+    {#if voices.length > 0}
+      <label class="tts-label">
+        Voice:
+        <select
+          class="tts-select tts-select--wide"
+          onchange={(e) => {
+            const name = (e.target as HTMLSelectElement).value;
+            selectedVoice = voices.find((v) => v.name === name) ?? null;
+          }}
+        >
+          {#each voices as voice}
+            <option value={voice.name} selected={voice === selectedVoice}>
+              {voice.name}
+              {#if voice.name.includes("Enhanced") || voice.name.includes("Premium") || voice.name.includes("Google")}✨{/if}
+            </option>
+          {/each}
+        </select>
+      </label>
+    {/if}
+
     <label class="tts-label">
-      Rate: {rate.toFixed(1)}
+      Rate: {rate.toFixed(1)}×
       <input
         type="range"
         min="0.5"
@@ -65,18 +125,6 @@
         bind:value={rate}
         class="tts-range"
       />
-    </label>
-
-    <label class="tts-label">
-      Language:
-      <select bind:value={lang} class="tts-select">
-        <option value="en-US">English (US)</option>
-        <option value="en-GB">English (UK)</option>
-        <option value="fr-FR">French</option>
-        <option value="de-DE">German</option>
-        <option value="es-ES">Spanish</option>
-        <option value="ja-JP">Japanese</option>
-      </select>
     </label>
   </div>
 </div>
@@ -123,14 +171,23 @@
     flex-direction: column;
     gap: 0.5rem;
     margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+  }
+
+  .tts-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
 
   .tts-btn {
-    align-self: flex-start;
     padding: 0.375rem 0.75rem;
     border-radius: 0.375rem;
     border: 1px solid #d1d5db;
-    background: #f9fafb;
+    background: #fff;
     cursor: pointer;
     font-size: 0.875rem;
   }
@@ -176,5 +233,9 @@
     background: #fff;
     font-size: 0.875rem;
     cursor: pointer;
+  }
+
+  .tts-select--wide {
+    max-width: 20rem;
   }
 </style>

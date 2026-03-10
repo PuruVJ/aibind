@@ -1485,10 +1485,11 @@ describe("StreamController", () => {
     let mockSpeech: {
       cancel: ReturnType<typeof vi.fn>;
       speak: ReturnType<typeof vi.fn>;
+      pause: ReturnType<typeof vi.fn>;
     };
 
     beforeEach(() => {
-      mockSpeech = { cancel: vi.fn(), speak: vi.fn() };
+      mockSpeech = { cancel: vi.fn(), speak: vi.fn(), pause: vi.fn() };
       vi.stubGlobal("speechSynthesis", mockSpeech);
       vi.stubGlobal(
         "SpeechSynthesisUtterance",
