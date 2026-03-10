@@ -54,14 +54,14 @@ const graph = new AgentGraph()
 
 ### Node options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `system` | `string` | System prompt for this node. Overrides the top-level `ServerAgent` system. |
-| `model` | `LanguageModel` | Model override. Defaults to the `ServerAgent` model. |
-| `tools` | `Record<string, Tool>` | Tools available in this node's tool loop. Omit for text-only nodes. |
-| `stopWhen` | `StopCondition` | When to stop the tool loop. Defaults to `stepCountIs(5)`. |
-| `extractContext` | `({ text }) => Record<string, unknown>` | Extract routing data from the node's output. Merged into the shared context object. |
-| `requireApproval` | `boolean` | Pause after this node and wait for the user to approve before continuing. |
+| Option            | Type                                    | Description                                                                         |
+| ----------------- | --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `system`          | `string`                                | System prompt for this node. Overrides the top-level `ServerAgent` system.          |
+| `model`           | `LanguageModel`                         | Model override. Defaults to the `ServerAgent` model.                                |
+| `tools`           | `Record<string, Tool>`                  | Tools available in this node's tool loop. Omit for text-only nodes.                 |
+| `stopWhen`        | `StopCondition`                         | When to stop the tool loop. Defaults to `stepCountIs(5)`.                           |
+| `extractContext`  | `({ text }) => Record<string, unknown>` | Extract routing data from the node's output. Merged into the shared context object. |
+| `requireApproval` | `boolean`                               | Pause after this node and wait for the user to approve before continuing.           |
 
 ---
 
@@ -152,26 +152,29 @@ import { toolsets } from "../../../../toolsets.server";
 
 const graph = new AgentGraph()
   .addNode("research", {
-    system: "Gather specific facts about the user's question. Use tools when relevant. End with 'FINDINGS: <one sentence summary>'.",
+    system:
+      "Gather specific facts about the user's question. Use tools when relevant. End with 'FINDINGS: <one sentence summary>'.",
     tools: toolsets.assistant,
     extractContext: ({ text }) => ({ hasFindings: text.trim().length > 80 }),
   })
   .addNode("analyze", {
-    system: "Extract key patterns and implications from the research. Use numbered points.",
+    system:
+      "Extract key patterns and implications from the research. Use numbered points.",
   })
   .addNode("summarize", {
     system: "Write a direct 2–4 sentence answer synthesizing everything above.",
   })
   .addEdge("__start__", "research")
   .addConditionalEdges("research", (ctx) =>
-    ctx.hasFindings ? "analyze" : "summarize"
+    ctx.hasFindings ? "analyze" : "summarize",
   )
   .addEdge("analyze", "summarize")
   .addEdge("summarize", "__end__");
 
 const agent = new ServerAgent({
   model: models.gpt,
-  system: "You are a research pipeline. Follow your current role instructions precisely.",
+  system:
+    "You are a research pipeline. Follow your current role instructions precisely.",
   graph,
 });
 
@@ -189,7 +192,7 @@ export const POST = ({ request }: { request: Request }): Promise<Response> =>
 
   // Which nodes have completed — derived purely from message history
   const visitedNodes = $derived(
-    new Set(agent.messages.filter((m) => m.nodeId).map((m) => m.nodeId!))
+    new Set(agent.messages.filter((m) => m.nodeId).map((m) => m.nodeId!)),
   );
 </script>
 
@@ -202,7 +205,8 @@ export const POST = ({ request }: { request: Request }): Promise<Response> =>
 {#each agent.messages as msg}
   {#if msg.role === "assistant"}
     <div class="message" data-node={msg.nodeId}>
-      <strong>{msg.nodeId ?? "agent"}:</strong> {msg.content}
+      <strong>{msg.nodeId ?? "agent"}:</strong>
+      {msg.content}
     </div>
   {/if}
 {/each}
@@ -275,10 +279,10 @@ The `/__aibind__/` prefix is reserved for `createStreamHandler` auto-endpoints (
 
 ## Comparison: plain agent vs graph agent
 
-| | Plain agent | Graph agent |
-|-|-------------|-------------|
-| Execution | Single tool loop | Multiple named steps in sequence |
-| Prompting | One system prompt | Per-node system prompts |
-| Routing | None | Static or conditional edges |
-| Observability | Status only | `currentNode` + per-message `nodeId` |
-| Use when | Simple Q&A, tool use | Multi-stage reasoning, pipelines |
+|               | Plain agent          | Graph agent                          |
+| ------------- | -------------------- | ------------------------------------ |
+| Execution     | Single tool loop     | Multiple named steps in sequence     |
+| Prompting     | One system prompt    | Per-node system prompts              |
+| Routing       | None                 | Static or conditional edges          |
+| Observability | Status only          | `currentNode` + per-message `nodeId` |
+| Use when      | Simple Q&A, tool use | Multi-stage reasoning, pipelines     |

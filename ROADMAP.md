@@ -49,7 +49,10 @@ const stop = stream.speak(); // returns cleanup fn
 `ServerAgent.asTool(description)` wraps an agent as a callable AI SDK tool. Pass it into another agent's `toolsets` to build orchestrator/sub-agent pipelines in pure TypeScript — no Python, no framework.
 
 ```ts
-const researcher = new ServerAgent({ model, system: "Research topics thoroughly." });
+const researcher = new ServerAgent({
+  model,
+  system: "Research topics thoroughly.",
+});
 const writer = new ServerAgent({ model, system: "Write compelling content." });
 
 const orchestrator = new ServerAgent({

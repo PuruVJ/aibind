@@ -479,6 +479,8 @@ export interface UseChatReturn {
   error: Error | null;
   status: StreamStatus;
   hasOptimistic: boolean;
+  title: string | null;
+  titleLoading: boolean;
   send: (content: string, opts?: ChatSendOptions) => void;
   abort: () => void;
   clear: () => void;
@@ -486,6 +488,7 @@ export interface UseChatReturn {
   edit: (id: string, text: string, opts?: ChatSendOptions) => void;
   revert: () => string | null;
   optimistic: (content: string, opts?: ChatSendOptions) => StagedMessage;
+  generateTitle: (opts?: { model?: string }) => Promise<void>;
 }
 
 /**
@@ -503,6 +506,8 @@ export function useChat(options: ChatOptions): UseChatReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [status, setStatus] = useState<StreamStatus>("idle");
+  const [title, setTitle] = useState<string | null>(null);
+  const [titleLoading, setTitleLoading] = useState(false);
 
   const ctrlRef = useRef<ChatController | null>(null);
   if (!ctrlRef.current) {
@@ -511,6 +516,8 @@ export function useChat(options: ChatOptions): UseChatReturn {
       onLoading: setLoading,
       onError: setError,
       onStatus: setStatus,
+      onTitle: setTitle,
+      onTitleLoading: setTitleLoading,
     } satisfies ChatCallbacks);
   }
 
@@ -522,6 +529,8 @@ export function useChat(options: ChatOptions): UseChatReturn {
     error,
     status,
     hasOptimistic: messages.some((m) => m.optimistic),
+    title,
+    titleLoading,
     send: (content, opts) => ctrlRef.current!.send(content, opts),
     abort: () => ctrlRef.current!.abort(),
     clear: () => ctrlRef.current!.clear(),
@@ -529,6 +538,7 @@ export function useChat(options: ChatOptions): UseChatReturn {
     edit: (id, text, opts) => ctrlRef.current!.edit(id, text, opts),
     revert: () => ctrlRef.current!.revert(),
     optimistic: (content, opts) => ctrlRef.current!.optimistic(content, opts),
+    generateTitle: (opts) => ctrlRef.current!.generateTitle(opts),
   };
 }
 

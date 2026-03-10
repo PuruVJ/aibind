@@ -14,6 +14,7 @@ The AI SDK ships its own `useChat` hook. Here's what aibind's `Chat` adds on top
 | **Tool calling**           | Client-side      | Server-side (toolsets)                         |
 | **Optimistic messages**    | Manual           | ✓ `chat.optimistic()`                          |
 | **Multimodal attachments** | ✗                | ✓ `fileToAttachment()`                         |
+| **Auto title generation**  | ✗                | ✓ `autoTitle: true` / `chat.generateTitle()`   |
 | **Framework support**      | React only       | SvelteKit, Next.js, Nuxt, SolidStart, TanStack |
 
 The core difference: aibind treats the message list as a **tree**, not an array. That's what makes edit, regenerate, and branching work without custom state management.
@@ -187,13 +188,13 @@ interface ChatOptions {
 
 ```ts
 interface ChatMessage {
-  id: string;           // stable UUID, assigned on creation
+  id: string; // stable UUID, assigned on creation
   role: "user" | "assistant" | "tool";
-  content: string;      // accumulates during streaming
+  content: string; // accumulates during streaming
   optimistic?: boolean; // true until the request is confirmed
   attachments?: Attachment[]; // images/files attached to this message
-  toolName?: string;    // present on role: "tool" messages
-  toolArgs?: unknown;   // present on role: "tool" messages
+  toolName?: string; // present on role: "tool" messages
+  toolArgs?: unknown; // present on role: "tool" messages
 }
 ```
 
@@ -618,3 +619,59 @@ import type {
 ```
 
 :::
+
+## Conversation title generation
+
+Generate a short title from the conversation — like ChatGPT or Claude do automatically — with `generateTitle()`. The title streams in live, character by character.
+
+### Auto-generate after the first turn
+
+```svelte [SvelteKit]
+<script lang="ts">
+  import { Chat } from "@aibind/sveltekit";
+
+  const chat = new Chat({
+    model: "smart",
+    autoTitle: true, // fires automatically after the first completed response
+  });
+</script>
+
+<!-- title streams in live; falls back to static heading until generated -->
+<h2>
+  {chat.title ?? "New conversation"}
+  {#if chat.titleLoading}<span class="typing-cursor">|</span>{/if}
+</h2>
+```
+
+### Manually at any point
+
+```svelte [SvelteKit]
+<script lang="ts">
+  import { Chat } from "@aibind/sveltekit";
+
+  const chat = new Chat({ model: "smart" });
+</script>
+
+<button onclick={() => chat.generateTitle()}>
+  {chat.titleLoading ? "Generating…" : "Generate title"}
+</button>
+<h2>{chat.title ?? "Untitled"}</h2>
+```
+
+`generateTitle()` can be called at any point — after the first message, mid-conversation, or to refresh a stale title.
+
+### API
+
+| Property / Method           | Type             | Description                                                          |
+| --------------------------- | ---------------- | -------------------------------------------------------------------- |
+| `chat.title`                | `string \| null` | The generated title. `null` until first generation. Streams in live. |
+| `chat.titleLoading`         | `boolean`        | `true` while title is generating.                                    |
+| `chat.generateTitle(opts?)` | `Promise<void>`  | Generate (or regenerate) the title from the current messages.        |
+| `autoTitle` option          | `boolean`        | Auto-call `generateTitle()` after the first completed turn.          |
+| `titleEndpoint` option      | `string`         | Custom endpoint. Defaults to `/__aibind__/title`.                    |
+
+### How it works
+
+The `/__aibind__/title` endpoint is registered automatically by `createStreamHandler` — no extra setup needed. It sends up to the first 6 messages to the model with a terse system prompt ("2–6 words, no punctuation, no quotes") and streams the result back as plain text. `generateTitle()` consumes the stream and writes each chunk into `chat.title` reactively.
+
+`autoTitle: true` fires once — after the **first** completed turn only. Calling `generateTitle()` manually can refresh the title at any time.

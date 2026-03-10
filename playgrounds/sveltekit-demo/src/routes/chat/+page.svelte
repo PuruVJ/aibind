@@ -6,6 +6,7 @@
     system:
       "You are a helpful assistant. Keep responses concise (2-3 sentences).",
     model: "gpt",
+    autoTitle: true,
   });
 
   let prompt = $state("");
@@ -35,7 +36,23 @@
 
 <div class="container">
   <header>
-    <h1>Chat Demo</h1>
+    <div class="title-row">
+      <h1>
+        {#if chat.title}
+          {chat.title}{#if chat.titleLoading}<span class="title-cursor">|</span
+            >{/if}
+        {:else if chat.titleLoading}
+          <span class="title-placeholder">Generating title…</span>
+        {:else}
+          Chat Demo
+        {/if}
+      </h1>
+      {#if chat.messages.length > 0 && !chat.title && !chat.titleLoading}
+        <button class="title-btn" onclick={() => chat.generateTitle()}
+          >Generate title</button
+        >
+      {/if}
+    </div>
     <p class="subtitle">
       Multi-turn chat using <code>new Chat()</code>. Edit user messages,
       regenerate responses, or clear the conversation.
@@ -146,12 +163,6 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    flex: none;
   }
 
   .subtitle {
@@ -423,5 +434,50 @@
   }
   .stop-btn:hover {
     background: #b91c1c !important;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .title-row h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .title-cursor {
+    animation: blink 0.6s step-end infinite;
+    color: #6366f1;
+    font-weight: 300;
+  }
+
+  .title-placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+    font-size: 1.25rem;
+  }
+
+  .title-btn {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    border: 1px solid #c7d2fe;
+    border-radius: 0.375rem;
+    background: #eef2ff;
+    color: #4f46e5;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .title-btn:hover {
+    background: #e0e7ff;
   }
 </style>

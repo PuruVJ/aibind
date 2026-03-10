@@ -580,10 +580,10 @@ describe("DurableStream + MemoryStreamStore", () => {
   });
 
   it("full lifecycle: create → stream → complete → resume from mid-point", async () => {
-    async function* source(): AsyncGenerator<string> {
-      yield "chunk1";
-      yield "chunk2";
-      yield "chunk3";
+    async function* source(): AsyncGenerator<{ event: string; data: string }> {
+      yield { event: "", data: "chunk1" };
+      yield { event: "", data: "chunk2" };
+      yield { event: "", data: "chunk3" };
     }
 
     const { id, response } = await DurableStream.create({
@@ -623,22 +623,26 @@ describe("DurableStream + MemoryStreamStore", () => {
   });
 
   it("stop() mid-stream: resumed stream gets stopped event", async () => {
-    async function* slowSource(): AsyncGenerator<string> {
-      yield "a";
+    async function* slowSource(): AsyncGenerator<{
+      event: string;
+      data: string;
+    }> {
+      yield { event: "", data: "a" };
       await new Promise((r) => setTimeout(r, 20));
-      yield "b";
+      yield { event: "", data: "b" };
       await new Promise((r) => setTimeout(r, 20));
-      yield "c";
+      yield { event: "", data: "c" };
     }
 
-    const { id, stop } = await DurableStream.create({
+    const stream = await DurableStream.create({
       store,
       source: slowSource(),
     });
+    const id = stream.id;
 
     // Stop after first chunk
     await new Promise((r) => setTimeout(r, 10));
-    stop();
+    stream.stop();
     await new Promise((r) => setTimeout(r, 50));
 
     const status = await store.getStatus(id);
@@ -665,9 +669,9 @@ describe("DurableStream + MemoryStreamStore", () => {
   });
 
   it("concurrent readers both receive all chunks", async () => {
-    async function* source(): AsyncGenerator<string> {
-      yield "x";
-      yield "y";
+    async function* source(): AsyncGenerator<{ event: string; data: string }> {
+      yield { event: "", data: "x" };
+      yield { event: "", data: "y" };
     }
 
     const { response: r1 } = await DurableStream.create({
@@ -700,7 +704,7 @@ describe("defaultDiff + StreamController", () => {
 
     const cb = makeCallbacks();
     const ctrl = new StreamController(
-      { endpoint: "/api/stream", fetch: fetchMock },
+      { endpoint: "/api/stream", fetch: fetchMock, diff: defaultDiff },
       cb,
     );
 

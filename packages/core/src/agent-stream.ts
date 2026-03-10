@@ -185,9 +185,7 @@ export class AgentStream {
    * Exposed as a public static so graph runners (e.g. `ServerAgent#runGraph`)
    * can reuse the mapping logic when manually piping individual stream parts.
    */
-  static mapPart(
-    part: Record<string, unknown>,
-  ): AgentStreamEvent | null {
+  static mapPart(part: Record<string, unknown>): AgentStreamEvent | null {
     switch (part.type) {
       case "text-delta":
         return { type: "text-delta", text: part.text as string };

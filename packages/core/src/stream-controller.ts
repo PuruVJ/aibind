@@ -108,9 +108,12 @@ export class StreamController extends BaseStreamController {
       const boundary = match.index + match[0].length;
       const sentence = this._speakBuffer.slice(0, boundary).trim();
       this._speakBuffer = this._speakBuffer.slice(boundary);
-      if (sentence) speechSynthesis.speak(new SpeechSynthesisUtterance(sentence));
+      if (sentence)
+        speechSynthesis.speak(new SpeechSynthesisUtterance(sentence));
     } else if (final && this._speakBuffer.trim()) {
-      speechSynthesis.speak(new SpeechSynthesisUtterance(this._speakBuffer.trim()));
+      speechSynthesis.speak(
+        new SpeechSynthesisUtterance(this._speakBuffer.trim()),
+      );
       this._speakBuffer = "";
     }
   }

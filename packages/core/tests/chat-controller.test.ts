@@ -31,17 +31,30 @@ function makeCallbacks(): {
   onLoading: ReturnType<typeof vi.fn>;
   onError: ReturnType<typeof vi.fn>;
   onStatus: ReturnType<typeof vi.fn>;
+  onTitle: ReturnType<typeof vi.fn>;
+  onTitleLoading: ReturnType<typeof vi.fn>;
 } {
   const onMessages = vi.fn();
   const onLoading = vi.fn();
   const onError = vi.fn();
   const onStatus = vi.fn();
+  const onTitle = vi.fn();
+  const onTitleLoading = vi.fn();
   return {
-    callbacks: { onMessages, onLoading, onError, onStatus },
+    callbacks: {
+      onMessages,
+      onLoading,
+      onError,
+      onStatus,
+      onTitle,
+      onTitleLoading,
+    },
     onMessages,
     onLoading,
     onError,
     onStatus,
+    onTitle,
+    onTitleLoading,
   };
 }
 
@@ -918,6 +931,260 @@ describe("ChatController toolset and maxSteps", () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.toolset).toBeUndefined();
     expect(body.maxSteps).toBeUndefined();
+  });
+});
+
+// --- generateTitle() ---
+
+function makeTitleResponse(chunks: string[]): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(ctrl) {
+      for (const chunk of chunks) ctrl.enqueue(encoder.encode(chunk));
+      ctrl.close();
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
+
+describe("ChatController.generateTitle()", () => {
+  it("does nothing when there are no messages", async () => {
+    const mockFetch = vi.fn();
+    const { callbacks, onTitle, onTitleLoading } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    await ctrl.generateTitle();
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(onTitle).not.toHaveBeenCalled();
+    expect(onTitleLoading).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when all messages are optimistic", async () => {
+    const mockFetch = vi.fn();
+    // First fetch for send(), second would be title — never called
+    mockFetch.mockResolvedValueOnce(createMockResponse([]));
+    const { callbacks, onTitle } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(mockFetch), callbacks);
+
+    ctrl.send("hi"); // still optimistic before flushPromises
+    await ctrl.generateTitle(); // messages are still optimistic at this point
+
+    expect(onTitle).not.toHaveBeenCalled();
+  });
+
+  it("streams title chunks into onTitle", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks, onTitle } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    ctrl.send("Tell me about space");
+    await flushPromises(); // chat completes, messages confirmed
+
+    const titleFetch = vi
+      .fn()
+      .mockResolvedValue(makeTitleResponse(["Space", " Expl", "oration"]));
+    // Swap fetch for the title call
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await ctrl.generateTitle();
+
+    // onTitle called for each chunk accumulation: "", "Space", "Space Expl", "Space Exploration"
+    const titleCalls = onTitle.mock.calls.map((c) => c[0]);
+    expect(titleCalls).toContain("Space");
+    expect(titleCalls.at(-1)).toBe("Space Exploration");
+  });
+
+  it("fires onTitleLoading(true) then onTitleLoading(false)", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks, onTitleLoading } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    const titleFetch = vi
+      .fn()
+      .mockResolvedValue(makeTitleResponse(["My Title"]));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await ctrl.generateTitle();
+
+    expect(onTitleLoading).toHaveBeenCalledWith(true);
+    expect(onTitleLoading).toHaveBeenLastCalledWith(false);
+  });
+
+  it("calls onTitle('') at the start to reset the title", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks, onTitle } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    const titleFetch = vi.fn().mockResolvedValue(makeTitleResponse(["New"]));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await ctrl.generateTitle();
+
+    expect(onTitle.mock.calls[0][0]).toBe("");
+  });
+
+  it("posts to /__aibind__/title by default", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    const titleFetch = vi.fn().mockResolvedValue(makeTitleResponse(["T"]));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await ctrl.generateTitle();
+
+    expect(titleFetch.mock.calls[0][0]).toBe("/__aibind__/title");
+  });
+
+  it("uses titleEndpoint option when set", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(
+      makeOpts(chatFetch, { titleEndpoint: "/api/my-title" }),
+      callbacks,
+    );
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    const titleFetch = vi.fn().mockResolvedValue(makeTitleResponse(["T"]));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await ctrl.generateTitle();
+
+    expect(titleFetch.mock.calls[0][0]).toBe("/api/my-title");
+  });
+
+  it("sends up to 6 messages in the title request body", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["reply"]));
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    // Build up 4 turns (8 messages) by calling send + flushPromises repeatedly
+    for (let i = 0; i < 4; i++) {
+      chatFetch.mockResolvedValueOnce(createMockResponse([`r${i}`]));
+      ctrl.send(`Turn ${i}`);
+      await flushPromises();
+    }
+
+    const titleFetch = vi.fn().mockResolvedValue(makeTitleResponse(["T"]));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await ctrl.generateTitle();
+
+    const body = JSON.parse(titleFetch.mock.calls[0][1].body);
+    expect(body.messages.length).toBeLessThanOrEqual(6);
+  });
+
+  it("silently swallows title fetch errors", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks, onError, onTitleLoading } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    const titleFetch = vi.fn().mockRejectedValue(new Error("network failure"));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await expect(ctrl.generateTitle()).resolves.toBeUndefined();
+    // Chat error state untouched, loading cleaned up
+    expect(onError.mock.calls.find((c) => c[0] !== null)).toBeUndefined();
+    expect(onTitleLoading).toHaveBeenLastCalledWith(false);
+  });
+
+  it("silently swallows non-ok title response", async () => {
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks, onTitleLoading } = makeCallbacks();
+    const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    const titleFetch = vi
+      .fn()
+      .mockResolvedValue(new Response("Error", { status: 500 }));
+    (ctrl as any)._opts.fetch = titleFetch;
+
+    await expect(ctrl.generateTitle()).resolves.toBeUndefined();
+    expect(onTitleLoading).toHaveBeenLastCalledWith(false);
+  });
+
+  it("autoTitle: true fires generateTitle after the first turn (once)", async () => {
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation((url: string) => {
+      if (url === "/__aibind__/title") {
+        callCount++;
+        return Promise.resolve(makeTitleResponse(["Auto Title"]));
+      }
+      return Promise.resolve(createMockResponse(["reply"]));
+    });
+    const { callbacks, onTitle } = makeCallbacks();
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { autoTitle: true }),
+      callbacks,
+    );
+
+    ctrl.send("First message");
+    await flushPromises();
+
+    expect(callCount).toBe(1);
+    const titleCalls = onTitle.mock.calls.map((c) => c[0]).filter(Boolean);
+    expect(titleCalls.at(-1)).toBe("Auto Title");
+  });
+
+  it("autoTitle: true does NOT fire again on subsequent turns", async () => {
+    let titleCallCount = 0;
+    const mockFetch = vi.fn().mockImplementation((url: string) => {
+      if (url === "/__aibind__/title") {
+        titleCallCount++;
+        return Promise.resolve(makeTitleResponse(["Title"]));
+      }
+      return Promise.resolve(createMockResponse(["reply"]));
+    });
+    const { callbacks } = makeCallbacks();
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { autoTitle: true }),
+      callbacks,
+    );
+
+    ctrl.send("First");
+    await flushPromises();
+    ctrl.send("Second");
+    await flushPromises();
+    ctrl.send("Third");
+    await flushPromises();
+
+    expect(titleCallCount).toBe(1);
+  });
+
+  it("autoTitle: false never fires generateTitle automatically", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse(["ok"]));
+    const { callbacks, onTitle } = makeCallbacks();
+    const ctrl = new ChatController(
+      makeOpts(mockFetch, { autoTitle: false }),
+      callbacks,
+    );
+
+    ctrl.send("hi");
+    await flushPromises();
+
+    // Only one fetch call — the chat one
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(onTitle).not.toHaveBeenCalled();
   });
 });
 

@@ -144,6 +144,11 @@ export interface ChatRequestBody {
   maxSteps?: number;
 }
 
+export interface TitleRequestBody {
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  model?: string;
+}
+
 /**
  * Individual typed responders for each AI endpoint.
  *
@@ -597,6 +602,53 @@ export class StreamHandler {
     return StreamHandler.#buildSSEFromSource(source);
   }
 
+  /**
+   * Generate a short title for a conversation and stream it back as plain text.
+   * Designed to be called after the first (or any) turn to produce a live-typing
+   * title — like ChatGPT or Claude's auto-title feature.
+   */
+  async title(body: TitleRequestBody): Promise<Response> {
+    const { messages, model: requestedModel } = body;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json({ error: "messages is required" }, { status: 400 });
+    }
+
+    let model: import("ai").LanguageModel;
+    try {
+      model = this.#resolveModel(requestedModel);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return Response.json({ error: message }, { status: 400 });
+    }
+
+    const result = streamText({
+      model,
+      system:
+        "Generate a short title (2–6 words, no punctuation, no quotes) that captures what this conversation is about. Reply with only the title.",
+      messages: messages
+        .slice(0, 6)
+        .map(({ role, content }) => ({ role, content })),
+    });
+
+    const encoder = new TextEncoder();
+    const readable = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        for await (const chunk of result.textStream) {
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+      },
+    });
+
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+      },
+    });
+  }
+
   /** Stop a durable stream by ID (requires `resumable: true`). */
   async stop(body: StopRequestBody): Promise<Response> {
     const { id } = body;
@@ -668,6 +720,9 @@ export class StreamHandler {
       }
       if (pathname === `${prefix}/complete`) {
         return this.complete(await request.json());
+      }
+      if (pathname === `${prefix}/title`) {
+        return this.title(await request.json());
       }
       if (resumable && pathname === `${prefix}/stream/stop`) {
         return this.stop(await request.json());

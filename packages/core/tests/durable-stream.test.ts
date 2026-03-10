@@ -4,9 +4,11 @@ import { MemoryStreamStore } from "../src/memory-store";
 import { SSE } from "../src/sse";
 
 /** Helper: create an async iterable from an array of strings. */
-async function* fromArray(chunks: string[]): AsyncGenerator<string> {
+async function* fromArray(
+  chunks: string[],
+): AsyncGenerator<{ event: string; data: string }> {
   for (const chunk of chunks) {
-    yield chunk;
+    yield { event: "", data: chunk };
   }
 }
 
@@ -14,11 +16,11 @@ async function* fromArray(chunks: string[]): AsyncGenerator<string> {
 async function* slowSource(
   chunks: string[],
   signal?: AbortSignal,
-): AsyncGenerator<string> {
+): AsyncGenerator<{ event: string; data: string }> {
   for (const chunk of chunks) {
     if (signal?.aborted) return;
     await new Promise((r) => setTimeout(r, 5));
-    yield chunk;
+    yield { event: "", data: chunk };
   }
 }
 
@@ -128,8 +130,11 @@ describe("DurableStream.create", () => {
   });
 
   it("handles source errors", async () => {
-    async function* failingSource(): AsyncGenerator<string> {
-      yield "ok";
+    async function* failingSource(): AsyncGenerator<{
+      event: string;
+      data: string;
+    }> {
+      yield { event: "", data: "ok" };
       throw new Error("LLM crashed");
     }
 
