@@ -188,13 +188,13 @@ interface ChatOptions {
 
 ```ts
 interface ChatMessage {
-  id: string;           // stable UUID, assigned on creation
+  id: string; // stable UUID, assigned on creation
   role: "user" | "assistant" | "tool";
-  content: string;      // accumulates during streaming
+  content: string; // accumulates during streaming
   optimistic?: boolean; // true until the request is confirmed
   attachments?: Attachment[]; // images/files attached to this message
-  toolName?: string;    // present on role: "tool" messages
-  toolArgs?: unknown;   // present on role: "tool" messages
+  toolName?: string; // present on role: "tool" messages
+  toolArgs?: unknown; // present on role: "tool" messages
 }
 ```
 
@@ -662,13 +662,13 @@ Generate a short title from the conversation — like ChatGPT or Claude do autom
 
 ### API
 
-| Property / Method | Type | Description |
-|---|---|---|
-| `chat.title` | `string \| null` | The generated title. `null` until first generation. Streams in live. |
-| `chat.titleLoading` | `boolean` | `true` while title is generating. |
-| `chat.generateTitle(opts?)` | `Promise<void>` | Generate (or regenerate) the title from the current messages. |
-| `autoTitle` option | `boolean` | Auto-call `generateTitle()` after the first completed turn. |
-| `titleEndpoint` option | `string` | Custom endpoint. Defaults to `/__aibind__/title`. |
+| Property / Method           | Type             | Description                                                          |
+| --------------------------- | ---------------- | -------------------------------------------------------------------- |
+| `chat.title`                | `string \| null` | The generated title. `null` until first generation. Streams in live. |
+| `chat.titleLoading`         | `boolean`        | `true` while title is generating.                                    |
+| `chat.generateTitle(opts?)` | `Promise<void>`  | Generate (or regenerate) the title from the current messages.        |
+| `autoTitle` option          | `boolean`        | Auto-call `generateTitle()` after the first completed turn.          |
+| `titleEndpoint` option      | `string`         | Custom endpoint. Defaults to `/__aibind__/title`.                    |
 
 ### How it works
 

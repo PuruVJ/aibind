@@ -87,7 +87,6 @@ export class AgentController {
             role: m.role,
             content: m.content,
           })),
-          ...(this._opts.toolset != null && { toolset: this._opts.toolset }),
         }),
         signal: controller.signal,
       });
@@ -194,10 +193,7 @@ export class AgentController {
               content: cur.content + event.text,
             };
             currentAssistantMsg = updated;
-            this._messages = [
-              ...this._messages.slice(0, -1),
-              updated,
-            ];
+            this._messages = [...this._messages.slice(0, -1), updated];
             this._cb.onMessages(this._messages);
           }
           break;

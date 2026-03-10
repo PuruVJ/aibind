@@ -30,11 +30,7 @@
   // Derive visited nodes purely from messages — each assistant/tool message
   // carries a nodeId stamp set by AgentController on node-enter. No effects needed.
   const visitedNodes = $derived(
-    new Set(
-      agent.messages
-        .filter((m) => m.nodeId)
-        .map((m) => m.nodeId!),
-    ),
+    new Set(agent.messages.filter((m) => m.nodeId).map((m) => m.nodeId!)),
   );
 
   function getNodeState(id: string): "idle" | "active" | "done" {
@@ -139,8 +135,10 @@
   {:else if agent.status === "idle"}
     <div class="empty-state">
       <p>
-        Ask anything — try <em>"What's the weather in Tokyo and what time is
-        it?"</em> or <em>"Explain quantum entanglement simply."</em>
+        Ask anything — try <em
+          >"What's the weather in Tokyo and what time is it?"</em
+        >
+        or <em>"Explain quantum entanglement simply."</em>
       </p>
     </div>
   {/if}

@@ -39,7 +39,8 @@
     <div class="title-row">
       <h1>
         {#if chat.title}
-          {chat.title}{#if chat.titleLoading}<span class="title-cursor">|</span>{/if}
+          {chat.title}{#if chat.titleLoading}<span class="title-cursor">|</span
+            >{/if}
         {:else if chat.titleLoading}
           <span class="title-placeholder">Generating title…</span>
         {:else}
@@ -47,7 +48,9 @@
         {/if}
       </h1>
       {#if chat.messages.length > 0 && !chat.title && !chat.titleLoading}
-        <button class="title-btn" onclick={() => chat.generateTitle()}>Generate title</button>
+        <button class="title-btn" onclick={() => chat.generateTitle()}
+          >Generate title</button
+        >
       {/if}
     </div>
     <p class="subtitle">

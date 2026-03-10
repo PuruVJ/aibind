@@ -137,16 +137,16 @@ function Chat() {
 
 ## Options
 
-| Option        | Type                     | Description                                                          |
-| ------------- | ------------------------ | -------------------------------------------------------------------- |
-| `model`       | `string`                 | Named model key (from `defineModels`)                                |
-| `system`      | `string`                 | System prompt                                                        |
-| `endpoint`    | `string`                 | Custom endpoint (fullstack packages default to `/__aibind__/stream`) |
-| `fetch`       | `typeof fetch`           | Custom fetch function                                                |
-| `onFinish`    | `(text: string) => void` | Called when stream completes                                         |
-| `onError`     | `(error: Error) => void` | Called on error                                                      |
-| `sessionId`   | `string`                 | Enable server-side conversation history (see [Conversation Store])   |
-| `autoResume`  | `boolean`                | Auto-suspend on tab hide, auto-resume on tab focus (requires durable streams) |
+| Option       | Type                     | Description                                                                   |
+| ------------ | ------------------------ | ----------------------------------------------------------------------------- |
+| `model`      | `string`                 | Named model key (from `defineModels`)                                         |
+| `system`     | `string`                 | System prompt                                                                 |
+| `endpoint`   | `string`                 | Custom endpoint (fullstack packages default to `/__aibind__/stream`)          |
+| `fetch`      | `typeof fetch`           | Custom fetch function                                                         |
+| `onFinish`   | `(text: string) => void` | Called when stream completes                                                  |
+| `onError`    | `(error: Error) => void` | Called on error                                                               |
+| `sessionId`  | `string`                 | Enable server-side conversation history (see [Conversation Store])            |
+| `autoResume` | `boolean`                | Auto-suspend on tab hide, auto-resume on tab focus (requires durable streams) |
 
 ## `stream.speak()`
 

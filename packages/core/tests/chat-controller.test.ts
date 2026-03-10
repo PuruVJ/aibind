@@ -41,7 +41,14 @@ function makeCallbacks(): {
   const onTitle = vi.fn();
   const onTitleLoading = vi.fn();
   return {
-    callbacks: { onMessages, onLoading, onError, onStatus, onTitle, onTitleLoading },
+    callbacks: {
+      onMessages,
+      onLoading,
+      onError,
+      onStatus,
+      onTitle,
+      onTitleLoading,
+    },
     onMessages,
     onLoading,
     onError,
@@ -1062,9 +1069,7 @@ describe("ChatController.generateTitle()", () => {
   });
 
   it("sends up to 6 messages in the title request body", async () => {
-    const chatFetch = vi
-      .fn()
-      .mockResolvedValue(createMockResponse(["reply"]));
+    const chatFetch = vi.fn().mockResolvedValue(createMockResponse(["reply"]));
     const { callbacks } = makeCallbacks();
     const ctrl = new ChatController(makeOpts(chatFetch), callbacks);
 
@@ -1092,9 +1097,7 @@ describe("ChatController.generateTitle()", () => {
     ctrl.send("hi");
     await flushPromises();
 
-    const titleFetch = vi
-      .fn()
-      .mockRejectedValue(new Error("network failure"));
+    const titleFetch = vi.fn().mockRejectedValue(new Error("network failure"));
     (ctrl as any)._opts.fetch = titleFetch;
 
     await expect(ctrl.generateTitle()).resolves.toBeUndefined();

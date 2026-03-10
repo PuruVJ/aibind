@@ -258,7 +258,8 @@ export class ChatController {
         }),
       });
 
-      if (!response.ok) throw new Error(`Title request failed: ${response.status}`);
+      if (!response.ok)
+        throw new Error(`Title request failed: ${response.status}`);
 
       for await (const chunk of consumeTextStream(response)) {
         this._title += chunk;

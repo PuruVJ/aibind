@@ -21,15 +21,15 @@ describe("AgentGraph — node registration", () => {
   });
 
   it("throws when registering a node named __start__", () => {
-    expect(() =>
-      new AgentGraph().addNode("__start__", makeNode()),
-    ).toThrow(/"__start__" is a reserved node name/);
+    expect(() => new AgentGraph().addNode("__start__", makeNode())).toThrow(
+      /"__start__" is a reserved node name/,
+    );
   });
 
   it("throws when registering a node named __end__", () => {
-    expect(() =>
-      new AgentGraph().addNode("__end__", makeNode()),
-    ).toThrow(/"__end__" is a reserved node name/);
+    expect(() => new AgentGraph().addNode("__end__", makeNode())).toThrow(
+      /"__end__" is a reserved node name/,
+    );
   });
 
   it("fluent API returns the same graph instance", () => {
@@ -46,7 +46,10 @@ describe("AgentGraph — node registration", () => {
 
   it("preserves user-supplied stopWhen", () => {
     const customStop = { type: "custom" } as any;
-    const graph = new AgentGraph().addNode("node", makeNode({ stopWhen: customStop }));
+    const graph = new AgentGraph().addNode(
+      "node",
+      makeNode({ stopWhen: customStop }),
+    );
     expect(graph.nodes.get("node")!.stopWhen).toBe(customStop);
   });
 
@@ -58,12 +61,18 @@ describe("AgentGraph — node registration", () => {
 
   it("stores extractContext on the node config", () => {
     const extract = vi.fn(() => ({ hasResults: true }));
-    const graph = new AgentGraph().addNode("search", makeNode({ extractContext: extract }));
+    const graph = new AgentGraph().addNode(
+      "search",
+      makeNode({ extractContext: extract }),
+    );
     expect(graph.nodes.get("search")!.extractContext).toBe(extract);
   });
 
   it("stores requireApproval flag", () => {
-    const graph = new AgentGraph().addNode("review", makeNode({ requireApproval: true }));
+    const graph = new AgentGraph().addNode(
+      "review",
+      makeNode({ requireApproval: true }),
+    );
     expect(graph.nodes.get("review")!.requireApproval).toBe(true);
   });
 });
@@ -262,7 +271,9 @@ describe("AgentGraph — full traversal simulation", () => {
       .addNode("parse", makeNode())
       .addNode("store", makeNode())
       .addEdge("__start__", "fetch")
-      .addConditionalEdges("fetch", (ctx) => (ctx.fetched ? "parse" : "__end__"))
+      .addConditionalEdges("fetch", (ctx) =>
+        ctx.fetched ? "parse" : "__end__",
+      )
       .addConditionalEdges("parse", (ctx) => (ctx.parsed ? "store" : "__end__"))
       .addEdge("store", "__end__");
 
@@ -280,7 +291,7 @@ describe("AgentGraph — full traversal simulation", () => {
     while (cur !== "__end__") {
       visited.push(cur);
       // Simulate extractContext
-      ctx = { ...ctx, ...nodeExtracts[cur]?.() ?? {} };
+      ctx = { ...ctx, ...(nodeExtracts[cur]?.() ?? {}) };
       cur = graph.nextNode(cur, ctx);
     }
 
@@ -350,7 +361,9 @@ describe("AgentGraph.validate", () => {
       .addEdge("__start__", "a")
       .addEdge("a", "ghost"); // "ghost" not registered
 
-    expect(() => graph.validate()).toThrow(/edge target "ghost".*not been registered/);
+    expect(() => graph.validate()).toThrow(
+      /edge target "ghost".*not been registered/,
+    );
   });
 
   it("does not throw for edges to __end__ even when __end__ is not a registered node", () => {
@@ -372,8 +385,10 @@ describe("AgentGraph — requireApproval", () => {
   });
 
   it("stores requireApproval: true correctly", () => {
-    const graph = new AgentGraph()
-      .addNode("sensitive", makeNode({ requireApproval: true }));
+    const graph = new AgentGraph().addNode(
+      "sensitive",
+      makeNode({ requireApproval: true }),
+    );
     expect(graph.nodes.get("sensitive")!.requireApproval).toBe(true);
   });
 
@@ -394,8 +409,10 @@ describe("AgentGraph — requireApproval", () => {
 describe("AgentGraph — extractContext", () => {
   it("extractContext is called with node output text", () => {
     const extract = vi.fn(() => ({ score: 42 }));
-    const graph = new AgentGraph()
-      .addNode("evaluate", makeNode({ extractContext: extract }));
+    const graph = new AgentGraph().addNode(
+      "evaluate",
+      makeNode({ extractContext: extract }),
+    );
 
     const config = graph.nodes.get("evaluate")!;
     const result = config.extractContext!({ text: "The score is high." });
@@ -422,7 +439,9 @@ describe("AgentGraph — extractContext", () => {
 
     // Simulate the caller merging extracted context before routing
     const config = graph.nodes.get("analyze")!;
-    const extracted = config.extractContext!({ text: "This looks good to me." });
+    const extracted = config.extractContext!({
+      text: "This looks good to me.",
+    });
     const ctx = { ...extracted };
 
     expect(graph.nextNode("analyze", ctx)).toBe("celebrate");
@@ -445,7 +464,10 @@ describe("AgentGraph — extractContext", () => {
 
 describe("AgentGraph — per-node model/system overrides", () => {
   it("stores a model override on the node", () => {
-    const graph = new AgentGraph().addNode("node", makeNode({ model: "gpt-4o" }));
+    const graph = new AgentGraph().addNode(
+      "node",
+      makeNode({ model: "gpt-4o" }),
+    );
     expect(graph.nodes.get("node")!.model).toBe("gpt-4o");
   });
 
@@ -476,9 +498,7 @@ describe("AgentGraph — per-node model/system overrides", () => {
 
 describe("AgentGraph — edge invariants", () => {
   it("a node can have at most one outgoing edge (static → conditional blocked)", () => {
-    const graph = new AgentGraph()
-      .addNode("a", makeNode())
-      .addEdge("a", "b");
+    const graph = new AgentGraph().addNode("a", makeNode()).addEdge("a", "b");
 
     expect(() => graph.addConditionalEdges("a", () => "__end__")).toThrow(
       /already has a static edge/,
@@ -539,7 +559,10 @@ async function collectEvents(response: Response): Promise<AgentStreamEvent[]> {
 
 describe("AgentStream — node-enter / node-exit events", () => {
   it("encodeEvent produces valid NDJSON for node-enter", () => {
-    const bytes = AgentStream.encodeEvent({ type: "node-enter", node: "search" });
+    const bytes = AgentStream.encodeEvent({
+      type: "node-enter",
+      node: "search",
+    });
     const decoded = new TextDecoder().decode(bytes);
     expect(JSON.parse(decoded.trim())).toEqual({
       type: "node-enter",
@@ -548,7 +571,10 @@ describe("AgentStream — node-enter / node-exit events", () => {
   });
 
   it("encodeEvent produces valid NDJSON for node-exit", () => {
-    const bytes = AgentStream.encodeEvent({ type: "node-exit", node: "summarize" });
+    const bytes = AgentStream.encodeEvent({
+      type: "node-exit",
+      node: "summarize",
+    });
     const decoded = new TextDecoder().decode(bytes);
     expect(JSON.parse(decoded.trim())).toEqual({
       type: "node-exit",
@@ -624,10 +650,12 @@ describe("AgentStream — node-enter / node-exit events", () => {
       type: "text-delta",
       text: "hello",
     });
-    expect(AgentStream.mapPart({ type: "step-finish", stepNumber: 2 })).toEqual({
-      type: "step-finish",
-      stepNumber: 2,
-    });
+    expect(AgentStream.mapPart({ type: "step-finish", stepNumber: 2 })).toEqual(
+      {
+        type: "step-finish",
+        stepNumber: 2,
+      },
+    );
     expect(AgentStream.mapPart({ type: "unknown-future-event" })).toBeNull();
   });
 
@@ -641,10 +669,7 @@ describe("AgentStream — node-enter / node-exit events", () => {
 
 // ─── AgentController — currentNode tracking ───────────────────────────────────
 
-import {
-  AgentController,
-  type AgentCallbacks,
-} from "../src/agent-controller";
+import { AgentController, type AgentCallbacks } from "../src/agent-controller";
 
 function makeCallbacks(): AgentCallbacks & {
   _currentNode: string | null;
@@ -697,7 +722,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("find something");
 
@@ -715,7 +743,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("run");
 
@@ -736,7 +767,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("execute pipeline");
 
@@ -773,7 +807,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     const sendPromise = ctrl.send("run slow task");
 
@@ -807,7 +844,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("run");
 
@@ -842,7 +882,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("search");
 
@@ -864,7 +907,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("hi");
 
@@ -893,7 +939,10 @@ describe("AgentController — currentNode tracking", () => {
     );
 
     const cb = makeCallbacks();
-    const ctrl = new AgentController({ endpoint: "/api/agent", fetch: fetchMock }, cb);
+    const ctrl = new AgentController(
+      { endpoint: "/api/agent", fetch: fetchMock },
+      cb,
+    );
 
     await ctrl.send("review this");
 

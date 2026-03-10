@@ -1,53 +1,57 @@
 # Agents
 
-Agents are server-side AI processes that can call tools, handle multi-step workflows, and stream responses back to the client.
+Agents are server-side AI processes that execute a named-node state machine. Each node runs its own tool loop, and edges control which node runs next — statically or via a router function.
+
+> **Note:** `ServerAgent` is for graph-based multi-step pipelines. If you need a simple linear tool-calling loop (one LLM call with tools, no branching), use [Chat with toolsets](/concepts/tool-calling) or the AI SDK's `streamText` with tools directly — no agent needed.
 
 ## Architecture
 
 ```
 Client (useAgent)  ←→  Server (ServerAgent)
      ↓                       ↓
-  messages[]            toolset selection
-  status                tool execution
-  pendingApproval       streaming response
+  messages[]            node execution
+  currentNode           tool calls per node
+  status                conditional routing
+  pendingApproval       streaming NDJSON events
 ```
 
 ## Server setup
 
-Register toolsets on `ServerAgent` and export `.handle` as the route:
+Chain `addNode / addEdge / addConditionalEdges` directly on `ServerAgent`, then export `handle` as the route:
 
 ```ts
 // src/routes/api/agent/+server.ts (SvelteKit)
 import { ServerAgent } from "@aibind/sveltekit/agent";
-import { tool, stepCountIs } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
 import { models } from "../../../models.server";
 
 const agent = new ServerAgent({
   model: models.gpt,
-  system: "You are a helpful assistant with access to tools.",
-  toolsets: {
-    assistant: {
-      get_weather: tool({
-        description: "Get current weather for a city",
-        inputSchema: z.object({ city: z.string() }),
-        execute: async ({ city }) => ({
-          city,
-          temperature: Math.round(15 + Math.random() * 20),
-          condition: "sunny",
-        }),
+  system: "You are a research assistant.",
+})
+  .addNode("search", {
+    tools: {
+      web_search: tool({
+        description: "Search the web",
+        inputSchema: z.object({ query: z.string() }),
+        execute: async ({ query }) => ({ results: [`Result for: ${query}`] }),
       }),
     },
-  },
-  toolset: "assistant", // server-side default
-  stopWhen: stepCountIs(5),
-});
+    system: "Search the web for relevant information.",
+  })
+  .addNode("summarize", {
+    system: "Summarize the search results concisely.",
+  })
+  .addEdge("__start__", "search")
+  .addEdge("search", "summarize")
+  .addEdge("summarize", "__end__");
 
 export const POST = ({ request }: { request: Request }) =>
   agent.handle(request);
 ```
 
-`agent.handle(request)` reads `{ messages, toolset? }` from the body and returns a streaming text response. For Next.js App Router: `export const POST = agent.handle.bind(agent)`.
+`agent.handle(request)` reads `{ messages }` from the body and returns a streaming NDJSON response. For Next.js App Router: `export const POST = agent.handle.bind(agent)`.
 
 ## Client usage
 
@@ -57,16 +61,21 @@ export const POST = ({ request }: { request: Request }) =>
 <script lang="ts">
   import { Agent } from "@aibind/sveltekit/agent";
 
-  const agent = new Agent({
-    toolset: "assistant", // opts in to the server-registered toolset
-  });
+  const agent = new Agent();
 </script>
 
-<button onclick={() => agent.send("What is the weather in Tokyo?")}>Ask</button>
+<button onclick={() => agent.send("Research quantum computing")}>Ask</button>
 
 {#each agent.messages as msg}
-  <div><strong>{msg.role}:</strong> {msg.content}</div>
+  <div>
+    <strong>{msg.role}{msg.nodeId ? ` [${msg.nodeId}]` : ""}:</strong>
+    {msg.content}
+  </div>
 {/each}
+
+{#if agent.currentNode}
+  <p>Running: {agent.currentNode}</p>
+{/if}
 
 {#if agent.status === "running"}
   <button onclick={() => agent.stop()}>Stop</button>
@@ -79,18 +88,21 @@ export const POST = ({ request }: { request: Request }) =>
 import { useAgent } from "@aibind/nextjs/agent";
 
 function AgentChat() {
-  const { messages, send, status, stop } = useAgent({
-    toolset: "assistant",
-  });
+  const { messages, send, status, stop, currentNode } = useAgent();
 
   return (
     <div>
       {messages.map((msg, i) => (
         <div key={i}>
-          <strong>{msg.role}:</strong> {msg.content}
+          <strong>
+            {msg.role}
+            {msg.nodeId ? ` [${msg.nodeId}]` : ""}:
+          </strong>{" "}
+          {msg.content}
         </div>
       ))}
-      <button onClick={() => send("What is the weather?")}>Ask</button>
+      {currentNode && <p>Running: {currentNode}</p>}
+      <button onClick={() => send("Research quantum computing")}>Ask</button>
       {status === "running" && <button onClick={stop}>Stop</button>}
     </div>
   );
@@ -101,14 +113,16 @@ function AgentChat() {
 <script setup lang="ts">
 import { useAgent } from "@aibind/nuxt/agent";
 
-const { messages, send, status, stop } = useAgent({ toolset: "assistant" });
+const { messages, send, status, stop, currentNode } = useAgent();
 </script>
 
 <template>
   <div v-for="(msg, i) in messages" :key="i">
-    <strong>{{ msg.role }}:</strong> {{ msg.content }}
+    <strong>{{ msg.role }}{{ msg.nodeId ? ` [${msg.nodeId}]` : "" }}:</strong>
+    {{ msg.content }}
   </div>
-  <button @click="send('What is the weather?')">Ask</button>
+  <p v-if="currentNode">Running: {{ currentNode }}</p>
+  <button @click="send('Research quantum computing')">Ask</button>
   <button v-if="status === 'running'" @click="stop()">Stop</button>
 </template>
 ```
@@ -117,18 +131,25 @@ const { messages, send, status, stop } = useAgent({ toolset: "assistant" });
 import { useAgent } from "@aibind/solidstart/agent";
 
 function AgentChat() {
-  const { messages, send, status, stop } = useAgent({ toolset: "assistant" });
+  const { messages, send, status, stop, currentNode } = useAgent();
 
   return (
     <div>
       <For each={messages()}>
         {(msg) => (
           <div>
-            <strong>{msg.role}:</strong> {msg.content}
+            <strong>
+              {msg.role}
+              {msg.nodeId ? ` [${msg.nodeId}]` : ""}:
+            </strong>{" "}
+            {msg.content}
           </div>
         )}
       </For>
-      <button onClick={() => send("What is the weather?")}>Ask</button>
+      <Show when={currentNode()}>
+        <p>Running: {currentNode()}</p>
+      </Show>
+      <button onClick={() => send("Research quantum computing")}>Ask</button>
       <Show when={status() === "running"}>
         <button onClick={stop}>Stop</button>
       </Show>
@@ -139,100 +160,121 @@ function AgentChat() {
 
 :::
 
-## Multiple toolsets
+## Conditional routing
 
-Register several toolsets and let the client select one per instance:
+Use `addConditionalEdges` and `extractContext` to branch between nodes based on output:
 
 ```ts
-// server
+const agent = new ServerAgent({ model, system: "Research assistant." })
+  .addNode("search", {
+    tools: { web_search },
+    system: "Search for information. If you find results, say FOUND.",
+    extractContext: ({ text }) => ({ hasResults: text.includes("FOUND") }),
+  })
+  .addNode("summarize", { system: "Summarize the findings." })
+  .addNode("fallback", { system: "Explain that no results were found." })
+  .addEdge("__start__", "search")
+  .addConditionalEdges("search", (ctx) =>
+    ctx.hasResults ? "summarize" : "fallback",
+  )
+  .addEdge("summarize", "__end__")
+  .addEdge("fallback", "__end__");
+```
+
+`extractContext` receives the node's full text output and returns a `Record<string, unknown>` merged into the graph context object that router functions receive.
+
+## Per-node model override
+
+Each node can use a different model:
+
+```ts
 const agent = new ServerAgent({
-  model: models.gpt,
-  system: "You are a helpful assistant.",
-  toolsets: {
-    assistant: { get_weather: tool(...), get_time: tool(...) },
-    billing:   { get_invoice: tool(...), issue_refund: tool(...) },
-  },
-  // no default — client must opt in
-});
+  model: models.default,
+  system: "Research assistant.",
+})
+  .addNode("search", {
+    model: models.fast, // cheap model for retrieval
+    tools: { web_search },
+    system: "Search the web.",
+  })
+  .addNode("summarize", {
+    model: models.powerful, // smart model for synthesis
+    system: "Synthesize the findings into a detailed report.",
+  })
+  .addEdge("__start__", "search")
+  .addEdge("search", "summarize")
+  .addEdge("summarize", "__end__");
 ```
+
+Nodes without a `model` field inherit the `ServerAgent` model.
+
+## Sharing a graph across agents
+
+Define a reusable graph with `new AgentGraph()` and import it into any agent via `.use(graph)`:
 
 ```ts
-// client
-const supportAgent = new Agent({ toolset: "assistant" });
-const billingAgent = new Agent({ toolset: "billing" });
-const noToolsAgent = new Agent(); // no toolset — tools disabled
+import { AgentGraph } from "@aibind/core";
+
+// lib/graphs.server.ts
+export const researchGraph = new AgentGraph()
+  .addNode("research", {
+    tools: { web_search },
+    system: "Research thoroughly.",
+  })
+  .addEdge("__start__", "research")
+  .addEdge("research", "__end__");
+
+// Fast agent and deep agent — same graph, different models
+const fastResearcher = new ServerAgent({
+  model: models.fast,
+  system: "Quick research.",
+}).use(researchGraph);
+const deepResearcher = new ServerAgent({
+  model: models.deep,
+  system: "Deep research.",
+}).use(researchGraph);
 ```
 
-Toolsets are **opt-in**: omitting `toolset` on the client disables tools entirely, regardless of what the server has registered.
-
-## Sharing toolsets with Chat
-
-If both Chat and Agent need the same tools, define them once and share:
-
-```ts
-// lib/toolsets.server.ts
-export const toolsets = {
-  assistant: { get_weather: tool(...) },
-};
-
-// hooks.server.ts — Chat path
-export const handle = createStreamHandler({ models, toolsets });
-
-// routes/api/agent/+server.ts — Agent path
-const agent = new ServerAgent({ system: "...", toolsets, toolset: "assistant" });
-export const POST = ({ request }) => agent.handle(request);
-```
-
-→ For full tool calling details see [Tool Calling](/concepts/tool-calling)
+`.use(graph)` copies all nodes and edges into the agent. You can continue chaining `addNode / addEdge` after `.use()` to extend the imported graph.
 
 ## Multi-agent composition
 
-`ServerAgent.asTool(description)` wraps an agent as a callable AI SDK tool so it can be invoked by another agent's tool loop — or by Chat. This enables orchestrator/sub-agent pipelines in pure TypeScript.
+`ServerAgent.asTool(description)` wraps an agent as a callable AI SDK tool so it can be invoked by another agent's tool loop — or by Chat via `createStreamHandler`. This enables orchestrator/sub-agent pipelines in pure TypeScript.
 
 ```ts
 // lib/agents.server.ts
 const researcher = new ServerAgent({
   model,
-  system: "Research topics thoroughly and return detailed findings.",
-});
-
-const writer = new ServerAgent({
-  model,
-  system: "Write clear, compelling content from provided briefs.",
-});
+  system: "Research topics and return detailed findings.",
+})
+  .addNode("research", {
+    tools: { web_search },
+    system: "Research thoroughly.",
+  })
+  .addEdge("__start__", "research")
+  .addEdge("research", "__end__");
 
 export const toolsets = {
   default: {
     researcher: researcher.asTool("Research a topic and return findings"),
-    writer: writer.asTool("Write an article given a brief"),
   },
 };
 
-// hooks.server.ts — Chat users can also invoke sub-agents
+// hooks.server.ts — Chat users can also invoke sub-agents as tools
 export const handle = createStreamHandler({ models, toolsets });
-
-// routes/api/orchestrator/+server.ts
-const orchestrator = new ServerAgent({
-  model,
-  system: "Coordinate research and writing tasks to produce great content.",
-  toolsets,
-  toolset: "default",
-});
-export const POST = ({ request }) => orchestrator.handle(request);
 ```
 
-Sub-agents run to completion before returning their result to the outer loop — the orchestrator sees the full output as a tool result and uses it to compose its final response.
-
-Because `asTool()` returns a plain AI SDK `Tool`, the same toolset works for both Chat and Agent with no adaptation.
+Sub-agents run to completion before returning their result to the outer loop as a tool result.
 
 ## Agent state
 
 | Property          | Type                             | Description                                             |
 | ----------------- | -------------------------------- | ------------------------------------------------------- |
-| `messages`        | `AgentMessage[]`                 | Conversation messages                                   |
+| `messages`        | `AgentMessage[]`                 | Conversation messages (includes tool calls per node)    |
+| `currentNode`     | `string \| null`                 | Active graph node name, or `null` when idle             |
 | `status`          | `AgentStatus`                    | `'idle' \| 'running' \| 'awaiting-approval' \| 'error'` |
 | `error`           | `Error \| null`                  | Any error                                               |
-| `pendingApproval` | `{ id, toolName, args } \| null` | Tool needing user approval                              |
+| `pendingApproval` | `{ id, toolName, args } \| null` | Node needing human approval                             |
 
 ## Methods
 
@@ -240,15 +282,52 @@ Because `asTool()` returns a plain AI SDK `Tool`, the same toolset works for bot
 | ------------------- | --------------------------- |
 | `send(prompt)`      | Send a message to the agent |
 | `stop()`            | Abort the current agent run |
-| `approve(id)`       | Approve a pending tool call |
-| `deny(id, reason?)` | Deny a pending tool call    |
+| `approve(id)`       | Approve a pending node      |
+| `deny(id, reason?)` | Deny a pending node         |
 
 ## Tool approval
 
-Tool approval (pausing before a step for human confirmation) is a graph-agent feature. Use `requireApproval: true` on any node in an `AgentGraph` — the graph pauses after that node and emits a `pendingApproval` event on the client. Call `approve()` or `deny()` to continue.
+Add `requireApproval: true` to any node — the graph pauses after that node completes and emits a `pendingApproval` event on the client. Call `approve()` or `deny()` to continue or abort.
 
-See [Graph Agents → requireApproval](/concepts/graph-agents#requireapproval) for the full example.
+```ts
+const agent = new ServerAgent({ model, system: "File editor." })
+  .addNode("plan", { system: "Plan the file changes needed." })
+  .addNode("execute", {
+    tools: { write_file, delete_file },
+    system: "Execute the planned changes.",
+    requireApproval: true, // pause after planning, before execution
+  })
+  .addEdge("__start__", "plan")
+  .addEdge("plan", "execute")
+  .addEdge("execute", "__end__");
+```
 
-## Next steps
+```svelte
+{#if agent.pendingApproval}
+  <p>Approve executing: {agent.pendingApproval.toolName}?</p>
+  <button onclick={() => agent.approve(agent.pendingApproval.id)}
+    >Approve</button
+  >
+  <button onclick={() => agent.deny(agent.pendingApproval.id)}>Deny</button>
+{/if}
+```
 
-For multi-stage pipelines with named steps, conditional routing, and per-node system prompts, see [Graph Agents](/concepts/graph-agents).
+## Wire protocol
+
+The NDJSON stream the client receives:
+
+```
+{"type":"node-enter","node":"search"}
+{"type":"tool-call","toolCallId":"abc","toolName":"web_search","args":{...}}
+{"type":"tool-result","toolCallId":"abc","toolName":"web_search","result":{...}}
+{"type":"text-delta","text":"I found the following..."}
+{"type":"node-exit","node":"search"}
+{"type":"node-enter","node":"summarize"}
+{"type":"text-delta","text":"Here is a summary..."}
+{"type":"node-exit","node":"summarize"}
+{"type":"done"}
+```
+
+## Reusable graphs
+
+For the full `AgentGraph` standalone API (useful for sharing graph definitions across agents), import `AgentGraph` from `@aibind/core`.

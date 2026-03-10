@@ -8,17 +8,28 @@
  *
  * Reserved node names: `"__start__"` (entry), `"__end__"` (exit).
  *
+ * `ServerAgent` extends `AgentGraph` — all builder methods are available
+ * directly on the agent. Use `new AgentGraph()` only when you need to define
+ * a reusable graph shared across multiple `ServerAgent` instances.
+ *
  * @example
  * ```ts
- * const graph = new AgentGraph()
+ * // Primary API — chain directly on ServerAgent
+ * const agent = new ServerAgent({ model, system: "Research assistant." })
  *   .addNode("search",    { tools: { web_search }, system: "Search the web." })
- *   .addNode("summarize", { system: "Summarize the findings." })
+ *   .addNode("summarize", { system: "Summarize findings." })
  *   .addEdge("__start__", "search")
  *   .addConditionalEdges("search", (ctx) => ctx.hasResults ? "summarize" : "__end__")
  *   .addEdge("summarize", "__end__");
  *
- * const agent = new ServerAgent({ model, system: "Research assistant.", graph });
- * export const POST = ({ request }) => agent.handle(request);
+ * // Reusable graph — define once, share across agents
+ * export const researchGraph = new AgentGraph()
+ *   .addNode("research", { tools: { web_search }, system: "Research." })
+ *   .addEdge("__start__", "research")
+ *   .addEdge("research", "__end__");
+ *
+ * const fast = new ServerAgent({ model: models.fast, system: "..." }).use(researchGraph);
+ * const deep = new ServerAgent({ model: models.deep, system: "..." }).use(researchGraph);
  * ```
  */
 
@@ -79,8 +90,8 @@ const DEFAULT_NODE_STOP_WHEN = stepCountIs(5);
 /**
  * Directed graph of named agent nodes.
  *
- * Use the fluent builder API to define nodes and edges, then pass the
- * completed graph to `ServerAgent` via the `graph` option.
+ * `ServerAgent` extends this class — use the builder API directly on the agent.
+ * Instantiate `AgentGraph` directly only when sharing a graph across multiple agents.
  */
 export class AgentGraph {
   readonly nodes: Map<string, AgentNodeConfig> = new Map();
@@ -90,6 +101,7 @@ export class AgentGraph {
   /**
    * Register a named node with its configuration.
    * The name must not be `"__start__"` or `"__end__"` (reserved).
+   * Chainable — returns `this`.
    */
   addNode(name: string, config: AgentNodeConfig): this {
     if (name === "__start__" || name === "__end__") {
@@ -108,8 +120,8 @@ export class AgentGraph {
    * Add a static edge from one node to another.
    * `from` may be `"__start__"` to set the entry point.
    * `to` may be `"__end__"` to terminate after this node.
-   *
    * A node may only have one outgoing edge (static OR conditional).
+   * Chainable — returns `this`.
    */
   addEdge(from: string, to: string): this {
     if (this.conditionalEdges.has(from)) {
@@ -125,8 +137,8 @@ export class AgentGraph {
    * Add a conditional edge from a node.
    * The `router` function is called after the node completes, receives the
    * accumulated context, and returns the next node name (or `"__end__"`).
-   *
    * A node may only have one outgoing edge (static OR conditional).
+   * Chainable — returns `this`.
    */
   addConditionalEdges(from: string, router: RouterFn): this {
     if (this.edges.has(from)) {
@@ -139,17 +151,32 @@ export class AgentGraph {
   }
 
   /**
-   * Resolve the next node name given the current node and accumulated context.
-   * Returns `"__end__"` if no edge is defined (terminates the graph).
+   * Import all nodes and edges from another `AgentGraph` into this one.
+   * Useful for reusing a shared graph definition.
+   * Chainable — returns `this`.
+   *
+   * @example
+   * ```ts
+   * export const researchGraph = new AgentGraph()
+   *   .addNode("research", { tools: { web_search }, system: "Research." })
+   *   .addEdge("__start__", "research")
+   *   .addEdge("research", "__end__");
+   *
+   * const fast = new ServerAgent({ model: models.fast, system: "..." }).use(researchGraph);
+   * const deep = new ServerAgent({ model: models.deep, system: "..." }).use(researchGraph);
+   * ```
    */
-  nextNode(from: string, ctx: Record<string, unknown>): string {
-    const conditionalRouter = this.conditionalEdges.get(from);
-    if (conditionalRouter) return conditionalRouter(ctx);
-
-    const staticTarget = this.edges.get(from);
-    if (staticTarget) return staticTarget;
-
-    return "__end__";
+  use(graph: AgentGraph): this {
+    for (const [name, config] of graph.nodes) {
+      this.nodes.set(name, config);
+    }
+    for (const [from, to] of graph.edges) {
+      this.edges.set(from, to);
+    }
+    for (const [from, router] of graph.conditionalEdges) {
+      this.conditionalEdges.set(from, router);
+    }
+    return this;
   }
 
   /**
@@ -159,7 +186,10 @@ export class AgentGraph {
    *   (unless the target is `"__end__"`)
    */
   validate(): void {
-    if (!this.edges.has("__start__") && !this.conditionalEdges.has("__start__")) {
+    if (
+      !this.edges.has("__start__") &&
+      !this.conditionalEdges.has("__start__")
+    ) {
       throw new Error(
         'AgentGraph: no entry point defined. Call addEdge("__start__", firstNode).',
       );
@@ -177,5 +207,19 @@ export class AgentGraph {
         );
       }
     }
+  }
+
+  /**
+   * Resolve the next node name given the current node and accumulated context.
+   * Returns `"__end__"` if no edge is defined (terminates the graph).
+   */
+  nextNode(from: string, ctx: Record<string, unknown>): string {
+    const conditionalRouter = this.conditionalEdges.get(from);
+    if (conditionalRouter) return conditionalRouter(ctx);
+
+    const staticTarget = this.edges.get(from);
+    if (staticTarget) return staticTarget;
+
+    return "__end__";
   }
 }

@@ -110,11 +110,6 @@ export interface AgentOptions {
   endpoint: string;
   /** Custom fetch implementation. Defaults to globalThis.fetch. */
   fetch?: typeof globalThis.fetch;
-  /**
-   * Named toolset to activate. Must match a key in the server agent's `toolsets`.
-   * Omitting this uses the server's configured default (if any), or no tools.
-   */
-  toolset?: string;
   onMessage?: (message: AgentMessage) => void;
   onError?: (error: Error) => void;
 }

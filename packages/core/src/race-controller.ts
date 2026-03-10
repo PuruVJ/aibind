@@ -120,22 +120,26 @@ export class RaceController {
         }
       };
 
+      // Buffer usage payload — for "complete" strategy the winner isn't known
+      // until the stream finishes, so we can't record immediately on the event.
+      let usagePayload: string | null = null;
+
       if (isSSE) {
         for await (const msg of SSE.consume(response)) {
           if (controller.signal.aborted) return;
           if (msg.event === "done") break;
-          if (
-            msg.event === "usage" &&
-            this._winner === model &&
-            this._opts.tracker
-          ) {
-            try {
-              this._opts.tracker.record(
-                JSON.parse(msg.data) as StreamUsage,
-                model,
-              );
-            } catch {
-              /* malformed usage payload */
+          if (msg.event === "usage") {
+            usagePayload = msg.data;
+            // "first-token" strategy: winner already elected, record now
+            if (strategy === "first-token" && this._winner === model) {
+              try {
+                this._opts.tracker?.record(
+                  JSON.parse(usagePayload) as StreamUsage,
+                  model,
+                );
+              } catch {
+                /* malformed usage payload */
+              }
             }
           }
           if (!msg.event) onChunk(msg.data);
@@ -150,6 +154,22 @@ export class RaceController {
       // "complete" strategy: elect after stream finishes
       if (!this._winner && strategy === "complete") {
         this._electWinner(model, text);
+      }
+
+      // Record usage for the winner (deferred for "complete" strategy)
+      if (
+        this._winner === model &&
+        this._opts.tracker &&
+        usagePayload !== null
+      ) {
+        try {
+          this._opts.tracker.record(
+            JSON.parse(usagePayload) as StreamUsage,
+            model,
+          );
+        } catch {
+          /* malformed usage payload */
+        }
       }
 
       this._pending.delete(model);
