@@ -26,6 +26,26 @@ import { StreamBroadcaster } from "./broadcast";
 
 const RE_SENTENCE_END = /[.!?](?:\s|$)/;
 
+/**
+ * Options for {@link StreamController.speak}.
+ * All fields map directly to `SpeechSynthesisUtterance` properties.
+ */
+export interface SpeakOptions {
+  /** Speech rate. 1 is default, 0.5 is half speed, 2 is double speed. */
+  rate?: number;
+  /** Pitch. 1 is default, range 0–2. */
+  pitch?: number;
+  /** Volume. 1 is default, range 0–1. */
+  volume?: number;
+  /** Language tag (e.g. "en-US", "fr-FR"). Defaults to browser default. */
+  lang?: string;
+  /**
+   * Specific voice to use. Obtain from `speechSynthesis.getVoices()`.
+   * If omitted, the browser picks the default voice for the chosen lang.
+   */
+  voice?: SpeechSynthesisVoice;
+}
+
 // --- Callbacks ---
 
 export interface StreamCallbacks extends BaseStreamCallbacks {
@@ -68,8 +88,10 @@ export class StreamController extends BaseStreamController {
   private _artifacts: Artifact[] = [];
   private _artifactIdSeq = 0;
   private _broadcaster: StreamBroadcaster | null = null;
-  private _speakActive = false;
+  /** Whether speak mode is active (persists across sends until stop() is called). */
+  private _speakEnabled = false;
   private _speakBuffer = "";
+  private _speakOpts: SpeakOptions = {};
 
   get text(): string {
     return this._text;
@@ -89,31 +111,53 @@ export class StreamController extends BaseStreamController {
    * the full response. Returns a cleanup function that cancels speech.
    *
    * No-op in non-browser environments (returns a no-op cleanup).
+   *
+   * @example
+   * ```ts
+   * const stop = stream.speak({ rate: 1.2, lang: "en-US" });
+   * // later:
+   * stop();
+   * ```
    */
-  speak(): () => void {
+  speak(opts: SpeakOptions = {}): () => void {
     if (typeof speechSynthesis === "undefined") return () => {};
-    speechSynthesis.cancel();
-    this._speakActive = true;
+    this._cancelSpeech();
+    this._speakEnabled = true;
     this._speakBuffer = "";
+    this._speakOpts = opts;
     return () => {
-      this._speakActive = false;
-      speechSynthesis.cancel();
+      this._speakEnabled = false;
+      this._cancelSpeech();
     };
   }
 
+  /** Reliably stop speech — pause() first works around a Chrome bug where cancel() alone doesn't stop mid-utterance. */
+  private _cancelSpeech(): void {
+    speechSynthesis.pause();
+    speechSynthesis.cancel();
+  }
+
+  private _makeUtterance(text: string): SpeechSynthesisUtterance {
+    const u = new SpeechSynthesisUtterance(text);
+    const { rate, pitch, volume, lang, voice } = this._speakOpts;
+    if (rate !== undefined) u.rate = rate;
+    if (pitch !== undefined) u.pitch = pitch;
+    if (volume !== undefined) u.volume = volume;
+    if (lang !== undefined) u.lang = lang;
+    if (voice !== undefined) u.voice = voice;
+    return u;
+  }
+
   private _flushSpeak(final = false): void {
-    if (!this._speakActive) return;
+    if (!this._speakEnabled) return;
     const match = RE_SENTENCE_END.exec(this._speakBuffer);
     if (match) {
       const boundary = match.index + match[0].length;
       const sentence = this._speakBuffer.slice(0, boundary).trim();
       this._speakBuffer = this._speakBuffer.slice(boundary);
-      if (sentence)
-        speechSynthesis.speak(new SpeechSynthesisUtterance(sentence));
+      if (sentence) speechSynthesis.speak(this._makeUtterance(sentence));
     } else if (final && this._speakBuffer.trim()) {
-      speechSynthesis.speak(
-        new SpeechSynthesisUtterance(this._speakBuffer.trim()),
-      );
+      speechSynthesis.speak(this._makeUtterance(this._speakBuffer.trim()));
       this._speakBuffer = "";
     }
   }
@@ -158,9 +202,8 @@ export class StreamController extends BaseStreamController {
     this._scannedUpTo = 0;
     this._inArtifact = false;
     this._artifacts = [];
-    this._speakActive = false;
     this._speakBuffer = "";
-    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+    if (typeof speechSynthesis !== "undefined") this._cancelSpeech();
     this._cb.onText("");
     this._cb.onDiff?.(null);
     if (this._opts.artifact) this._cb.onArtifacts?.([]);

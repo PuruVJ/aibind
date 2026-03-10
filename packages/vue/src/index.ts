@@ -16,6 +16,7 @@ import {
   type ChatMessage,
   type ChatSendOptions,
   type StagedMessage,
+  type SpeakOptions,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StructuredStreamCallbacks,
@@ -235,6 +236,7 @@ export interface UseStreamReturn<M extends string = string> {
     chat: CoreChatHistory<ConversationMessage>,
   ) => Promise<{ tokensSaved: number }>;
   broadcast: (channelName: string) => () => void;
+  speak: (opts?: SpeakOptions) => () => void;
 }
 
 export interface StreamOptions<
@@ -326,6 +328,7 @@ export function useStream<M extends string = string>(
     resume: () => ctrl.resume(),
     compact: (chat) => ctrl.compact(chat),
     broadcast: (channelName) => ctrl.broadcast(channelName),
+    speak: (opts) => ctrl.speak(opts),
   };
 }
 
