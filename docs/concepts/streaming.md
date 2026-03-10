@@ -152,17 +152,40 @@ function Chat() {
 
 Pipe the streaming response into the browser's [`SpeechSynthesis`](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) API. Audio playback starts after the first complete sentence — no waiting for the full response to finish. Returns a cleanup function.
 
+Speak mode **persists across multiple `send()` calls** until you call the cleanup function — enable it once for the whole session.
+
 ```ts
 const stream = new Stream({ endpoint: "..." });
-const stopSpeaking = stream.speak();
+const stopSpeaking = stream.speak({ rate: 1.2, lang: "en-US" });
 
 stream.send("Explain the water cycle");
 // sentences play back as they arrive
 
-stopSpeaking(); // cancel at any time
+stream.send("What about evaporation?");
+// still speaking — mode persists
+
+stopSpeaking(); // cancel and disable
 ```
 
 No-op in non-browser environments. Zero dependencies — uses `window.speechSynthesis`.
+
+### SpeakOptions
+
+| Option   | Type                   | Default         | Description                                                |
+| -------- | ---------------------- | --------------- | ---------------------------------------------------------- |
+| `rate`   | `number`               | `1`             | Speech rate. `0.5` = half speed, `2` = double speed.       |
+| `pitch`  | `number`               | `1`             | Pitch. Range `0`–`2`.                                      |
+| `volume` | `number`               | `1`             | Volume. Range `0`–`1`.                                     |
+| `lang`   | `string`               | browser default | BCP 47 language tag, e.g. `"en-US"`, `"fr-FR"`, `"ja-JP"`. |
+| `voice`  | `SpeechSynthesisVoice` | browser default | Specific voice from `speechSynthesis.getVoices()`.         |
+
+```ts
+// Pick a voice by name
+const voices = speechSynthesis.getVoices();
+const voice = voices.find((v) => v.name === "Samantha");
+
+stream.speak({ voice, rate: 0.9 });
+```
 
 ## Tab-switch Auto-resume
 
