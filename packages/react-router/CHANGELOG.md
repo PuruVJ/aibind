@@ -1,5 +1,51 @@
 # @aibind/react-router
 
+## 0.12.0
+
+### Minor Changes
+
+- [#25](https://github.com/PuruVJ/aibind/pull/25) [`439aab2`](https://github.com/PuruVJ/aibind/commit/439aab26fc6283c2de199136023f65c98b51aa7a) Thanks [@PuruVJ](https://github.com/PuruVJ)! - Graph-only `ServerAgent` — `ServerAgent extends AgentGraph` (breaking).
+
+  `ServerAgent` is now exclusively a graph-based multi-step agent pipeline. For simple linear tool-calling loops, use `Chat` with toolsets or the AI SDK's `streamText` directly.
+
+  **Breaking changes:**
+  - `ServerAgent` now extends `AgentGraph` — `addNode`, `addEdge`, `addConditionalEdges`, `nextNode`, `validate`, and `use` are inherited directly (no duplication).
+  - `AgentConfig` is now `{ model, system }` only — the `graph`, `toolsets`, `toolset`, and `stopWhen` fields have been removed.
+  - `AgentOptions` (client-side) no longer has a `toolset` field — toolsets belong to `Chat`, not `Agent`.
+  - The `graph?` field previously passed to `AgentConfig` is gone; configure nodes and edges directly on the `ServerAgent` instance or use `.use(graph)` with a reusable `AgentGraph`.
+
+  **New APIs:**
+  - `AgentGraph` — standalone reusable graph definition. Define once, share across multiple `ServerAgent` instances via `.use(graph)`.
+  - `AgentGraph.use(graph)` — import all nodes and edges from another `AgentGraph`.
+  - `AgentGraph.validate()` — validate graph structure (entry point defined, all edge targets registered).
+  - `agent.currentNode` (client) — reactive field tracking the currently executing graph node.
+
+  **Migration:**
+
+  ```ts
+  // Before
+  const agent = new ServerAgent({
+    model,
+    system: "...",
+    graph: new AgentGraph()
+      .addNode("search", { tools: { web_search }, system: "Search." })
+      .addEdge("__start__", "search")
+      .addEdge("search", "__end__"),
+  });
+
+  // After
+  const agent = new ServerAgent({ model, system: "..." })
+    .addNode("search", { tools: { web_search }, system: "Search." })
+    .addEdge("__start__", "search")
+    .addEdge("search", "__end__");
+  ```
+
+### Patch Changes
+
+- Updated dependencies [[`439aab2`](https://github.com/PuruVJ/aibind/commit/439aab26fc6283c2de199136023f65c98b51aa7a), [`439aab2`](https://github.com/PuruVJ/aibind/commit/439aab26fc6283c2de199136023f65c98b51aa7a)]:
+  - @aibind/core@0.15.0
+  - @aibind/react@0.12.0
+
 ## 0.11.3
 
 ### Patch Changes
