@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   StreamController,
   type StreamCallbacks,
+  type SpeakOptions,
 } from "../src/stream-controller";
 import { SSE } from "../src/sse";
 import { standardDetector, claudeDetector } from "../src/artifacts";
@@ -1475,6 +1476,152 @@ describe("StreamController", () => {
       // streamId should be reset to null before second send
       expect(cb.calls.onStreamId).toContain(null);
       expect(cb.calls.onCanResume).toContain(false);
+    });
+  });
+
+  // --- speak() ---
+
+  describe("speak()", () => {
+    let mockSpeech: {
+      cancel: ReturnType<typeof vi.fn>;
+      speak: ReturnType<typeof vi.fn>;
+    };
+
+    beforeEach(() => {
+      mockSpeech = { cancel: vi.fn(), speak: vi.fn() };
+      vi.stubGlobal("speechSynthesis", mockSpeech);
+      vi.stubGlobal(
+        "SpeechSynthesisUtterance",
+        class {
+          text: string;
+          rate?: number;
+          pitch?: number;
+          volume?: number;
+          lang?: string;
+          voice?: unknown;
+          constructor(text: string) {
+            this.text = text;
+          }
+        },
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function makeCtrl(fetchMock: ReturnType<typeof vi.fn>): StreamController {
+      return new StreamController(
+        { endpoint: "/api/stream", fetch: fetchMock },
+        cb,
+      );
+    }
+
+    it("returns a no-op cleanup when speechSynthesis is unavailable", () => {
+      vi.stubGlobal("speechSynthesis", undefined);
+      const ctrl = makeCtrl(vi.fn());
+      const stop = ctrl.speak();
+      expect(typeof stop).toBe("function");
+      expect(() => stop()).not.toThrow();
+    });
+
+    it("cancels any prior speech and speaks sentence-by-sentence", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          createTextResponse(["Hello world. ", "How are you today? ", "Fine!"]),
+        );
+      const ctrl = makeCtrl(fetchMock);
+      ctrl.speak();
+      ctrl.send("hi");
+      await flushPromises();
+
+      expect(mockSpeech.cancel).toHaveBeenCalled();
+      // Should have spoken two complete sentences; trailing fragment spoken on finalize
+      const texts = mockSpeech.speak.mock.calls.map(
+        (c: [{ text: string }]) => c[0].text,
+      );
+      expect(texts).toContain("Hello world.");
+      expect(texts).toContain("How are you today?");
+      expect(texts).toContain("Fine!");
+    });
+
+    it("applies SpeakOptions to each utterance", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(createTextResponse(["Done."]));
+      const ctrl = makeCtrl(fetchMock);
+      const opts: SpeakOptions = {
+        rate: 1.5,
+        pitch: 0.8,
+        volume: 0.9,
+        lang: "en-GB",
+      };
+      ctrl.speak(opts);
+      ctrl.send("hi");
+      await flushPromises();
+
+      const utterance = mockSpeech.speak.mock.calls[0]?.[0];
+      expect(utterance.rate).toBe(1.5);
+      expect(utterance.pitch).toBe(0.8);
+      expect(utterance.volume).toBe(0.9);
+      expect(utterance.lang).toBe("en-GB");
+    });
+
+    it("stop() cancels speech", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(createTextResponse(["Hello."]));
+      const ctrl = makeCtrl(fetchMock);
+      const stop = ctrl.speak();
+      ctrl.send("hi");
+      stop();
+      await flushPromises();
+
+      // cancel should have been called at least by stop()
+      expect(mockSpeech.cancel).toHaveBeenCalled();
+    });
+
+    it("persists speak mode across multiple sends", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(createTextResponse(["First."]))
+        .mockResolvedValueOnce(createTextResponse(["Second."]));
+      const ctrl = makeCtrl(fetchMock);
+      ctrl.speak();
+      ctrl.send("first");
+      await flushPromises();
+
+      const callCountAfterFirst = mockSpeech.speak.mock.calls.length;
+      expect(callCountAfterFirst).toBeGreaterThan(0);
+
+      ctrl.send("second");
+      await flushPromises();
+
+      // speak mode persists — second send also speaks
+      expect(mockSpeech.speak.mock.calls.length).toBeGreaterThan(
+        callCountAfterFirst,
+      );
+    });
+
+    it("stop() disables speak for subsequent sends too", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(createTextResponse(["First."]))
+        .mockResolvedValueOnce(createTextResponse(["Second."]));
+      const ctrl = makeCtrl(fetchMock);
+      const stop = ctrl.speak();
+      ctrl.send("first");
+      await flushPromises();
+
+      stop();
+      const callCountAfterStop = mockSpeech.speak.mock.calls.length;
+
+      ctrl.send("second");
+      await flushPromises();
+
+      // No new speech after stop()
+      expect(mockSpeech.speak.mock.calls.length).toBe(callCountAfterStop);
     });
   });
 });

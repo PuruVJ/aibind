@@ -22,6 +22,7 @@ import {
   type RaceControllerOptions,
   type RaceStrategy,
   type SendOptions,
+  type SpeakOptions,
   type StreamCallbacks,
   type StreamControllerOptions,
   type StreamStatus,
@@ -353,6 +354,29 @@ export class Stream<M extends string = string> {
    */
   broadcast(channelName: string): () => void {
     const cleanup = this.#ctrl.broadcast(channelName);
+    onDestroy(cleanup);
+    return cleanup;
+  }
+
+  /**
+   * Pipe the streaming response into the browser's Web Speech API.
+   * Playback starts after the first sentence completes. Returns a cleanup
+   * function that cancels speech; also cancels automatically on component destroy.
+   *
+   * No-op in non-browser environments.
+   *
+   * @example
+   * ```svelte
+   * <script lang="ts">
+   *   const stream = new Stream({ endpoint: '/api/stream' });
+   *   let stopSpeech: (() => void) | null = null;
+   * </script>
+   * <button onclick={() => stopSpeech = stream.speak({ rate: 1.2 })}>Speak</button>
+   * <button onclick={() => stopSpeech?.()}>Stop</button>
+   * ```
+   */
+  speak(opts?: SpeakOptions): () => void {
+    const cleanup = this.#ctrl.speak(opts);
     onDestroy(cleanup);
     return cleanup;
   }

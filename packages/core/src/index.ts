@@ -86,6 +86,7 @@ export type {
 } from "./base-stream-controller";
 export { StreamController } from "./stream-controller";
 export type {
+  SpeakOptions,
   StreamCallbacks,
   StreamControllerOptions,
 } from "./stream-controller";
