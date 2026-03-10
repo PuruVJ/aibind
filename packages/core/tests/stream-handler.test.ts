@@ -107,6 +107,32 @@ describe("createStreamHandler", () => {
       expect(res.status).toBe(200);
     });
 
+    it("handles POST /__aibind__/title", async () => {
+      const handler = createStreamHandler({ model: "test-model" as any });
+      const res = await handler(
+        makeRequest("/title", {
+          messages: [
+            { role: "user", content: "Tell me about black holes" },
+            { role: "assistant", content: "Black holes are..." },
+          ],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toContain("text/plain");
+    });
+
+    it("returns 400 for /title with empty messages", async () => {
+      const handler = createStreamHandler({ model: "test-model" as any });
+      const res = await handler(makeRequest("/title", { messages: [] }));
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 for /title with missing messages field", async () => {
+      const handler = createStreamHandler({ model: "test-model" as any });
+      const res = await handler(makeRequest("/title", {}));
+      expect(res.status).toBe(400);
+    });
+
     it("returns 404 for unknown routes", async () => {
       const handler = createStreamHandler({ model: "test-model" as any });
       const res = await handler(makeRequest("/unknown", { prompt: "hi" }));

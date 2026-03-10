@@ -8,6 +8,7 @@
  */
 
 import { SSE } from "./sse";
+import { consumeTextStream } from "./stream-utils";
 import type {
   ChatCallbacks,
   BaseChatOptions,
@@ -23,6 +24,9 @@ export class ChatController {
   private _status: StreamStatus = "idle";
   private _stagedUserId: string | null = null;
   private _stagedAssistantId: string | null = null;
+  private _title: string | null = null;
+  private _titleLoading = false;
+  private _titleGenerated = false;
 
   private readonly _opts: BaseChatOptions;
   private readonly _cb: ChatCallbacks;
@@ -219,6 +223,57 @@ export class ChatController {
     this.send(text, opts);
   }
 
+  /**
+   * Generate a short title for the current conversation and stream it into
+   * `chat.title` character by character.
+   *
+   * Called automatically after the first turn when `autoTitle: true`.
+   * Can also be called manually at any point to refresh the title.
+   */
+  async generateTitle(opts?: { model?: string }): Promise<void> {
+    const messages = this._messages.filter(
+      (m) =>
+        !m.optimistic &&
+        (m.role === "user" || m.role === "assistant") &&
+        m.content,
+    );
+    if (messages.length === 0) return;
+
+    this._titleLoading = true;
+    this._cb.onTitleLoading(true);
+    this._title = "";
+    this._cb.onTitle("");
+
+    const endpoint = this._opts.titleEndpoint ?? "/__aibind__/title";
+
+    try {
+      const response = await this._fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: messages
+            .slice(0, 6)
+            .map(({ role, content }) => ({ role, content })),
+          model: opts?.model ?? this._opts.model,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Title request failed: ${response.status}`);
+
+      for await (const chunk of consumeTextStream(response)) {
+        this._title += chunk;
+        this._cb.onTitle(this._title);
+      }
+
+      this._titleGenerated = true;
+    } catch {
+      // Title generation is non-critical — fail silently
+    } finally {
+      this._titleLoading = false;
+      this._cb.onTitleLoading(false);
+    }
+  }
+
   private async _run(
     userId: string,
     assistantId: string,
@@ -323,6 +378,9 @@ export class ChatController {
       this._status = "done";
       this._cb.onStatus("done");
       this._opts.onFinish?.([...this._messages]);
+      if (this._opts.autoTitle && !this._titleGenerated) {
+        void this.generateTitle();
+      }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       const error = e instanceof Error ? e : new Error(String(e));

@@ -245,25 +245,9 @@ Because `asTool()` returns a plain AI SDK `Tool`, the same toolset works for bot
 
 ## Tool approval
 
-Tools can require user approval before execution:
+Tool approval (pausing before a step for human confirmation) is a graph-agent feature. Use `requireApproval: true` on any node in an `AgentGraph` — the graph pauses after that node and emits a `pendingApproval` event on the client. Call `approve()` or `deny()` to continue.
 
-```ts
-const agent = new ServerAgent({
-  toolsets: {
-    dangerous: {
-      delete_file: tool({
-        description: "Delete a file",
-        inputSchema: z.object({ path: z.string() }),
-        // Tool requires approval — handled by client
-      }),
-    },
-  },
-  toolset: "dangerous",
-  requireApproval: ["delete_file"],
-});
-```
-
-The client receives a `pendingApproval` event and must call `approve()` or `deny()` to continue.
+See [Graph Agents → requireApproval](/concepts/graph-agents#requireapproval) for the full example.
 
 ## Next steps
 

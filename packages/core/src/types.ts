@@ -224,6 +224,8 @@ export interface ChatCallbacks {
   onLoading(loading: boolean): void;
   onError(error: Error | null): void;
   onStatus(status: StreamStatus): void;
+  onTitle(title: string | null): void;
+  onTitleLoading(loading: boolean): void;
 }
 
 export interface BaseChatOptions {
@@ -255,6 +257,17 @@ export interface BaseChatOptions {
    * Useful for showing "Searching…" or progress feedback in the UI.
    */
   onToolCall?: (name: string, args: unknown) => void;
+  /**
+   * Automatically generate a conversation title after the first completed turn.
+   * Updates `chat.title` reactively as the title streams in.
+   * Calls `/__aibind__/title` unless `titleEndpoint` is set.
+   */
+  autoTitle?: boolean;
+  /**
+   * Custom endpoint for title generation. Defaults to `/__aibind__/title`.
+   * Only used when `autoTitle: true` or `generateTitle()` is called manually.
+   */
+  titleEndpoint?: string;
 }
 
 // --- defineModels ---

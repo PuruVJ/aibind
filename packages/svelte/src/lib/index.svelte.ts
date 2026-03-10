@@ -534,6 +534,10 @@ export class Chat {
   error: Error | null = $state(null);
   status: StreamStatus = $state("idle");
   hasOptimistic: boolean = $derived(this.messages.some((m) => m.optimistic));
+  /** The generated conversation title, streaming in live. `null` until first generation. */
+  title: string | null = $state(null);
+  /** `true` while the title is being generated. */
+  titleLoading = $state(false);
 
   #ctrl: ChatController;
 
@@ -550,6 +554,12 @@ export class Chat {
       },
       onStatus: (s) => {
         this.status = s;
+      },
+      onTitle: (t) => {
+        this.title = t;
+      },
+      onTitleLoading: (l) => {
+        this.titleLoading = l;
       },
     } satisfies ChatCallbacks);
     onDestroy(() => this.abort());
@@ -590,6 +600,15 @@ export class Chat {
    */
   optimistic(content: string, opts?: ChatSendOptions): StagedMessage {
     return this.#ctrl.optimistic(content, opts);
+  }
+
+  /**
+   * Generate (or refresh) the conversation title.
+   * Streams the result into `chat.title` character by character.
+   * Called automatically after the first turn when `autoTitle: true`.
+   */
+  generateTitle(opts?: { model?: string }): Promise<void> {
+    return this.#ctrl.generateTitle(opts);
   }
 }
 

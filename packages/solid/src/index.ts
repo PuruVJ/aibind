@@ -439,6 +439,8 @@ export interface UseChatReturn {
   error: Accessor<Error | null>;
   status: Accessor<StreamStatus>;
   hasOptimistic: Accessor<boolean>;
+  title: Accessor<string | null>;
+  titleLoading: Accessor<boolean>;
   send: (content: string, opts?: ChatSendOptions) => void;
   abort: () => void;
   clear: () => void;
@@ -446,6 +448,7 @@ export interface UseChatReturn {
   edit: (id: string, text: string, opts?: ChatSendOptions) => void;
   revert: () => string | null;
   optimistic: (content: string, opts?: ChatSendOptions) => StagedMessage;
+  generateTitle: (opts?: { model?: string }) => Promise<void>;
 }
 
 /**
@@ -463,12 +466,16 @@ export function useChat(options: ChatOptions): UseChatReturn {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<Error | null>(null);
   const [status, setStatus] = createSignal<StreamStatus>("idle");
+  const [title, setTitle] = createSignal<string | null>(null);
+  const [titleLoading, setTitleLoading] = createSignal(false);
 
   const ctrl = new ChatController(options, {
     onMessages: setMessages,
     onLoading: setLoading,
     onError: setError,
     onStatus: setStatus,
+    onTitle: setTitle,
+    onTitleLoading: setTitleLoading,
   } satisfies ChatCallbacks);
 
   onCleanup(() => ctrl.abort());
@@ -479,6 +486,8 @@ export function useChat(options: ChatOptions): UseChatReturn {
     error,
     status,
     hasOptimistic: createMemo(() => messages().some((m) => m.optimistic)),
+    title,
+    titleLoading,
     send: (content, opts) => ctrl.send(content, opts),
     abort: () => ctrl.abort(),
     clear: () => ctrl.clear(),
@@ -486,6 +495,7 @@ export function useChat(options: ChatOptions): UseChatReturn {
     edit: (id, text, opts) => ctrl.edit(id, text, opts),
     revert: () => ctrl.revert(),
     optimistic: (content, opts) => ctrl.optimistic(content, opts),
+    generateTitle: (opts) => ctrl.generateTitle(opts),
   };
 }
 

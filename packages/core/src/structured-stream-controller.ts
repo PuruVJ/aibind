@@ -20,6 +20,8 @@ import type { DeepPartial } from "./types";
 export interface StructuredStreamCallbacks<T> extends BaseStreamCallbacks {
   onPartial(partial: DeepPartial<T> | null): void;
   onData(data: T | null): void;
+  /** Optional raw-text callback — never called by StructuredStreamController itself. */
+  onText?(text: string): void;
 }
 
 export interface StructuredStreamControllerOptions<
